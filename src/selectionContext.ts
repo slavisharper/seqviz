@@ -23,6 +23,7 @@ export interface Selection {
   name?: string;
   parent?: Selection;
   ref?: null | string;
+  scrollLinearOnSelect?: boolean;
   start?: number;
   type: SelectionTypeEnum;
   viewer?: "LINEAR" | "CIRCULAR";

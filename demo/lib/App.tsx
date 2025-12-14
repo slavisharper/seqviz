@@ -16,17 +16,22 @@ import seqparse from "seqparse";
 
 import Circular from "../../src/Circular/Circular";
 import Linear from "../../src/Linear/Linear";
+import LinearMap from "../../src/LinearMap/LinearMap";
 import SeqViz from "../../src/SeqViz";
 import { chooseRandomColor } from "../../src/colors";
 import { AnnotationProp, Primer, TranslationProp } from "../../src/elements";
 import Header from "./Header";
 import file from "./file";
 
+type ViewerOption = "both" | "circular" | "linear" | "both_flip" | "linear_map" | "linear_map_linear";
+
 const viewerTypeOptions = [
   { key: "both", text: "Both", value: "both" },
   { key: "circular", text: "Circular", value: "circular" },
   { key: "linear", text: "Linear", value: "linear" },
   { key: "both_flip", text: "Both Flip", value: "both_flip" },
+  { key: "linear_map", text: "Linear Map", value: "linear_map" },
+  { key: "linear_map_linear", text: "Linear Map + Linear", value: "linear_map_linear" },
 ];
 
 interface AppState {
@@ -44,7 +49,7 @@ interface AppState {
   showSelectionMeta: boolean;
   showSidebar: boolean;
   translations: TranslationProp[];
-  viewer: string;
+  viewer: ViewerOption;
   zoom: number;
 }
 
@@ -53,6 +58,12 @@ export default class App extends React.Component<any, AppState> {
     annotations: [],
     customChildren: true,
     enzymes: ["PstI", "EcoRI", "XbaI", "SpeI"],
+    // enzymes: [
+    //   { fcut: 3, name: "Acc16I", rcut: 3, rseq: "TGCGCA" },
+    //   { fcut: 3, name: "Acc16II", rcut: 3, rseq: "TGCGCA" },
+    //   { fcut: 3, name: "Acc16III", rcut: 3, rseq: "TGCGCA" }
+    // ],
+    // enzymes: ["PstI", "EcoRI", "XbaI", "SpeI", "Acc16I", "Acc65I", "AccIII", "AcII", "AfeuI", "AfIII", "AqeI", "AhaIII", "Aor14HI", "Aor51HI", "AseI", "AsiGI", "Asp718I", "AspA2O", "AssI", "AsuII", "AviII", "AvrII", "BaII", "BcII", "BqIII", "BInI", "BmcAI", "Bpu14I", "BseAI", "BshTI", "Bsp119I", "Bsp13I", "Bsp1407I", "Bsp19I", "Bsp68I", "BspEI", "BspHI", "BspMII", "BspMII", "BspTI04I", "BspTI", "BsrGI", "Bst98I", "BstAFI", "BstAUI", "BstBI", "BstHPI", "BstSNI", "BtuMI", "CciI", "Cfr42I", "Csp45I", "CspAI", "DraI", "EcI136II", "Eco105I", "Eco32I", "Eco47III", "Eco53kI", "EcoICRI", "EcoRI", "EcoRV", "EcoT22I", "FauNDI", "FvaI", "FspI", "HpaI", "Kpn2I", "KpnI", "Ksp22I", "KspAI", "KspI", "MIsI", "MiuNI", "MroI", "MscI", "Msp20I", "MspCI", "MstI", "NcoI", "NdeI", "NruI", "NsbI", "NsiI", "PaeR7I", "PaqI", "PinAI", "Ppu10I", "PshBI", "Psp123BI", "Psp1406I", "PstI", "PvuII", "RcaI", "RruI", "SacI", "SacII", "SaII", "ScaI", "SciI", "Sfr274I", "Sfr303I", "SfuI", "SqrBI", "SlaI", "SnaBI", "SpeI", "SspI", "SstI", "StrI", "VspI", "XbaI", "XhoI", "XmaJI"],
     name: "",
     primers: [
       {
@@ -140,27 +151,65 @@ export default class App extends React.Component<any, AppState> {
   render() {
     let customChildren = null;
     if (this.state.customChildren) {
-      customChildren = ({ circularProps, linearProps, ...props }) => {
-        if (this.state.viewer === "linear") {
+      customChildren = ({ circularProps, handleMouseEvent, inputRef, linearMapProps, linearProps, onUnmount }) => {
+        if (this.state.viewer === "linear_map") {
           return (
             <div ref={this.linearRef} style={{ height: "100%", width: "100%" }}>
-              <Linear {...linearProps} {...props} />
+              <LinearMap {...linearMapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
+            </div>
+          );
+        } else if (this.state.viewer === "linear_map_linear") {
+          const mapProps = { ...linearMapProps, size: { ...linearMapProps.size, height: 0 } };
+          return (
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
+              <div style={{ flex: "0 0 auto" }}>
+                <LinearMap {...mapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
+              </div>
+              <div style={{ flex: "1 1 auto", height: "100%", minHeight: 0, overflow: "hidden" }}>
+                <Linear
+                  {...linearProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
+              </div>
+            </div>
+          );
+        } else if (this.state.viewer === "linear") {
+          return (
+            <div ref={this.linearRef} style={{ height: "100%", width: "100%" }}>
+              <Linear {...linearProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} onUnmount={onUnmount} />
             </div>
           );
         } else if (this.state.viewer === "circular") {
           return (
             <div ref={this.circularRef} style={{ height: "100%", width: "100%" }}>
-              <Circular {...circularProps} {...props} />
+              <Circular
+                {...circularProps}
+                handleMouseEvent={handleMouseEvent}
+                inputRef={inputRef}
+                onUnmount={onUnmount}
+              />
             </div>
           );
         } else if (this.state.viewer === "both") {
           return (
             <div style={{ display: "flex", flexDirection: "row", height: "100%", width: "100%" }}>
               <div ref={this.circularRef} style={{ height: "100%", width: "50%" }}>
-                <Circular {...circularProps} {...props} />
+                <Circular
+                  {...circularProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
               </div>
               <div ref={this.linearRef} style={{ height: "100%", width: "50%" }}>
-                <Linear {...linearProps} {...props} />
+                <Linear
+                  {...linearProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
               </div>
             </div>
           );
@@ -168,10 +217,20 @@ export default class App extends React.Component<any, AppState> {
           return (
             <div style={{ display: "flex", flexDirection: "row", height: "100%", width: "100%" }}>
               <div ref={this.linearRef} style={{ height: "100%", width: "50%" }}>
-                <Linear {...linearProps} {...props} />
+                <Linear
+                  {...linearProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
               </div>
               <div ref={this.circularRef} style={{ height: "100%", width: "50%" }}>
-                <Circular {...circularProps} {...props} />
+                <Circular
+                  {...circularProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
               </div>
             </div>
           );
@@ -179,10 +238,20 @@ export default class App extends React.Component<any, AppState> {
           return (
             <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
               <div ref={this.linearRef} style={{ height: "25%", width: "100%" }}>
-                <Linear {...linearProps} {...props} />
+                <Linear
+                  {...linearProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
               </div>
               <div ref={this.circularRef} style={{ height: "75%", width: "100%" }}>
-                <Circular {...circularProps} {...props} />
+                <Circular
+                  {...circularProps}
+                  handleMouseEvent={handleMouseEvent}
+                  inputRef={inputRef}
+                  onUnmount={onUnmount}
+                />
               </div>
             </div>
           );
@@ -205,7 +274,7 @@ export default class App extends React.Component<any, AppState> {
             <SidebarHeader toggleSidebar={this.toggleSidebar} />
             <Menu.Item as="a">
               <ViewerTypeInput
-                setType={(viewer: string) => {
+                setType={(viewer: ViewerOption) => {
                   this.setState({ viewer });
                 }}
               />
@@ -252,11 +321,10 @@ export default class App extends React.Component<any, AppState> {
                     // accession="MN623123"
                     key={`${this.state.viewer}${this.state.customChildren}`}
                     annotations={this.state.annotations}
-                    primers={this.state.primers}
                     enzymes={this.state.enzymes}
-                    highlights={[{ start: 0, end: 10 }]}
+                    highlights={[{ end: 10, start: 0 }]}
                     name={this.state.name}
-                    onSelection={selection => this.setState({ selection })}
+                    primers={this.state.primers}
                     refs={{ circular: this.circularRef, linear: this.linearRef }}
                     search={this.state.search}
                     selection={this.state.selection}
@@ -264,8 +332,11 @@ export default class App extends React.Component<any, AppState> {
                     showComplement={this.state.showComplement}
                     showIndex={this.state.showIndex}
                     translations={this.state.translations}
-                    viewer={this.state.viewer as "linear" | "circular"}
+                    viewer={this.state.viewer}
                     zoom={{ linear: this.state.zoom }}
+                    onSelection={selection => {
+                      this.setState({ selection });
+                    }}
                   >
                     {customChildren}
                   </SeqViz>
@@ -279,7 +350,7 @@ export default class App extends React.Component<any, AppState> {
   }
 }
 
-const ViewerTypeInput = ({ setType }: { setType: (viewType: string) => void }) => (
+const ViewerTypeInput = ({ setType }: { setType: (viewType: ViewerOption) => void }) => (
   <div className="option" id="topology">
     <span>Topology</span>
     <Dropdown
@@ -288,7 +359,7 @@ const ViewerTypeInput = ({ setType }: { setType: (viewType: string) => void }) =
       options={viewerTypeOptions}
       selection
       onChange={(_, data) => {
-        setType(`${data.value}`);
+        setType(data.value as ViewerOption);
       }}
     />
   </div>

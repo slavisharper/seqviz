@@ -151,6 +151,11 @@ export const circularLabelLine: CSS.Properties = {
   strokeWidth: "1",
 };
 
+export const circularLabelLineHover: CSS.Properties = {
+  ...circularLabelLine,
+  stroke: "black",
+};
+
 export const linearScroller: CSS.Properties = {
   cursor: "text",
   fontWeight: 300,

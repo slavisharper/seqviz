@@ -4,9 +4,10 @@ import { withResizeDetector } from "react-resize-detector";
 import Circular, { CircularProps } from "./Circular/Circular";
 import { EventHandler } from "./EventHandler";
 import Linear, { LinearProps } from "./Linear/Linear";
+import LinearMap, { LinearMapProps } from "./LinearMap/LinearMap";
 import SelectionHandler, { InputRefFunc } from "./SelectionHandler";
 import CentralIndexContext from "./centralIndexContext";
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType } from "./elements";
+import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size } from "./elements";
 import { isEqual } from "./isEqual";
 import SelectionContext, { ExternalSelection, Selection, defaultSelection } from "./selectionContext";
 
@@ -21,6 +22,7 @@ export interface CustomChildrenProps {
   circularProps: Omit<CircularProps, "handleMouseEvent" | "inputRef" | "onUnmount">;
   handleMouseEvent: React.MouseEventHandler;
   inputRef: InputRefFunc;
+  linearMapProps: Omit<LinearMapProps, "handleMouseEvent" | "inputRef">;
   linearProps: Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount">;
   onUnmount: (ref: string) => void;
 }
@@ -55,7 +57,7 @@ interface SeqViewerContainerProps {
   /** testSize is a forced height/width that overwrites anything from sizeMe. For testing */
   testSize?: { height: number; width: number };
   translations: NameRange[];
-  viewer: "linear" | "circular" | "both" | "both_flip";
+  viewer: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear";
   width: number;
   zoom: { circular: number; linear: number };
 }
@@ -146,22 +148,28 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     return state;
   };
 
+  private getViewerSize = (): Size => {
+    const { children, height, refs, testSize, viewer, width } = this.props;
+    const baseSize = testSize ? { ...testSize } : { height, width };
+
+    if (refs?.linear?.current && children) {
+      baseSize.width = refs.linear.current.clientWidth;
+      baseSize.height = refs.linear.current.clientHeight;
+    } else if (viewer.includes("both")) {
+      baseSize.width /= 2;
+    }
+
+    return baseSize;
+  };
+
   /**
    * given the width of the screen, and the current zoom, how many basepairs should be displayed
    * on the screen at a given time and what should their size be
    */
-  linearProps = () => {
-    const { seq, seqType, viewer } = this.props;
-    const size = this.props.testSize || { height: this.props.height, width: this.props.width };
+  linearProps = (baseSize?: Size) => {
+    const { seq, seqType } = this.props;
+    const size = { ...(baseSize || this.getViewerSize()) };
     const zoom = this.props.zoom.linear;
-
-    if (this.props.refs?.linear?.current && this.props.children) {
-      size.width = this.props.refs.linear.current.clientWidth;
-      size.height = this.props.refs.linear.current.clientHeight;
-    } else if (viewer.includes("both")) {
-      // hack
-      size.width /= 2;
-    }
 
     const seqFontSize = Math.min(Math.round(zoom * 0.1 + 9.5), 18); // max 18px
 
@@ -258,10 +266,28 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     const { selection: selectionProp, seq, viewer } = this.props;
     const { centralIndex, selection } = this.state;
 
-    const linearProps = this.linearProps();
-    const circularProps = this.circularProps();
-
     const mergedSelection = this.getSelection(selection, selectionProp);
+
+    const viewerSize = this.getViewerSize();
+    const linearProps = this.linearProps(viewerSize);
+    const circularProps = this.circularProps();
+    const linearMapProps: Omit<LinearMapProps, "handleMouseEvent" | "inputRef"> = {
+      annotations: this.props.annotations,
+      cutSites: this.props.cutSites,
+      highlights: this.props.highlights,
+      name: this.props.name,
+      primers: this.props.primers,
+      rotateOnScroll: this.props.rotateOnScroll,
+      search: this.props.search,
+      selection: mergedSelection,
+      seq: this.props.seq,
+      showIndex: this.props.showIndex,
+      size: viewerSize,
+    };
+    const combinedLinearMapProps =
+      viewer === "linear_map_linear"
+        ? { ...linearMapProps, size: { ...linearMapProps.size, height: 0 } }
+        : linearMapProps;
 
     return (
       <div
@@ -300,6 +326,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                       circularProps,
                       handleMouseEvent,
                       inputRef,
+                      linearMapProps,
                       linearProps,
                       onUnmount,
                     })
@@ -313,6 +340,38 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                           inputRef={inputRef}
                           onUnmount={onUnmount}
                         />
+                      )}
+                      {viewer === "linear_map" && (
+                        <LinearMap
+                          {...linearMapProps}
+                          handleMouseEvent={handleMouseEvent}
+                          inputRef={inputRef}
+                        />
+                      )}
+                      {viewer === "linear_map_linear" && (
+                        <div
+                          className="la-vz-viewer-linear-map-stack"
+                          style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}
+                        >
+                          <div className="la-vz-viewer-linear-map-stack-map" style={{ flex: "0 0 auto" }}>
+                            <LinearMap
+                              {...combinedLinearMapProps}
+                              handleMouseEvent={handleMouseEvent}
+                              inputRef={inputRef}
+                            />
+                          </div>
+                          <div
+                            className="la-vz-viewer-linear-map-stack-seq"
+                            style={{ flex: "1 1 auto", height: "100%", minHeight: 0, overflow: "hidden" }}
+                          >
+                            <Linear
+                              {...linearProps}
+                              handleMouseEvent={handleMouseEvent}
+                              inputRef={inputRef}
+                              onUnmount={onUnmount}
+                            />
+                          </div>
+                        </div>
                       )}
                       {viewer === "circular" && (
                         <Circular

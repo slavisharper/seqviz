@@ -3,6 +3,8 @@ import * as React from "react";
 import SelectionContext, { Selection, defaultSelection } from "./selectionContext";
 
 interface RefSelection extends Selection {
+  linearOffset?: number;
+  linearWidth?: number;
   viewer: "LINEAR" | "CIRCULAR";
 }
 
@@ -129,7 +131,10 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     }
     knownRange = { ...knownRange, end: knownRange.end || 0, start: knownRange.start || 0 };
 
-    const { direction, end, start, viewer } = knownRange;
+    const { direction, end, scrollLinearOnSelect, start, viewer } = knownRange as Selection & {
+      scrollLinearOnSelect?: boolean;
+    };
+    console.log(knownRange);
     switch (knownRange.type) {
       case "ANNOTATION":
       case "FIND":
@@ -138,7 +143,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       case "ENZYME":
       case "PRIMER":
       case "HIGHLIGHT": {
-        if (viewer !== "LINEAR" && setCentralIndex) {
+        const shouldScrollLinear = scrollLinearOnSelect || viewer !== "LINEAR";
+        if (shouldScrollLinear && setCentralIndex) {
           // if an element was clicked on the circular viewer, scroll the linear
           // viewer so the element starts on the first SeqBlock
           setCentralIndex("LINEAR", start || 0);
@@ -205,13 +211,25 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   /**
    * Handle a sequence selection on a linear viewer
    */
-  handleLinearSeqEvent = (e: SeqVizMouseEvent, knownRange: { end: number; start: number }) => {
+  handleLinearSeqEvent = (
+    e: SeqVizMouseEvent,
+    knownRange: {
+      end: number;
+      linearOffset?: number;
+      linearWidth?: number;
+      scrollLinearOnSelect?: boolean;
+      start: number;
+    }
+  ) => {
     const selection = this.context;
 
     const currBase = this.calculateBaseLinear(e, knownRange);
     const clockwiseDrag = selection.start !== null && currBase >= (selection.start || 0);
 
     if (e.type === "mousedown" && currBase !== null) {
+      if (knownRange.scrollLinearOnSelect) {
+        this.props.setCentralIndex("LINEAR", currBase);
+      }
       // this is the start of a drag event
       this.setSelection({
         ...defaultSelection,
@@ -348,13 +366,23 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    * in a linear sequence viewer, given the bounding box of a component, the basepairs
    * by SeqBlock and the position of the mouse event, find the current base
    */
-  calculateBaseLinear = (e: SeqVizMouseEvent, knownRange: { end: number; start: number }) => {
-    const { bpsPerBlock } = this.props;
-
+  calculateBaseLinear = (
+    e: SeqVizMouseEvent,
+    knownRange: { end: number; linearOffset?: number; linearWidth?: number, start: number; }
+  ) => {
     const block = e.currentTarget.getBoundingClientRect();
-    const distFromLeft: number = e.clientX - block.left;
-    const ratioFromLeft = distFromLeft / block.width;
-    const bpsFromLeft = Math.round(ratioFromLeft * (bpsPerBlock as number));
+    const offset = knownRange.linearOffset || 0;
+    const width = knownRange.linearWidth || block.width;
+    if (width <= 0) {
+      return knownRange.start;
+    }
+
+    const leftBoundary = block.left + offset;
+    const distFromLeft = e.clientX - leftBoundary;
+    const clampedDist = Math.max(0, Math.min(distFromLeft, width));
+    const ratioFromLeft = clampedDist / width;
+    const basesInRange = Math.max(knownRange.end - knownRange.start, 1);
+    const bpsFromLeft = Math.round(ratioFromLeft * basesInRange);
 
     return Math.min(knownRange.start + bpsFromLeft, knownRange.end);
   };

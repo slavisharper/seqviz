@@ -122,14 +122,18 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       innerRadius -= lineHeight;
     });
 
-    cutSiteLabels.forEach(c =>
+    const seenCutLabelKeys = new Set<string>();
+    cutSiteLabels.forEach(c => {
+      const key = `${c.name}|${c.start}|${c.end}|${c.fcut}|${c.rcut}`;
+      if (seenCutLabelKeys.has(key)) return;
+      seenCutLabelKeys.add(key);
       outerLabels.push({
         ...c.enzyme,
         ...c,
         start: c.fcut,
         type: "enzyme",
-      })
-    );
+      });
+    });
 
     // sort all the labels so they're in ascending order
     outerLabels.sort((a, b) => Math.min(a.start, a.end) - Math.min(b.start, b.end));

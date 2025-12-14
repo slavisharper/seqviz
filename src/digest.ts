@@ -16,24 +16,19 @@ export default (
 ): CutSite[] => {
   const seqToCut = seq + seq;
 
-  // find all the cut sites, deduplicate by index+direction of each cut-site
-  const cutSites = enzymes
+  return enzymes
     // if it's a string, assume it's an enzyme name in the pre-defined enzyme list
     .map(e => (typeof e === "string" ? presetEnzymes[e.toLowerCase()] : e))
     // filter out enzyme names that were wrong
-    .filter(e => e)
+    .filter((e): e is Enzyme => Boolean(e))
     // add in custom enzymes
     .concat(Object.values(enzymesCustom))
     // build up cut-sites
-    .reduce((acc: { [key: string]: CutSite }, enzyme: Enzyme) => {
-      // search for cut sites for this enzyme
-      findCutSites(enzyme, seqToCut, seqType, seq.length)
-        // deduplicate so there's only one enzyme per index
-        .forEach(c => (acc[`${c.fcut}-${c.direction}`] = c));
+    .reduce((acc: CutSite[], enzyme: Enzyme) => {
+      const sites = findCutSites(enzyme, seqToCut, seqType, seq.length);
+      if (sites.length) acc.push(...sites);
       return acc;
-    }, {});
-
-  return Object.values(cutSites);
+    }, [] as CutSite[]);
 };
 
 /**

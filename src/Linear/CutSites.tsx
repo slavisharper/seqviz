@@ -51,13 +51,19 @@ export const CutSites = (props: {
   const labelledCutSites = withLabels(enhancedCutSites, size);
 
   const lineYDiff = yDiff + lineHeight;
+  const renderedLabelKeys = new Set<string>();
   return (
     <g className="la-vz-cut-sites">
       {labelledCutSites.map(c => {
+        const labelKey = `${c.c.name}|${c.c.start}|${c.c.end}|${c.c.fcut}|${c.c.rcut}`;
+        const canRenderLabel = c.label.render && !renderedLabelKeys.has(labelKey);
+        if (canRenderLabel) {
+          renderedLabelKeys.add(labelKey);
+        }
         return (
           <g key={`cut-site-${c.c.id}-${firstBase}`}>
             {/* enzyme name label above the cut-site */}
-            {c.label.render && (
+            {canRenderLabel && (
               <text
                 className={`la-vz-cut-site-text ${c.c.id}-label`}
                 dominantBaseline="hanging"

@@ -133,6 +133,7 @@ export interface CutSite extends NameRange {
 
   /** index relative to start index of the cut on the bottom strand */
   rcut: number;
+
 }
 
 /** supported input sequence types */
