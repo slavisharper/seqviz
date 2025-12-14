@@ -890,7 +890,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       const baseName = uniqueNames.length ? uniqueNames.join("+") : label.name;
       const displayName =
         label.type === "enzyme" && typeof label.cutPosition === "number"
-          ? `${baseName} (${label.cutPosition})`
+          ? `${baseName}(${label.cutPosition})`
           : baseName;
       const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, CHAR_WIDTH * 3);
       const maxLeft = scale.offsetX + scale.width - textWidth;
