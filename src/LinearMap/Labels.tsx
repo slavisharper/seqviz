@@ -96,9 +96,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
           const isAboveBaseline = textY < connectorY;
           const connectorEndY = isAboveBaseline ? textY + lineHeight * 0.45 : textY - lineHeight * 0.45;
           const showConnector = true;
-          const labelHovered = label.labels.some(
-            item => hoveredFeatures?.[item.id] || selectedFeatures?.[item.id]
-          );
+          const labelHovered = label.labels.some(item => hoveredFeatures?.[item.id] || selectedFeatures?.[item.id]);
           const labelStyle: React.CSSProperties = {
             ...circularLabel,
             cursor: "pointer",

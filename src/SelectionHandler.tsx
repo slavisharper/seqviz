@@ -15,7 +15,6 @@ export type SeqVizMouseEvent = React.MouseEvent & {
 };
 
 export interface SelectionHandlerProps {
-  bpsPerBlock: number;
   center: { x: number; y: number };
   centralIndex: number;
   children: (
@@ -134,7 +133,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const { direction, end, scrollLinearOnSelect, start, viewer } = knownRange as Selection & {
       scrollLinearOnSelect?: boolean;
     };
-    console.log(knownRange);
+
     switch (knownRange.type) {
       case "ANNOTATION":
       case "FIND":
@@ -368,7 +367,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    */
   calculateBaseLinear = (
     e: SeqVizMouseEvent,
-    knownRange: { end: number; linearOffset?: number; linearWidth?: number, start: number; }
+    knownRange: { end: number; linearOffset?: number; linearWidth?: number; start: number }
   ) => {
     const block = e.currentTarget.getBoundingClientRect();
     const offset = knownRange.linearOffset || 0;

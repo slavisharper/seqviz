@@ -303,7 +303,6 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
         <CentralIndexContext.Provider value={centralIndex}>
           <SelectionContext.Provider value={mergedSelection}>
             <SelectionHandler
-              bpsPerBlock={linearProps.bpsPerBlock}
               center={circularProps.center}
               centralIndex={centralIndex.circular}
               seq={seq}
@@ -342,11 +341,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                         />
                       )}
                       {viewer === "linear_map" && (
-                        <LinearMap
-                          {...linearMapProps}
-                          handleMouseEvent={handleMouseEvent}
-                          inputRef={inputRef}
-                        />
+                        <LinearMap {...linearMapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
                       )}
                       {viewer === "linear_map_linear" && (
                         <div

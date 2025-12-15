@@ -33,7 +33,14 @@ export const Index: React.FC<LinearIndexProps> = ({ lineHeight, scale, seqLength
         const x = scale.offsetX + pos * scale.pxPerBase;
         return (
           <React.Fragment key={`index-tick-${pos}`}>
-            <line className="la-vz-index-tick" style={indexTick} x1={x} x2={x} y1={baselineY} y2={baselineY + tickHeight} />
+            <line
+              className="la-vz-index-tick"
+              style={indexTick}
+              x1={x}
+              x2={x}
+              y1={baselineY}
+              y2={baselineY + tickHeight}
+            />
             <text
               className="la-vz-index-tick-label"
               style={indexTickLabel}

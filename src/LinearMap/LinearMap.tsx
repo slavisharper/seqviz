@@ -8,8 +8,8 @@ import { COLOR_BORDER_MAP, darkerColor } from "../colors";
 import { Annotation, CutSite, Highlight, Primer, Range, Size } from "../elements";
 import { stackElements } from "../elementsToRows";
 import { isEqual } from "../isEqual";
-import { annotation as annotationStyle, annotationLabel, viewerCircular, circularLabelLine } from "../style";
 import { Selection as SelectionState } from "../selectionContext";
+import { annotationLabel, annotation as annotationStyle, circularLabelLine, viewerCircular } from "../style";
 import { Find } from "./Find";
 import { Index } from "./Index";
 import { Labels, LinearLabelDatum } from "./Labels";
@@ -471,9 +471,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const segments = createSegments(annotation.start, annotation.end, scale.seqLength);
     const midpoint = rangeMidpoint(annotation.start, annotation.end, scale.seqLength);
     const textX = scale.offsetX + midpoint * scale.pxPerBase;
-    const strokeColor = annotation.color
-      ? COLOR_BORDER_MAP[annotation.color] || darkerColor(annotation.color)
-      : "gray";
+    const strokeColor = annotation.color ? COLOR_BORDER_MAP[annotation.color] || darkerColor(annotation.color) : "gray";
     const hasLabel = this.labelLookup.has(annotation.id);
     const inline = inlineAnnotationIds.has(annotation.id);
     const isInteractive = hasLabel || inline;
@@ -485,12 +483,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       stroke: strokeColor,
     } as React.CSSProperties;
     const hoverStyle = isHovered ? { ...baseStyle, fillOpacity: 1 } : baseStyle;
-    const textHoverStyle = inline && annotation.name
-      ? {
-          ...annotationLabel,
-          textDecoration: isHovered ? "underline" : "none",
-        }
-      : annotationLabel;
+    const textHoverStyle =
+      inline && annotation.name
+        ? {
+            ...annotationLabel,
+            textDecoration: isHovered ? "underline" : "none",
+          }
+        : annotationLabel;
 
     return (
       <g key={`annotation-${annotation.id}`} className="la-vz-linear-map-annotation">
@@ -545,12 +544,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     );
   }
 
-  private renderPrimerRows(
-    rows: Primer[][],
-    scale: LinearMapScale,
-    startY: number,
-    inlinePrimerIds: Set<string>
-  ) {
+  private renderPrimerRows(rows: Primer[][], scale: LinearMapScale, startY: number, inlinePrimerIds: Set<string>) {
     if (!rows.length) return null;
     const height = LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
 
@@ -572,9 +566,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const segments = createSegments(primer.start, primer.end, scale.seqLength);
     const midpoint = rangeMidpoint(primer.start, primer.end, scale.seqLength);
     const textX = scale.offsetX + midpoint * scale.pxPerBase;
-    const strokeColor = primer.color
-      ? COLOR_BORDER_MAP[primer.color] || darkerColor(primer.color)
-      : "#555";
+    const strokeColor = primer.color ? COLOR_BORDER_MAP[primer.color] || darkerColor(primer.color) : "#555";
     const hasLabel = this.labelLookup.has(primer.id);
     const inline = inlinePrimerIds.has(primer.id);
     const isInteractive = hasLabel || inline;
@@ -593,12 +585,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       stroke: strokeColor,
     } as React.CSSProperties;
     const arrowStyle = isHovered ? { ...arrowBaseStyle, fillOpacity: 1 } : arrowBaseStyle;
-    const textHoverStyle = inline && primer.name
-      ? {
-          ...annotationLabel,
-          textDecoration: isHovered ? "underline" : "none",
-        }
-      : annotationLabel;
+    const textHoverStyle =
+      inline && primer.name
+        ? {
+            ...annotationLabel,
+            textDecoration: isHovered ? "underline" : "none",
+          }
+        : annotationLabel;
 
     return (
       <g key={`primer-${primer.id}`} className="la-vz-linear-map-primer">
@@ -750,12 +743,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     return equal;
   }
 
-  private computeLabelLayout(
-    annotations: Annotation[],
-    primers: Primer[],
-    cutSites: CutSite[],
-    scale: LinearMapScale
-  ) {
+  private computeLabelLayout(annotations: Annotation[], primers: Primer[], cutSites: CutSite[], scale: LinearMapScale) {
     const inlineAnnotationIds = new Set<string>();
     const inlinePrimerIds = new Set<string>();
     const featureLabels: RawLabel[] = [];
@@ -870,21 +858,20 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const positioned: LinearLabelDatum[] = sorted.map(label => {
       const midpoint = rangeMidpoint(label.start, label.end, scale.seqLength);
       const anchorX = clamp(scale.offsetX + midpoint * scale.pxPerBase, scale.offsetX, scale.offsetX + scale.width);
-      const labelItems = (label.items && label.items.length
-        ? label.items
-        : [
-            {
-              direction: label.direction,
-              id: label.id,
-              name: label.name,
-              type: label.type,
-            },
-          ]);
+      const labelItems =
+        label.items && label.items.length
+          ? label.items
+          : [
+              {
+                direction: label.direction,
+                id: label.id,
+                name: label.name,
+                type: label.type,
+              },
+            ];
       const uniqueNames = Array.from(
         new Set(
-          labelItems
-            .map(item => item.name)
-            .filter((value): value is string => !!value && value.trim().length > 0)
+          labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0)
         )
       );
       const baseName = uniqueNames.length ? uniqueNames.join("+") : label.name;

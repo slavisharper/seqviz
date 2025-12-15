@@ -1,7 +1,7 @@
 import * as React from "react";
 
-import { CHAR_WIDTH } from "../SeqViewerContainer";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
+import { CHAR_WIDTH } from "../SeqViewerContainer";
 import { circularLabelLine, svgText } from "../style";
 import { LinearLabelDatum } from "./Labels";
 import { LinearMapScale, clamp } from "./utils";

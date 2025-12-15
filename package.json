@@ -1,7 +1,10 @@
 {
-  "name": "seqviz",
-  "description": "A viewer for DNA, RNA, and protein sequences that supports many input formats",
-  "version": "3.10.11",
+  "name": "@slavisharper/seqviz",
+  "description": "Forked seqviz package to support lab thread visualization",
+  "version": "1.0.0",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "unpkg": "dist/seqviz.min.js",
@@ -10,8 +13,6 @@
     "demo": "cd demo && npm run deploy",
     "fix": "prettier ./src/** --write && eslint src --ext ts,tsx --fix",
     "lint": "prettier ./src/** --check && eslint src --ext ts,tsx --quiet",
-    "minor": "./release.sh minor",
-    "patch": "./release.sh patch",
     "start": "cd demo && npm run start",
     "dev": "cd demo && npm install && npm run dev",
     "test": "CI=true jest"
@@ -26,17 +27,17 @@
     "vector",
     "viewer"
   ],
-  "homepage": "https://github.com/Lattice-Automation/seqviz",
+  "homepage": "https://github.com/slavisharper/seqviz",
   "bugs": {
-    "url": "https://github.com/Lattice-Automation/seqviz/issues",
-    "email": "contact@latticeautomation.com"
+    "url": "https://github.com/slavisharper/seqviz/issues",
+    "email": "stsvetanov@labthread.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Lattice-Automation/seqviz.git"
+    "url": "https://github.com/slavisharper/seqviz.git"
   },
   "license": "MIT",
-  "author": "Lattice Automation (https://latticeautomation.com/)",
+  "author": "Lattice Automation (https://latticeautomation.com/) and contributors",
   "files": [
     "dist",
     "LICENSE",
