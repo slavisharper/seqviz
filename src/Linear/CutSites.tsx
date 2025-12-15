@@ -415,11 +415,58 @@ const onCutSiteHover = (className: string, on = false) => {
   let elements = document.getElementsByClassName(`${className}-label`) as HTMLCollectionOf<HTMLElement>;
   for (let i = 0; i < elements.length; i += 1) {
     elements[i].style.fillOpacity = on ? "1.0" : "0.8";
-    elements[i].style.fontWeight = on ? "400" : "300";
+    elements[i].style.fontWeight = on ? "500" : "300";
   }
   elements = document.getElementsByClassName(className) as HTMLCollectionOf<HTMLElement>;
   for (let i = 0; i < elements.length; i += 1) {
-    elements[i].style.fillOpacity = on ? "0.25" : "0";
-    elements[i].style.stroke = on ? "black" : "rgb(115, 119, 125)";
+    const element = elements[i];
+    const { classList, dataset, style } = element;
+
+    if (on) {
+      if (dataset.cutsiteOriginalStroke == null) {
+        dataset.cutsiteOriginalStroke = style.stroke || "";
+      }
+      if (dataset.cutsiteOriginalStrokeWidth == null) {
+        dataset.cutsiteOriginalStrokeWidth = style.strokeWidth || "";
+      }
+      if (dataset.cutsiteOriginalFillOpacity == null) {
+        dataset.cutsiteOriginalFillOpacity = style.fillOpacity || "";
+      }
+      if (dataset.cutsiteOriginalFill == null) {
+        dataset.cutsiteOriginalFill = style.fill || "";
+      }
+    }
+
+    const applyVibrantStyles = () => {
+      style.stroke = classList.contains("la-vz-cut-site-highlight") ? "rgb(0, 0, 0)" : "rgb(255, 46, 99)";
+      style.strokeWidth = classList.contains("la-vz-cut-site-highlight")
+        ? dataset.cutsiteOriginalStrokeWidth || "1"
+        : "1.5";
+      if (classList.contains("la-vz-cut-site-highlight")) {
+        style.fill = "rgba(255, 239, 213, 0.2)";
+        style.fillOpacity = "1";
+      }
+    };
+
+    const restoreStyles = () => {
+      if (dataset.cutsiteOriginalStroke !== undefined) {
+        style.stroke = dataset.cutsiteOriginalStroke;
+      }
+      if (dataset.cutsiteOriginalStrokeWidth !== undefined) {
+        style.strokeWidth = dataset.cutsiteOriginalStrokeWidth;
+      }
+      if (dataset.cutsiteOriginalFillOpacity !== undefined) {
+        style.fillOpacity = dataset.cutsiteOriginalFillOpacity;
+      }
+      if (dataset.cutsiteOriginalFill !== undefined) {
+        style.fill = dataset.cutsiteOriginalFill;
+      }
+    };
+
+    if (on) {
+      applyVibrantStyles();
+    } else {
+      restoreStyles();
+    }
   }
 };
