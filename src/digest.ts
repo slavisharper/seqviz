@@ -88,22 +88,30 @@ export const findCutSites = (enzyme: Enzyme, seq: string, seqType: SeqType, seqL
   }
 
   // reduce so there's only one enzyme per template cut index
-  return (
-    cutSites
-      .sort((a, b) => a.fcut - b.fcut)
-      // filter out cut sites that that only start/end at 0-index. I no longer remember what this was for
-      .filter(c => !(c.fcut === 0 && c.rcut === 0))
-      // modulo the start/end and add an id to each cut-site
-      .map(c => ({
-        ...c,
-        end: c.end % seqL,
-        fcut: c.fcut % seqL,
-        id: `${enzyme.name}-${enzyme.rseq}-${c.fcut}-${c.direction > 0 ? "fwd" : "rev"}`,
-        rcut: c.rcut % seqL,
-        start: c.start % seqL,
-      }))
-      // if `.range` was provided on the enzyme, limit the search to that range.
-      // https://github.com/Lattice-Automation/seqviz/issues/95
-      .filter(c => (c.enzyme.range ? c.start >= c.enzyme.range.start && c.end <= c.enzyme.range.end : true))
+  const processed = cutSites
+    .sort((a, b) => a.fcut - b.fcut)
+    // filter out cut sites that only start/end at 0-index. I no longer remember what this was for
+    .filter(c => !(c.fcut === 0 && c.rcut === 0))
+    // modulo the start/end and add an id to each cut-site
+    .map(c => ({
+      ...c,
+      end: c.end % seqL,
+      fcut: c.fcut % seqL,
+      id: `${enzyme.name}-${enzyme.rseq}-${c.fcut}-${c.direction > 0 ? "fwd" : "rev"}`,
+      rcut: c.rcut % seqL,
+      start: c.start % seqL,
+    }))
+    // if `.range` was provided on the enzyme, limit the search to that range.
+    // https://github.com/Lattice-Automation/seqviz/issues/95
+    .filter(c => (c.enzyme.range ? c.start >= c.enzyme.range.start && c.end <= c.enzyme.range.end : true));
+
+  const deduped = Array.from(
+    processed.reduce((acc, site) => {
+      const key = `${site.enzyme.name}-${site.start}-${site.direction}`;
+      acc.set(key, site); // keep the most recent occurrence for duplicated wrap-around hits
+      return acc;
+    }, new Map<string, CutSite>()).values()
   );
+
+  return deduped;
 };

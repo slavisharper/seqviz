@@ -27,7 +27,7 @@ class Edges extends React.PureComponent<EdgesProps> {
 
   render() {
     const { findXAndWidth, firstBase, fullSeq, lastBase, selectEdgeHeight } = this.props;
-    const { clockwise, end, ref, start } = this.context;
+    const { clockwise, end, ref, start, type: selectionType = "" } = this.context;
 
     if (typeof start === "undefined" || typeof end === "undefined") {
       return;
@@ -59,6 +59,9 @@ class Edges extends React.PureComponent<EdgesProps> {
     }
 
     if (startEdge === null) {
+      if (selectionType === "" && lastEdge !== null) {
+        return null; // external selections only render a single edge at the selection start
+      }
       startEdge = lastEdge;
       lastEdge = null;
     }
@@ -94,9 +97,11 @@ class Edges extends React.PureComponent<EdgesProps> {
       lastEdge = null;
     }
 
+    const shouldRenderStartEdge = startEdge !== null;
+    const shouldRenderLastEdge = lastEdge !== null && selectionType !== ""; // external selections use empty type
     return (
       <g>
-        {startEdge !== null && (
+        {shouldRenderStartEdge && (
           <rect
             className="la-vz-selection-edge"
             data-testid="la-vz-selection-edge"
@@ -109,7 +114,7 @@ class Edges extends React.PureComponent<EdgesProps> {
             y={-5}
           />
         )}
-        {lastEdge !== null && (
+        {shouldRenderLastEdge && (
           <rect
             className="la-vz-selection-edge"
             data-testid="la-vz-selection-edge"
