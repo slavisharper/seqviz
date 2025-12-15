@@ -1,0 +1,59 @@
+name: Auto Build & Publish
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # PREVENT INFINITE LOOP: Don't run if the commit message contains "skip ci"
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Setup Language (Example: Node.js) ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: 'slavisharper' # Replace with your GitHub username
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build --if-present
+
+      # --- Configure Git User ---
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      # --- Bump Version ---
+      # This bumps the patch version (1.0.0 -> 1.0.1)
+      # The message includes [skip ci] so this push doesn't trigger the workflow again
+      - name: Bump Version
+        run: |
+          npm version patch -m "Bump version to %s [skip ci]"
+
+      # --- Publish to GitHub Packages ---
+      - name: Publish Package
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Push Changes Back to Repo ---
+      - name: Push Version Update
+        run: git push
