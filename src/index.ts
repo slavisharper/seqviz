@@ -33,8 +33,8 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
   // used to keep track of whether to re-render after a "set" call
   let rendered = false;
   // get the HTML element by ID or use as is if passed directly
-  let domElement: HTMLElement | null;
-  if (!document) return;
+  let domElement: HTMLElement | null = null;
+  if (typeof document === "undefined") return;
 
   if (typeof element === "string") {
     if (document.getElementById(element)) {
@@ -46,13 +46,38 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
     domElement = element;
   }
   let viewer = React.createElement(SeqViz, options, null);
+  let reactRootChecked = false;
+  let reactRoot: { render: (element: React.ReactElement | null) => void } | null = null;
+
+  const getOrCreateRoot = () => {
+    if (reactRoot || reactRootChecked) {
+      return reactRoot;
+    }
+
+    reactRootChecked = true;
+    try {
+      const client = require("react-dom/client");
+      if (client && typeof client.createRoot === "function" && domElement) {
+        reactRoot = client.createRoot(domElement);
+      }
+    } catch (error) {
+      reactRoot = null;
+    }
+
+    return reactRoot;
+  };
 
   /**
    * Render the Viewer to the element passed
    */
   const render = () => {
     rendered = true;
-    ReactDOM.render(viewer, domElement);
+    const root = getOrCreateRoot();
+    if (root) {
+      root.render(viewer);
+    } else if (domElement) {
+      ReactDOM.render(viewer, domElement);
+    }
     return viewer;
   };
 
@@ -71,7 +96,12 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
     viewer = React.createElement(SeqViz, options, null);
 
     if (rendered) {
-      ReactDOM.render(viewer, domElement);
+      const root = getOrCreateRoot();
+      if (root) {
+        root.render(viewer);
+      } else if (domElement) {
+        ReactDOM.render(viewer, domElement);
+      }
     }
     return viewer;
   };
