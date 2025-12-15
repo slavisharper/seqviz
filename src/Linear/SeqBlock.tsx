@@ -20,6 +20,14 @@ export type FindXAndWidthType = (
   x: number;
 };
 
+type TextProps = {
+  fontSize: number;
+  lengthAdjust: string;
+  textAnchor: "start";
+  textLength: number;
+  textRendering: string;
+};
+
 export type FindXAndWidthElementType = (
   i: number,
   element: NameRange,
@@ -248,7 +256,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
 
     if (!size.width || !size.height) return null;
 
-    const textProps = {
+    const textProps: TextProps = {
       fontSize: seqFontSize,
       lengthAdjust: "spacing",
       textAnchor: "start",

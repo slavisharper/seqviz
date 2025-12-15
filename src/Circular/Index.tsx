@@ -24,6 +24,12 @@ interface IndexProps {
   yDiff: number;
 }
 
+type SubtitleStyle = {
+  fill: string;
+  fontSize: number;
+  textAnchor: "middle";
+};
+
 /**
  * The Index component renders the plasmid's:
  * 		1. name (center or bottom)
@@ -183,7 +189,7 @@ export class Index extends React.PureComponent<IndexProps> {
     const tickCoorEnd = findCoor(0, radius - 7);
 
     // create tick and text style
-    const subtitleStyle = {
+    const subtitleStyle: SubtitleStyle = {
       fill: "gray",
       fontSize: 12,
       textAnchor: "middle",

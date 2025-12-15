@@ -23,12 +23,12 @@
   "rules": {
     "@typescript-eslint/ban-ts-comment": "warn",
     "@typescript-eslint/no-empty-function": "warn",
-    "@typescript-eslint/padding-line-between-statements": [
+    "padding-line-between-statements": [
       "error",
       {
         "blankLine": "always",
         "prev": "*",
-        "next": ["class", "export", "function", "interface", "type"]
+        "next": ["class", "export", "function"]
       }
     ],
     "no-empty": "warn",
