@@ -1,4 +1,4 @@
-name: main
+name: Running Tests
 
 on:
   push:
