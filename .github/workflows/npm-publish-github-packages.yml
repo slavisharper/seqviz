@@ -30,7 +30,7 @@ jobs:
           scope: 'slavisharper' # Replace with your GitHub username
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build --if-present
@@ -46,7 +46,7 @@ jobs:
       # The message includes [skip ci] so this push doesn't trigger the workflow again
       - name: Bump Version
         run: |
-          npm version patch -m "Bump version to %s [skip ci]"
+          npm version patch --force -m "Bump version to %s [skip ci]"
 
       # --- Publish to GitHub Packages ---
       - name: Publish Package
