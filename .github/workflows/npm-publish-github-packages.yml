@@ -54,6 +54,20 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # --- Push Changes Back to Repo ---
-      - name: Push Version Update
-        run: git push
+      # --- Push Changes AND Tags ---
+      - name: Push Changes
+        run: git push --follow-tags origin develop
+
+      # --- Create GitHub Release ---
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Get the new version number from package.json
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          
+          # 2. Create the release on GitHub
+          # --generate-notes automatically creates a changelog based on pull requests
+          gh release create "v$NEW_VERSION" \
+            --title "v$NEW_VERSION" \
+            --generate-notes
