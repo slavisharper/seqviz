@@ -57,13 +57,13 @@ export default class App extends React.Component<any, AppState> {
   state: AppState = {
     annotations: [],
     customChildren: true,
-    enzymes: ["PstI", "EcoRI", "XbaI", "SpeI"],
+    // enzymes: ["PstI", "EcoRI", "XbaI", "SpeI"],
     // enzymes: [
     //   { fcut: 3, name: "Acc16I", rcut: 3, rseq: "TGCGCA" },
     //   { fcut: 3, name: "Acc16II", rcut: 3, rseq: "TGCGCA" },
     //   { fcut: 3, name: "Acc16III", rcut: 3, rseq: "TGCGCA" }
     // ],
-    // enzymes: ["PstI", "EcoRI", "XbaI", "SpeI", "Acc16I", "Acc65I", "AccIII", "AcII", "AfeuI", "AfIII", "AqeI", "AhaIII", "Aor14HI", "Aor51HI", "AseI", "AsiGI", "Asp718I", "AspA2O", "AssI", "AsuII", "AviII", "AvrII", "BaII", "BcII", "BqIII", "BInI", "BmcAI", "Bpu14I", "BseAI", "BshTI", "Bsp119I", "Bsp13I", "Bsp1407I", "Bsp19I", "Bsp68I", "BspEI", "BspHI", "BspMII", "BspMII", "BspTI04I", "BspTI", "BsrGI", "Bst98I", "BstAFI", "BstAUI", "BstBI", "BstHPI", "BstSNI", "BtuMI", "CciI", "Cfr42I", "Csp45I", "CspAI", "DraI", "EcI136II", "Eco105I", "Eco32I", "Eco47III", "Eco53kI", "EcoICRI", "EcoRI", "EcoRV", "EcoT22I", "FauNDI", "FvaI", "FspI", "HpaI", "Kpn2I", "KpnI", "Ksp22I", "KspAI", "KspI", "MIsI", "MiuNI", "MroI", "MscI", "Msp20I", "MspCI", "MstI", "NcoI", "NdeI", "NruI", "NsbI", "NsiI", "PaeR7I", "PaqI", "PinAI", "Ppu10I", "PshBI", "Psp123BI", "Psp1406I", "PstI", "PvuII", "RcaI", "RruI", "SacI", "SacII", "SaII", "ScaI", "SciI", "Sfr274I", "Sfr303I", "SfuI", "SqrBI", "SlaI", "SnaBI", "SpeI", "SspI", "SstI", "StrI", "VspI", "XbaI", "XhoI", "XmaJI"],
+    enzymes: ["PstI", "EcoRI", "XbaI", "SpeI", "Acc16I", "Acc65I", "AccIII", "AcII", "AfeuI", "AfIII", "AqeI", "AhaIII", "Aor14HI", "Aor51HI", "AseI", "AsiGI", "Asp718I", "AspA2O", "AssI", "AsuII", "AviII", "AvrII", "BaII", "BcII", "BqIII", "BInI", "BmcAI", "Bpu14I", "BseAI", "BshTI", "Bsp119I", "Bsp13I", "Bsp1407I", "Bsp19I", "Bsp68I", "BspEI", "BspHI", "BspMII", "BspMII", "BspTI04I", "BspTI", "BsrGI", "Bst98I", "BstAFI", "BstAUI", "BstBI", "BstHPI", "BstSNI", "BtuMI", "CciI", "Cfr42I", "Csp45I", "CspAI", "DraI", "EcI136II", "Eco105I", "Eco32I", "Eco47III", "Eco53kI", "EcoICRI", "EcoRI", "EcoT22I", "FauNDI", "FvaI", "FspI", "HpaI", "Kpn2I", "KpnI", "Ksp22I", "KspAI", "KspI", "MIsI", "MiuNI", "MroI", "MscI", "Msp20I", "MspCI", "MstI", "NcoI", "NdeI", "NruI", "NsbI", "NsiI", "PaeR7I", "PaqI", "PinAI", "Ppu10I", "PshBI", "Psp123BI", "Psp1406I", "PstI", "PvuII", "RcaI", "RruI", "SacI", "SacII", "SaII", "ScaI", "SciI", "Sfr274I", "Sfr303I", "SfuI", "SqrBI", "SlaI", "SnaBI", "SpeI", "SspI", "SstI", "StrI", "VspI", "XbaI", "XhoI", "XmaJI"],
     name: "",
     primers: [
       {
