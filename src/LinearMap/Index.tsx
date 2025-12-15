@@ -39,7 +39,7 @@ export const Index: React.FC<LinearIndexProps> = ({ lineHeight, scale, seqLength
               style={indexTickLabel}
               textAnchor="middle"
               x={x}
-              y={baselineY + tickHeight + 8}
+              y={baselineY + tickHeight + 10}
             >
               {pos}
             </text>
