@@ -98,7 +98,7 @@ export class Index extends React.PureComponent<IndexProps> {
       lastBase += seqLength;
     }
 
-    const basepairsToRender: JSX.Element[] = [];
+    const basepairsToRender: React.JSX.Element[] = [];
     for (let i = firstBase; i <= lastBase; i += 1) {
       basepairsToRender.push(
         <text

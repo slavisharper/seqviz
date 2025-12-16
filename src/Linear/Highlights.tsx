@@ -52,40 +52,26 @@ const SingleHighlight = (props: {
     fill = props.highlight.color;
   }
 
-  const rectProps = {
-    className: "la-vz-highlight",
-    height: props.lineHeight,
-    id: props.highlight.id,
-    stroke: props.listenerOnly ? "none" : "rgba(0, 0, 0, 0.5)",
-    style: { ...highlightStyle, fill },
-    width: width,
-    x: x,
-  };
+  const topY = Math.min(props.indexYDiff, props.compYDiff);
+  const spanHeight = Math.abs(props.compYDiff - props.indexYDiff) + props.lineHeight;
 
   return (
-    <>
-      <rect
-        key={`linear-highlight-${props.highlight.id}-top`}
-        ref={props.inputRef(props.highlight.id, {
-          ref: props.highlight.id,
-          ...props.highlight,
-          type: "HIGHLIGHT",
-          viewer: "LINEAR",
-        })}
-        {...rectProps}
-        y={props.indexYDiff}
-      />
-      <rect
-        key={`linear-highlight-${props.highlight.id}-bottom`}
-        ref={props.inputRef(props.highlight.id, {
-          ref: props.highlight.id,
-          ...props.highlight,
-          type: "HIGHLIGHT",
-          viewer: "LINEAR",
-        })}
-        {...rectProps}
-        y={props.compYDiff}
-      />
-    </>
+    <rect
+      key={`linear-highlight-${props.highlight.id}-${props.listenerOnly ? "listener" : "display"}`}
+      ref={props.inputRef(props.highlight.id, {
+        ref: props.highlight.id,
+        ...props.highlight,
+        type: "HIGHLIGHT",
+        viewer: "LINEAR",
+      })}
+      className="la-vz-highlight"
+      height={spanHeight}
+      id={props.highlight.id}
+      stroke={props.listenerOnly ? "none" : "rgba(0, 0, 0, 0.5)"}
+      style={{ ...highlightStyle, fill }}
+      width={width}
+      x={x}
+      y={topY}
+    />
   );
 };

@@ -8,7 +8,7 @@ import { linearScroller } from "../style";
 interface InfiniteScrollProps {
   blockHeights: number[];
   bpsPerBlock: number;
-  seqBlocks: JSX.Element[];
+  seqBlocks: React.JSX.Element[];
   size: Size;
   totalHeight: number;
 }
@@ -34,9 +34,9 @@ export class InfiniteScroll extends React.PureComponent<InfiniteScrollProps, Inf
   static context: React.ContextType<typeof CentralIndexContext>;
   declare context: React.ContextType<typeof CentralIndexContext>;
 
-  scroller: React.RefObject<HTMLDivElement> = React.createRef(); // ref to a div for scrolling
-  insideDOM: React.RefObject<HTMLDivElement> = React.createRef(); // ref to a div inside the scroller div
-  timeoutID;
+  scroller: React.RefObject<HTMLDivElement | null> = React.createRef(); // ref to a div for scrolling
+  insideDOM: React.RefObject<HTMLDivElement | null> = React.createRef(); // ref to a div inside the scroller div
+  timeoutID: NodeJS.Timeout | null = null;
 
   constructor(props: InfiniteScrollProps) {
     super(props);
@@ -56,7 +56,7 @@ export class InfiniteScroll extends React.PureComponent<InfiniteScrollProps, Inf
   componentDidUpdate = (
     prevProps: InfiniteScrollProps,
     prevState: InfiniteScrollState,
-    snapshot: InfiniteScrollSnapshot
+    snapshot: InfiniteScrollSnapshot,
   ) => {
     if (!this.scroller.current) {
       // scroller not mounted yet
@@ -122,7 +122,7 @@ export class InfiniteScroll extends React.PureComponent<InfiniteScrollProps, Inf
 
     // find the first block that contains the new central index
     const centerBlockIndex = seqBlocks.findIndex(
-      block => block.props.firstBase <= centralIndex && block.props.firstBase + bpsPerBlock >= centralIndex
+      block => block.props.firstBase <= centralIndex && block.props.firstBase + bpsPerBlock >= centralIndex,
     );
 
     // build up the list of blocks that are visible just beneath this first block

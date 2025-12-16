@@ -1,42 +1,54 @@
 import * as React from "react";
-import { Button, Icon, Image, Popup } from "semantic-ui-react";
 
-const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }) => (
-  <div className="header" id="app-header">
+interface HeaderProps {
+  selection: any;
+  showSelectionMeta: boolean;
+  toggleShowSelectionMeta: () => void;
+  toggleSidebar: () => void;
+}
+
+const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
+  <header className="header" id="app-header">
     <div id="header-primary">
-      <Popup
-        className="popup-tooltip"
-        content="Options"
-        inverted
-        position="bottom left"
-        trigger={
-          <Button circular className="circular-button" icon="bars" id="sidebar-toggle-open" onClick={toggleSidebar} />
-        }
-      />
+      <button
+        aria-label="Toggle options"
+        className="circular-button"
+        id="sidebar-toggle-open"
+        onClick={toggleSidebar}
+        type="button"
+      >
+        ☰
+      </button>
       <ToggleSelectionMetaButton
         showSelectionMeta={showSelectionMeta}
         toggleShowSelectionMeta={toggleShowSelectionMeta}
       />
       <a href="https://github.com/Lattice-Automation/seqviz" id="github-link" rel="noopener noreferrer" target="_blank">
-        <Icon name="github" size="large" />
+        GitHub
       </a>
-      <Image floated="right" id="brand" src="https://tools.latticeautomation.com/seqviz/seqviz-logo.png" />
+      <img alt="SeqViz" id="brand" src="https://tools.latticeautomation.com/seqviz/seqviz-logo.png" />
     </div>
     {showSelectionMeta && (
       <div id="header-meta">
         <SelectionMetaRow selection={selection} />
       </div>
     )}
-  </div>
+  </header>
 );
 
 export default Header;
 
 const ToggleSelectionMetaButton = ({ showSelectionMeta, toggleShowSelectionMeta }) => (
   <div className="meta-toggle">
-    <Button active={!showSelectionMeta} id="meta-button" toggle onClick={toggleShowSelectionMeta}>
+    <button
+      aria-pressed={showSelectionMeta}
+      className={`meta-button ${showSelectionMeta ? "active" : ""}`}
+      id="meta-button"
+      onClick={toggleShowSelectionMeta}
+      type="button"
+    >
       {showSelectionMeta ? "HIDE META" : "SHOW META"}
-    </Button>
+    </button>
   </div>
 );
 

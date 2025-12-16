@@ -7,6 +7,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body,
+#__next {
+  height: 100%;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
@@ -21,6 +27,72 @@ button {
 
 h1 {
   font-family: Roboto Mono, Monaco, monospace;
+}
+
+.demo-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.options-panel {
+  width: 320px;
+  max-width: 90vw;
+  background: #fff;
+  border-right: 1px solid #e3e6eb;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s ease-in-out;
+  z-index: 5;
+}
+
+.options-panel.closed {
+  transform: translateX(-100%);
+}
+
+.options-panel.open {
+  transform: translateX(0);
+}
+
+.options-scroll {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.viewer-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  z-index: 4;
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .options-panel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100vh;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
 }
 
 .ui.container {
@@ -109,9 +181,8 @@ h1 {
   width: 100%;
   max-width: 100%;
   text-align: center;
-  position: absolute;
-  bottom: 0;
-  padding: 8px;
+  padding: 16px;
+  border-top: 1px solid #e3e6eb;
 }
 
 #lattice-brand {
@@ -198,10 +269,14 @@ h1 {
 
 .option {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .option span {
-  margin: auto 8px auto 0;
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4a5660;
 }
 
 #options-search span {
@@ -215,6 +290,50 @@ h1 {
 #seqviz-graphic {
   height: 36px;
   margin: auto 16px auto 0;
+}
+
+.options-panel select,
+.options-panel input[type="text"],
+.options-panel button.enzyme-button {
+  width: 100%;
+  font-size: 1rem;
+}
+
+.option input[type="text"],
+.option select,
+.option button,
+.option input[type="range"] {
+  padding: 8px;
+  border: 1px solid #d4dae0;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.option input[type="range"] {
+  padding: 0;
+}
+
+.slider-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-value {
+  font-size: 0.85rem;
+  color: #6c7680;
+  min-width: 32px;
+  text-align: right;
+}
+
+.checkbox-option {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkbox-option input {
+  width: auto;
 }
 
 #enzyme-grid {
@@ -236,6 +355,27 @@ h1 {
 
 #enzyme-grid .enzyme-button {
   padding: 10px;
+}
+
+.enzyme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.enzyme-button {
+  border: 1px solid #d4dae0;
+  border-radius: 4px;
+  background: #f8fafc;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.enzyme-button.active {
+  background: #14b7db;
+  color: white;
+  border-color: #14b7db;
 }
 
 .part-input {
@@ -285,10 +425,9 @@ input#part-input {
   color: black;
   height: 100%;
   display: flex;
-}
-
-#github-link i {
-  margin: auto;
+  align-items: center;
+  text-decoration: none;
+  font-weight: bold;
 }
 
 /* New new */
@@ -321,9 +460,20 @@ input#part-input {
   margin: auto 16px auto 0;
   border: none;
   background: white;
+  font-size: 1.25rem;
 }
 
 .circular-button#sidebar-toggle-open:hover {
+  background: #f2f2f2;
+}
+
+.circular-button#sidebar-toggle-close {
+  font-size: 1.25rem;
+  border: none;
+  background: white;
+}
+
+.circular-button#sidebar-toggle-close:hover {
   background: #f2f2f2;
 }
 
@@ -386,6 +536,8 @@ input#part-input {
   border-radius: 0.25rem;
   transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
   box-shadow: 0 1px 3px rgba(124, 124, 124, 0.12), 0 1px 2px rgba(124, 124, 124, 0.24);
+  border: none;
+  cursor: pointer;
 }
 #meta-button:hover {
   background: #e0e0e0 !important;

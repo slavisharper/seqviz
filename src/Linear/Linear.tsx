@@ -177,7 +177,7 @@ export default class Linear extends React.Component<LinearProps> {
       blockHeights[i] = blockHeight;
     }
 
-    const seqBlocks: JSX.Element[] = [];
+    const seqBlocks: React.JSX.Element[] = [];
     let yDiff = 0;
     for (let i = 0; i < arrSize; i += 1) {
       const firstBase = i * bpsPerBlock;

@@ -235,6 +235,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         clockwise: clockwiseDrag,
         end: currBase,
         start: e.shiftKey ? selection.start : currBase,
+        type: "SEQ",
       });
       this.dragEvent = true;
     } else if (this.dragEvent && currBase !== null) {
@@ -244,6 +245,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         clockwise: clockwiseDrag,
         end: currBase,
         start: selection.start,
+        type: "SEQ",
       });
     }
   };
