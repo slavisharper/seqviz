@@ -46,6 +46,9 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
     domElement = element;
   }
   let viewer = React.createElement(SeqViz, options, null);
+  const legacyReactDOM = ReactDOM as unknown as {
+    render?: (element: React.ReactElement | null, container: Element | DocumentFragment) => void;
+  };
   let reactRootChecked = false;
   let reactRoot: { render: (element: React.ReactElement | null) => void } | null = null;
 
@@ -75,8 +78,8 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
     const root = getOrCreateRoot();
     if (root) {
       root.render(viewer);
-    } else if (domElement) {
-      ReactDOM.render(viewer, domElement);
+    } else if (domElement && legacyReactDOM.render) {
+      legacyReactDOM.render(viewer, domElement);
     }
     return viewer;
   };
@@ -99,8 +102,8 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
       const root = getOrCreateRoot();
       if (root) {
         root.render(viewer);
-      } else if (domElement) {
-        ReactDOM.render(viewer, domElement);
+      } else if (domElement && legacyReactDOM.render) {
+        legacyReactDOM.render(viewer, domElement);
       }
     }
     return viewer;
