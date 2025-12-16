@@ -5,3 +5,13 @@ window.ResizeObserver = jest.fn().mockImplementation(() => ({
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
+
+jest.mock("react-resize-detector", () => ({
+  useResizeDetector: () => ({
+    height: 600,
+    ref: () => {
+      // noop
+    },
+    width: 800,
+  }),
+}));

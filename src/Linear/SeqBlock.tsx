@@ -336,6 +336,11 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
         className="la-vz-seqblock"
         cursor="text"
         data-testid="la-vz-seqblock"
+        data-selection-end={lastBase}
+        data-selection-ref={id}
+        data-selection-start={firstBase}
+        data-selection-type="SEQ"
+        data-selection-viewer="LINEAR"
         display="block"
         height={blockHeight}
         id={id}

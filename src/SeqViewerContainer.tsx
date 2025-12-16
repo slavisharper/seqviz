@@ -353,7 +353,15 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                           className="la-vz-viewer-linear-map-stack"
                           style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}
                         >
-                          <div className="la-vz-viewer-linear-map-stack-map" style={{ flex: "0 0 auto" }}>
+                          <div
+                            className="la-vz-viewer-linear-map-stack-map"
+                            style={{
+                              background: "#f7f8fc",
+                              borderBottom: "1px solid rgba(0, 0, 0, 0.15)",
+                              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.08)",
+                              flex: "0 0 auto",
+                            }}
+                          >
                             <LinearMap
                               {...combinedLinearMapProps}
                               handleMouseEvent={handleMouseEvent}

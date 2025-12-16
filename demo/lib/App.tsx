@@ -50,7 +50,122 @@ export default class App extends React.Component<any, AppState> {
     //   { fcut: 3, name: "Acc16II", rcut: 3, rseq: "TGCGCA" },
     //   { fcut: 3, name: "Acc16III", rcut: 3, rseq: "TGCGCA" }
     // ],
-    enzymes: ["PstI", "EcoRI", "XbaI", "SpeI", "Acc16I", "Acc65I", "AccIII", "AcII", "AfeuI", "AfIII", "AqeI", "AhaIII", "Aor14HI", "Aor51HI", "AseI", "AsiGI", "Asp718I", "AspA2O", "AssI", "AsuII", "AviII", "AvrII", "BaII", "BcII", "BqIII", "BInI", "BmcAI", "Bpu14I", "BseAI", "BshTI", "Bsp119I", "Bsp13I", "Bsp1407I", "Bsp19I", "Bsp68I", "BspEI", "BspHI", "BspMII", "BspMII", "BspTI04I", "BspTI", "BsrGI", "Bst98I", "BstAFI", "BstAUI", "BstBI", "BstHPI", "BstSNI", "BtuMI", "CciI", "Cfr42I", "Csp45I", "CspAI", "DraI", "EcI136II", "Eco105I", "Eco32I", "Eco47III", "Eco53kI", "EcoICRI", "EcoRI", "EcoRV", "EcoT22I", "FauNDI", "FvaI", "FspI", "HpaI", "Kpn2I", "KpnI", "Ksp22I", "KspAI", "KspI", "MIsI", "MiuNI", "MroI", "MscI", "Msp20I", "MspCI", "MstI", "NcoI", "NdeI", "NruI", "NsbI", "NsiI", "PaeR7I", "PaqI", "PinAI", "Ppu10I", "PshBI", "Psp123BI", "Psp1406I", "PstI", "PvuII", "RcaI", "RruI", "SacI", "SacII", "SaII", "ScaI", "SciI", "Sfr274I", "Sfr303I", "SfuI", "SqrBI", "SlaI", "SnaBI", "SpeI", "SspI", "SstI", "StrI", "VspI", "XbaI", "XhoI", "XmaJI"],
+    enzymes: [
+      "PstI",
+      "EcoRI",
+      "XbaI",
+      "SpeI",
+      "Acc16I",
+      "Acc65I",
+      "AccIII",
+      "AcII",
+      "AfeuI",
+      "AfIII",
+      "AqeI",
+      "AhaIII",
+      "Aor14HI",
+      "Aor51HI",
+      "AseI",
+      "AsiGI",
+      "Asp718I",
+      "AspA2O",
+      "AssI",
+      "AsuII",
+      "AviII",
+      "AvrII",
+      "BaII",
+      "BcII",
+      "BqIII",
+      "BInI",
+      "BmcAI",
+      "Bpu14I",
+      "BseAI",
+      "BshTI",
+      "Bsp119I",
+      "Bsp13I",
+      "Bsp1407I",
+      "Bsp19I",
+      "Bsp68I",
+      "BspEI",
+      "BspHI",
+      "BspMII",
+      "BspMII",
+      "BspTI04I",
+      "BspTI",
+      "BsrGI",
+      "Bst98I",
+      "BstAFI",
+      "BstAUI",
+      "BstBI",
+      "BstHPI",
+      "BstSNI",
+      "BtuMI",
+      "CciI",
+      "Cfr42I",
+      "Csp45I",
+      "CspAI",
+      "DraI",
+      "EcI136II",
+      "Eco105I",
+      "Eco32I",
+      "Eco47III",
+      "Eco53kI",
+      "EcoICRI",
+      "EcoRI",
+      "EcoRV",
+      "EcoT22I",
+      "FauNDI",
+      "FvaI",
+      "FspI",
+      "HpaI",
+      "Kpn2I",
+      "KpnI",
+      "Ksp22I",
+      "KspAI",
+      "KspI",
+      "MIsI",
+      "MiuNI",
+      "MroI",
+      "MscI",
+      "Msp20I",
+      "MspCI",
+      "MstI",
+      "NcoI",
+      "NdeI",
+      "NruI",
+      "NsbI",
+      "NsiI",
+      "PaeR7I",
+      "PaqI",
+      "PinAI",
+      "Ppu10I",
+      "PshBI",
+      "Psp123BI",
+      "Psp1406I",
+      "PstI",
+      "PvuII",
+      "RcaI",
+      "RruI",
+      "SacI",
+      "SacII",
+      "SaII",
+      "ScaI",
+      "SciI",
+      "Sfr274I",
+      "Sfr303I",
+      "SfuI",
+      "SqrBI",
+      "SlaI",
+      "SnaBI",
+      "SpeI",
+      "SspI",
+      "SstI",
+      "StrI",
+      "VspI",
+      "XbaI",
+      "XhoI",
+      "XmaJI",
+    ],
     name: "",
     primers: [
       {
@@ -327,7 +442,9 @@ const ViewerTypeInput = ({ setType, value }: { setType: (viewType: ViewerOption)
     <span>Topology</span>
     <select value={value} onChange={e => setType(e.target.value as ViewerOption)}>
       {viewerTypeOptions.map(option => (
-        <option key={option.value} value={option.value}>{option.text}</option>
+        <option key={option.value} value={option.value}>
+          {option.text}
+        </option>
       ))}
     </select>
   </label>
@@ -388,7 +505,7 @@ const SidebarHeader = ({ toggleSidebar }: { toggleSidebar: () => void }) => (
   <div className="sidebar-header">
     <div id="header-left">
       <img alt="SeqViz" id="seqviz-graphic" src="https://tools.latticeautomation.com/seqviz/seqviz-logo.png" />
-      <h3>Settings</h3>
+      <h3>Sequence Viewer</h3>
     </div>
   </div>
 );
@@ -396,12 +513,40 @@ const SidebarHeader = ({ toggleSidebar }: { toggleSidebar: () => void }) => (
 const SidebarFooter = () => (
   <div className="sidebar-footer">
     <hr />
-    <img alt="Lattice Automation" id="lattice-brand" src="https://tools.latticeautomation.com/seqviz/lattice-brand.png" />
+    <img
+      alt="Lattice Automation"
+      id="lattice-brand"
+      src="https://tools.latticeautomation.com/seqviz/lattice-brand.png"
+    />
     <p>
-      Created by <strong><a href="https://latticeautomation.com/" rel="noopener noreferrer" target="_blank">Lattice Automation</a></strong>
+      Created by{" "}
+      <strong>
+        <a href="https://latticeautomation.com/" rel="noopener noreferrer" target="_blank">
+          Lattice Automation
+        </a>
+      </strong>
     </p>
+    <hr />
+    <img
+      alt="Lab Thread"
+      id="lattice-brand"
+      width={250}
+      height={45}
+      src="https://cdn.prod.website-files.com/683ed6945a5c48c31a0f0e8a/685d55f0e506194500ac6fb2_Primary%20Logo%20Full%20Color%402x.png"
+    />
     <p>
-      <a href="https://github.com/Lattice-Automation/seqviz" rel="noopener noreferrer" target="_blank">GitHub</a>
+      Extended by{" "}
+      <strong>
+        <a href="https://labthread.com/" rel="noopener noreferrer" target="_blank">
+          Lab Thread
+        </a>
+      </strong>
+    </p>
+    <hr />
+    <p>
+      <a href="https://github.com/Lattice-Automation/seqviz" rel="noopener noreferrer" target="_blank">
+        GitHub
+      </a>
       <span>{"  |  "}</span>
       <a
         href="https://medium.com/@lattice.core/visualize-your-dna-sequences-with-seqviz-b1d945eb9684"
@@ -421,6 +566,9 @@ const SidebarFooter = () => (
     </p>
     <p>
       <span>contact@latticeautomation.com</span>
+    </p>
+    <p>
+      <span>info@labthread.com</span>
     </p>
   </div>
 );

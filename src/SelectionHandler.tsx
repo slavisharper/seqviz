@@ -81,6 +81,39 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     this.dragEvent = false;
   };
 
+  private getDatasetRange = (target?: EventTarget | null): RefSelection | null => {
+    if (!target || typeof (target as Element).getAttribute !== "function") {
+      return null;
+    }
+
+    const element = target as Element & { dataset?: DOMStringMap };
+    if (!element.dataset) {
+      return null;
+    }
+
+    const dataset = element.dataset;
+    const { selectionEnd, selectionRef, selectionStart, selectionType, selectionViewer } = dataset;
+    if (!selectionType || typeof selectionStart === "undefined" || typeof selectionEnd === "undefined") {
+      return null;
+    }
+
+    const start = Number(selectionStart);
+    const end = Number(selectionEnd);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      return null;
+    }
+
+    const viewer = selectionViewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
+    return {
+      clockwise: true,
+      end,
+      ref: selectionRef || element.id || `${viewer}-${start}-${end}`,
+      start,
+      type: selectionType as Selection["type"],
+      viewer,
+    };
+  };
+
   /**
    * Called at start of drag to make sure checkers are reset to default state
    */
@@ -125,6 +158,14 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     let knownRange = this.dragEvent
       ? this.idToRange.get(e.currentTarget.id) // only look for SeqBlocks
       : this.idToRange.get(e.target.id) || this.idToRange.get(e.currentTarget.id); // elements and SeqBlocks
+
+    if (!knownRange) {
+      const datasetRange = this.getDatasetRange(e.target) || this.getDatasetRange(e.currentTarget);
+      if (datasetRange) {
+        knownRange = datasetRange;
+      }
+    }
+
     if (!knownRange) {
       return; // there isn't a known range with the id of the element
     }
