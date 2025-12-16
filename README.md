@@ -139,6 +139,10 @@ export default () => {
 
 The type and orientation of the sequence viewers. One of `"linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear"`. `both` means the circular viewer fills the left side of SeqViz, and the linear viewer fills the right. `both_flip` is the opposite: the linear viewer is on the left, and the circular viewer is on the right. `linear_map` renders only the compact linear map, and `linear_map_linear` stacks the linear map above the full linear sequence viewer.
 
+#### `disableCircularMap (=false)` | `disableLinearMap (=false)` | `disableLinearSequence (=false)`
+
+Fine-grained flags to skip initializing specific viewers regardless of the `viewer` orientation. Set one or more to `true` to completely omit that viewer from the render tree—for example, pair `viewer="both"` with `disableLinearSequence` to show only the circular map for a quick reference. These flags are also respected when using custom children/refs, so disabled viewers never mount.
+
 #### `name (='')`
 
 The name of the sequence/plasmid. Shown at the center of the circular viewer.

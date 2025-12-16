@@ -62,6 +62,15 @@ export interface SeqVizProps {
    */
   disableExternalFonts?: boolean;
 
+  /** prevents the circular map viewer from rendering */
+  disableCircularMap?: boolean;
+
+  /** prevents the linear map overview from rendering */
+  disableLinearMap?: boolean;
+
+  /** prevents the linear sequence viewer from rendering */
+  disableLinearSequence?: boolean;
+
   /** a list of enzymes or enzyme names to digest the sequence with. see seqviz.Enzymes */
   enzymes?: (Enzyme | string)[];
 
@@ -188,7 +197,10 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     colors: [],
     compSeq: "",
     copyEvent: e => e.key === "c" && (e.metaKey || e.ctrlKey),
+    disableCircularMap: false,
     disableExternalFonts: false,
+    disableLinearMap: false,
+    disableLinearSequence: false,
     enzymes: [],
     enzymesCustom: {},
     name: "",

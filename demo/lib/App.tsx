@@ -24,6 +24,9 @@ const viewerTypeOptions = [
 interface AppState {
   annotations: AnnotationProp[];
   customChildren: boolean;
+  disableCircularMap: boolean;
+  disableLinearMap: boolean;
+  disableLinearSequence: boolean;
   enzymes: any[];
   name: string;
   primers: Primer[];
@@ -43,7 +46,10 @@ interface AppState {
 export default class App extends React.Component<any, AppState> {
   state: AppState = {
     annotations: [],
-    customChildren: true,
+    customChildren: false,
+    disableCircularMap: false,
+    disableLinearMap: false,
+    disableLinearSequence: false,
     // enzymes: ["PstI", "EcoRI", "XbaI", "SpeI"],
     // enzymes: [
     //   { fcut: 3, name: "Acc16I", rcut: 3, rseq: "TGCGCA" },
@@ -251,39 +257,50 @@ export default class App extends React.Component<any, AppState> {
   };
 
   render() {
+    const { disableCircularMap, disableLinearMap, disableLinearSequence } = this.state;
     let customChildren = null;
     if (this.state.customChildren) {
       customChildren = ({ circularProps, handleMouseEvent, inputRef, linearMapProps, linearProps, onUnmount }) => {
         if (this.state.viewer === "linear_map") {
+          if (disableLinearMap) return null;
           return (
             <div ref={this.linearRef} style={{ height: "100%", width: "100%" }}>
               <LinearMap {...linearMapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
             </div>
           );
         } else if (this.state.viewer === "linear_map_linear") {
+          const canShowMap = !disableLinearMap;
+          const canShowLinear = !disableLinearSequence;
+          if (!canShowMap && !canShowLinear) return null;
           const mapProps = { ...linearMapProps, size: { ...linearMapProps.size, height: 0 } };
           return (
             <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
-              <div style={{ flex: "0 0 auto" }}>
-                <LinearMap {...mapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
-              </div>
-              <div style={{ flex: "1 1 auto", height: "100%", minHeight: 0, overflow: "hidden" }}>
-                <Linear
-                  {...linearProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
+              {canShowMap && (
+                <div style={{ flex: "0 0 auto" }}>
+                  <LinearMap {...mapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
+                </div>
+              )}
+              {canShowLinear && (
+                <div style={{ flex: "1 1 auto", height: "100%", minHeight: 0, overflow: "hidden" }}>
+                  <Linear
+                    {...linearProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
             </div>
           );
         } else if (this.state.viewer === "linear") {
+          if (disableLinearSequence) return null;
           return (
             <div ref={this.linearRef} style={{ height: "100%", width: "100%" }}>
               <Linear {...linearProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} onUnmount={onUnmount} />
             </div>
           );
         } else if (this.state.viewer === "circular") {
+          if (disableCircularMap) return null;
           return (
             <div ref={this.circularRef} style={{ height: "100%", width: "100%" }}>
               <Circular
@@ -295,66 +312,86 @@ export default class App extends React.Component<any, AppState> {
             </div>
           );
         } else if (this.state.viewer === "both") {
+          const canShowCircular = !disableCircularMap;
+          const canShowLinear = !disableLinearSequence;
+          if (!canShowCircular && !canShowLinear) return null;
           return (
             <div style={{ display: "flex", flexDirection: "row", height: "100%", width: "100%" }}>
-              <div ref={this.circularRef} style={{ height: "100%", width: "50%" }}>
-                <Circular
-                  {...circularProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
-              <div ref={this.linearRef} style={{ height: "100%", width: "50%" }}>
-                <Linear
-                  {...linearProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
+              {canShowCircular && (
+                <div ref={this.circularRef} style={{ height: "100%", width: canShowLinear ? "50%" : "100%" }}>
+                  <Circular
+                    {...circularProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
+              {canShowLinear && (
+                <div ref={this.linearRef} style={{ height: "100%", width: canShowCircular ? "50%" : "100%" }}>
+                  <Linear
+                    {...linearProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
             </div>
           );
         } else if (this.state.viewer === "both_flip") {
+          const canShowCircular = !disableCircularMap;
+          const canShowLinear = !disableLinearSequence;
+          if (!canShowCircular && !canShowLinear) return null;
           return (
             <div style={{ display: "flex", flexDirection: "row", height: "100%", width: "100%" }}>
-              <div ref={this.linearRef} style={{ height: "100%", width: "50%" }}>
-                <Linear
-                  {...linearProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
-              <div ref={this.circularRef} style={{ height: "100%", width: "50%" }}>
-                <Circular
-                  {...circularProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
+              {canShowLinear && (
+                <div ref={this.linearRef} style={{ height: "100%", width: canShowCircular ? "50%" : "100%" }}>
+                  <Linear
+                    {...linearProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
+              {canShowCircular && (
+                <div ref={this.circularRef} style={{ height: "100%", width: canShowLinear ? "50%" : "100%" }}>
+                  <Circular
+                    {...circularProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
             </div>
           );
         } else {
+          const canShowCircular = !disableCircularMap;
+          const canShowLinear = !disableLinearSequence;
           return (
             <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-              <div ref={this.linearRef} style={{ height: "25%", width: "100%" }}>
-                <Linear
-                  {...linearProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
-              <div ref={this.circularRef} style={{ height: "75%", width: "100%" }}>
-                <Circular
-                  {...circularProps}
-                  handleMouseEvent={handleMouseEvent}
-                  inputRef={inputRef}
-                  onUnmount={onUnmount}
-                />
-              </div>
+              {canShowLinear && (
+                <div ref={this.linearRef} style={{ height: "25%", width: "100%" }}>
+                  <Linear
+                    {...linearProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
+              {canShowCircular && (
+                <div ref={this.circularRef} style={{ height: canShowLinear ? "75%" : "100%", width: "100%" }}>
+                  <Circular
+                    {...circularProps}
+                    handleMouseEvent={handleMouseEvent}
+                    inputRef={inputRef}
+                    onUnmount={onUnmount}
+                  />
+                </div>
+              )}
             </div>
           );
         }
@@ -387,6 +424,21 @@ export default class App extends React.Component<any, AppState> {
               set={(showIndex: boolean) => this.setState({ showIndex })}
             />
             <CheckboxInput
+              checked={this.state.disableCircularMap}
+              label="Disable circular viewer"
+              set={(disableCircularMap: boolean) => this.setState({ disableCircularMap })}
+            />
+            <CheckboxInput
+              checked={this.state.disableLinearMap}
+              label="Disable linear map"
+              set={(disableLinearMap: boolean) => this.setState({ disableLinearMap })}
+            />
+            <CheckboxInput
+              checked={this.state.disableLinearSequence}
+              label="Disable linear sequence"
+              set={(disableLinearSequence: boolean) => this.setState({ disableLinearSequence })}
+            />
+            <CheckboxInput
               checked={this.state.customChildren}
               label="Custom children"
               set={(customChildren: boolean) => this.setState({ customChildren })}
@@ -409,6 +461,9 @@ export default class App extends React.Component<any, AppState> {
                   // accession="MN623123"
                   key={`${this.state.viewer}${this.state.customChildren}`}
                   annotations={this.state.annotations}
+                  disableCircularMap={this.state.disableCircularMap}
+                  disableLinearMap={this.state.disableLinearMap}
+                  disableLinearSequence={this.state.disableLinearSequence}
                   enzymes={this.state.enzymes}
                   highlights={[{ end: 10, start: 0 }]}
                   name={this.state.name}
