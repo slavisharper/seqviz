@@ -1,5 +1,4 @@
 import * as React from "react";
-import { withResizeDetector } from "react-resize-detector";
 
 import Circular, { CircularProps } from "./Circular/Circular";
 import { EventHandler } from "./EventHandler";
@@ -10,6 +9,7 @@ import CentralIndexContext from "./centralIndexContext";
 import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size } from "./elements";
 import { isEqual } from "./isEqual";
 import SelectionContext, { ExternalSelection, Selection, defaultSelection } from "./selectionContext";
+import { useResizeDetector } from "react-resize-detector";
 
 /**
  * This is the width in pixels of a character that's 12px
@@ -32,14 +32,19 @@ export interface SeqVizChildRefs {
   linear?: React.RefObject<HTMLElement>;
 }
 
-interface SeqViewerContainerProps {
+type ResizeInjectedProps = {
+  height: number;
+  targetRef: React.LegacyRef<HTMLDivElement>;
+  width: number;
+};
+
+interface SeqViewerContainerProps extends ResizeInjectedProps {
   annotations: Annotation[];
   bpColors: { [key: number | string]: string };
   children?: (props: CustomChildrenProps) => React.ReactNode;
   compSeq: string;
   copyEvent: (event: React.KeyboardEvent<HTMLElement>) => boolean;
   cutSites: CutSite[];
-  height: number;
   highlights: Highlight[];
   name: string;
   onSelection: (selection: Selection) => void;
@@ -53,14 +58,14 @@ interface SeqViewerContainerProps {
   seqType: SeqType;
   showComplement: boolean;
   showIndex: boolean;
-  targetRef: React.LegacyRef<HTMLDivElement>;
   /** testSize is a forced height/width that overwrites anything from sizeMe. For testing */
   testSize?: { height: number; width: number };
   translations: NameRange[];
   viewer: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear";
-  width: number;
   zoom: { circular: number; linear: number };
 }
+
+type SeqViewerContainerPublicProps = Omit<SeqViewerContainerProps, keyof ResizeInjectedProps>;
 
 export interface SeqViewerContainerState {
   centralIndex: {
@@ -420,4 +425,10 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   }
 }
 
-export default withResizeDetector(SeqViewerContainer);
+const SeqViewerContainerWithResize = (props: SeqViewerContainerPublicProps) => {
+  const { ref, width, height } = useResizeDetector<HTMLDivElement>({ handleHeight: true, handleWidth: true });
+
+  return <SeqViewerContainer {...props} height={height ?? 0} targetRef={ref} width={width ?? 0} />;
+};
+
+export default SeqViewerContainerWithResize;
