@@ -14,7 +14,7 @@ const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleS
         showSelectionMeta={showSelectionMeta}
         toggleShowSelectionMeta={toggleShowSelectionMeta}
       />
-      <a href="https://github.com/Lattice-Automation/seqviz" id="github-link" rel="noopener noreferrer" target="_blank">
+      <a href="https://github.com/slavisharper/seqviz" id="github-link" rel="noopener noreferrer" target="_blank">
         GitHub
       </a>
       <img alt="SeqViz" id="brand" src="https://tools.latticeautomation.com/seqviz/seqviz-logo.png" />
