@@ -515,7 +515,7 @@ const SidebarFooter = () => (
     <hr />
     <img
       alt="Lattice Automation"
-      id="lattice-brand"
+      className="brand-logo"
       src="https://tools.latticeautomation.com/seqviz/lattice-brand.png"
     />
     <p>
@@ -529,13 +529,11 @@ const SidebarFooter = () => (
     <hr />
     <img
       alt="Lab Thread"
-      id="lattice-brand"
-      width={250}
-      height={45}
+      className="brand-logo"
       src="https://cdn.prod.website-files.com/683ed6945a5c48c31a0f0e8a/685d55f0e506194500ac6fb2_Primary%20Logo%20Full%20Color%402x.png"
     />
     <p>
-      Extended by{" "}
+      Enhanced by{" "}
       <strong>
         <a href="https://labthread.com/" rel="noopener noreferrer" target="_blank">
           Lab Thread

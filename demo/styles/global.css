@@ -185,9 +185,14 @@ h1 {
   border-top: 1px solid #e3e6eb;
 }
 
-#lattice-brand {
-  height: 64px;
+.brand-logo {
+  display: block;
+  height: auto;
   margin: 0 auto 8px auto;
+  max-height: 64px;
+  max-width: 280px;
+  object-fit: contain;
+  width: 100%;
 }
 
 .sidebar-footer p {

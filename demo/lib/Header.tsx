@@ -10,15 +10,6 @@ interface HeaderProps {
 const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
   <header className="header" id="app-header">
     <div id="header-primary">
-      <button
-        aria-label="Toggle options"
-        className="circular-button"
-        id="sidebar-toggle-open"
-        onClick={toggleSidebar}
-        type="button"
-      >
-        ☰
-      </button>
       <ToggleSelectionMetaButton
         showSelectionMeta={showSelectionMeta}
         toggleShowSelectionMeta={toggleShowSelectionMeta}
