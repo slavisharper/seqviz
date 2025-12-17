@@ -68,10 +68,6 @@ export default class App extends React.Component<any, AppState> {
     //   { fcut: 3, name: "Acc16III", rcut: 3, rseq: "TGCGCA" }
     // ],
     enzymes: [
-      "PstI",
-      "EcoRI",
-      "XbaI",
-      "SpeI",
       "Acc16I",
       "Acc65I",
       "AccIII",

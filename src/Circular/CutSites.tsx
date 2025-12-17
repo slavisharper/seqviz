@@ -32,8 +32,14 @@ export const CutSites = (props: CutSitesProps) => {
 
   return (
     <g className="la-vz-circular-cutsites">
-      {cutSites.map(c => (
-        <SingleCutSite key={`circular-cut-site-${c.id}`} {...props} calculateLinePath={calculateLinePath} cutSite={c} />
+      {cutSites.map((c, idx) => (
+        <SingleCutSite
+          key={`circular-cut-site-${c.id}-${c.start}-${c.end}-${idx}`}
+          {...props}
+          calculateLinePath={calculateLinePath}
+          cutSite={c}
+          occurrenceIndex={idx}
+        />
       ))}
     </g>
   );
@@ -46,12 +52,24 @@ const SingleCutSite = (props: {
   getRotation: (index: number) => string;
   inputRef: InputRefFunc;
   lineHeight: number;
+  occurrenceIndex: number;
   radius: number;
   seqLength: number;
 }) => {
-  const { calculateLinePath, cutSite, genArc, getRotation, inputRef, lineHeight, radius, seqLength } = props;
+  const {
+    calculateLinePath,
+    cutSite,
+    genArc,
+    getRotation,
+    inputRef,
+    lineHeight,
+    occurrenceIndex,
+    radius,
+    seqLength,
+  } = props;
   const { id, start } = cutSite;
   let { end, fcut, rcut } = cutSite;
+  const domId = `${id}-${cutSite.start}-${cutSite.end}-${occurrenceIndex}`;
 
   // If any of the end or cut values are greater than the start, it's corssing the zero index
   if (start > end || start > fcut || start > rcut) {
@@ -80,13 +98,13 @@ const SingleCutSite = (props: {
   }
 
   return (
-    <g key={`la-vz-circular-cutsite-${id}`} id={`la-vz-circular-cutsite-${id}`} transform={getRotation(start)}>
+    <g key={`la-vz-circular-cutsite-${domId}`} id={`la-vz-circular-cutsite-${domId}`} transform={getRotation(start)}>
       {/* an arc that surrounds the cut site */}
       <path
-        ref={inputRef(id, {
+        ref={inputRef(domId, {
           end: end,
           name: cutSite.name,
-          ref: id,
+          ref: domId,
           start: start,
           type: "ENZYME",
           viewer: "CIRCULAR",

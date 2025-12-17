@@ -55,22 +55,23 @@ export const CutSites = (props: {
   return (
     <g className="la-vz-cut-sites">
       {labelledCutSites.map(c => {
+        const domId = `${c.c.id}-${c.c.start}-${c.c.end}`;
         const labelKey = `${c.c.name}|${c.c.start}|${c.c.end}|${c.c.fcut}|${c.c.rcut}`;
         const canRenderLabel = c.label.render && !renderedLabelKeys.has(labelKey);
         if (canRenderLabel) {
           renderedLabelKeys.add(labelKey);
         }
         return (
-          <g key={`cut-site-${c.c.id}-${firstBase}`}>
+          <g key={`cut-site-${domId}-${firstBase}`}>
             {/* enzyme name label above the cut-site */}
             {canRenderLabel && (
               <text
                 className={`la-vz-cut-site-text ${c.c.id}-label`}
                 dominantBaseline="hanging"
-                id={c.c.id}
+                id={domId}
                 data-selection-end={c.c.end}
                 data-selection-name={c.c.name}
-                data-selection-ref={c.c.id}
+                data-selection-ref={domId}
                 data-selection-start={c.c.start}
                 data-selection-type="ENZYME"
                 data-selection-viewer="LINEAR"
@@ -90,11 +91,11 @@ export const CutSites = (props: {
             {/* outline showing the recognition site */}
             {zoom > 10 && (
               <path
-                ref={inputRef(c.c.id, {
+                ref={inputRef(domId, {
                   clockwise: true,
                   end: c.c.end,
                   name: c.c.name,
-                  id: c.c.id,
+                  id: domId,
                   start: c.c.start,
                   type: "ENZYME",
                   viewer: "LINEAR",
