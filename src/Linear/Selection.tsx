@@ -27,7 +27,7 @@ class Edges extends React.PureComponent<EdgesProps> {
 
   render() {
     const { findXAndWidth, firstBase, fullSeq, lastBase, selectEdgeHeight } = this.props;
-    const { clockwise, end, ref, start, type: selectionType = "" } = this.context;
+    const { clockwise, end, ref, start } = this.context;
 
     if (typeof start === "undefined" || typeof end === "undefined") {
       return;
@@ -58,29 +58,13 @@ class Edges extends React.PureComponent<EdgesProps> {
       return null;
     }
 
-    if (startEdge === null) {
-      if (selectionType === "" && lastEdge !== null) {
-        return null; // external selections only render a single edge at the selection start
+    const findEdgePosition = (edge: number | null): number | null => {
+      if (edge === null) {
+        return null;
       }
-      startEdge = lastEdge;
-      lastEdge = null;
-    }
-    let { width, x } = findXAndWidth(startEdge, lastEdge);
-
-    // if drag event in counter clockwise direction and both of the edges are
-    // within this range (if reverse but not both in one range, it'll be fine)
-    if (clockwise === false && startEdge !== null && lastEdge !== null) {
-      ({ width, x } = findXAndWidth(lastEdge, startEdge));
-    }
-
-    // the x position of the second edge
-    let secondEdgeX = x + width;
-    if (startEdge !== null && lastEdge !== null) {
-      // in this scenario, the ending edge of the selection range is before the start
-      if ((start > end && clockwise === true) || (end > start && clockwise === false)) {
-        secondEdgeX = x - width;
-      }
-    }
+      const { x } = findXAndWidth(edge, edge);
+      return x;
+    };
 
     // for when it starts on the first bp of the next SeqBlock
     if (start === end && start === lastBase) {
@@ -93,12 +77,15 @@ class Edges extends React.PureComponent<EdgesProps> {
     }
 
     // if the start and last edge are the same, exclude the second
-    if (startEdge == lastEdge) {
+    if (startEdge === lastEdge) {
       lastEdge = null;
     }
 
-    const shouldRenderStartEdge = startEdge !== null;
-    const shouldRenderLastEdge = lastEdge !== null && selectionType !== ""; // external selections use empty type
+    const startEdgeX = findEdgePosition(startEdge);
+    const lastEdgeX = findEdgePosition(lastEdge);
+
+    const shouldRenderStartEdge = startEdgeX !== null;
+    const shouldRenderLastEdge = lastEdgeX !== null;
     return (
       <g>
         {shouldRenderStartEdge && (
@@ -110,7 +97,7 @@ class Edges extends React.PureComponent<EdgesProps> {
             strokeWidth={0}
             style={selectionEdge}
             width={1}
-            x={x}
+            x={startEdgeX ?? undefined}
             y={-5}
           />
         )}
@@ -123,7 +110,7 @@ class Edges extends React.PureComponent<EdgesProps> {
             strokeWidth={0}
             style={selectionEdge}
             width={1}
-            x={secondEdgeX}
+            x={lastEdgeX ?? undefined}
             y={-5}
           />
         )}
