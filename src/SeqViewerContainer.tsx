@@ -418,12 +418,14 @@ const renderViewerPanels = ({
 }: ViewerRendererProps) => {
   const isStacked = viewer === "linear_map_linear" && showLinearMap && showLinear;
   const isDual = (viewer === "both" || viewer === "both_flip") && showCircular && showLinear;
+  const layoutDirection: React.CSSProperties["flexDirection"] = isDual ? "row" : "column";
 
-  const layoutStyle: React.CSSProperties = isStacked
-    ? { display: "flex", flexDirection: "column", height: "100%", width: "100%" }
-    : isDual
-    ? { display: "flex", flexDirection: "row", height: "100%", width: "100%" }
-    : { height: "100%", width: "100%" };
+  const layoutStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: layoutDirection,
+    height: "100%",
+    width: "100%",
+  };
 
   const circularStyle: React.CSSProperties = {
     flex: isDual ? "1 1 50%" : undefined,
@@ -437,8 +439,8 @@ const renderViewerPanels = ({
   };
 
   const linearStyle: React.CSSProperties = {
-    flex: viewer === "linear_map_linear" ? "1 1 auto" : isDual ? "1 1 50%" : undefined,
-    minHeight: viewer === "linear_map_linear" ? 0 : undefined,
+    flex: viewer === "linear_map_linear" ? "1 1 auto" : isDual ? "1 1 50%" : showLinear ? "1 1 auto" : undefined,
+    minHeight: viewer === "linear_map_linear" || !isDual ? 0 : undefined,
     overflow: viewer === "linear_map_linear" ? "hidden" : undefined,
     order: viewer === "both" ? 2 : viewer === "both_flip" ? 1 : undefined,
   };
