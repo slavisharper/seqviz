@@ -416,7 +416,6 @@ const renderViewerPanels = ({
   showLinearMap,
   viewer,
 }: ViewerRendererProps) => {
-  const isStacked = viewer === "linear_map_linear" && showLinearMap && showLinear;
   const isDual = (viewer === "both" || viewer === "both_flip") && showCircular && showLinear;
   const layoutDirection: React.CSSProperties["flexDirection"] = isDual ? "row" : "column";
 

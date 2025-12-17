@@ -410,7 +410,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     if (!dataset) {
       return null;
     }
-    const { selectionEnd, selectionRef, selectionStart, selectionType, selectionViewer } = dataset;
+    const { selectionEnd, selectionName, selectionRef, selectionStart, selectionType, selectionViewer } = dataset;
     if (!selectionType || typeof selectionStart === "undefined" || typeof selectionEnd === "undefined") {
       return null;
     }
@@ -425,6 +425,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     return {
       clockwise: true,
       end,
+      name: selectionName,
       ref: selectionRef || datasetElement.id || `${viewer}-${start}-${end}`,
       start,
       type: selectionType as Selection["type"],

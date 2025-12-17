@@ -68,6 +68,12 @@ export const CutSites = (props: {
                 className={`la-vz-cut-site-text ${c.c.id}-label`}
                 dominantBaseline="hanging"
                 id={c.c.id}
+                data-selection-end={c.c.end}
+                data-selection-name={c.c.name}
+                data-selection-ref={c.c.id}
+                data-selection-start={c.c.start}
+                data-selection-type="ENZYME"
+                data-selection-viewer="LINEAR"
                 style={{ ...svgText, cursor: "pointer", fontSize: 12 }}
                 textAnchor="start"
                 x={c.label.x}
@@ -87,6 +93,7 @@ export const CutSites = (props: {
                 ref={inputRef(c.c.id, {
                   clockwise: true,
                   end: c.c.end,
+                  name: c.c.name,
                   id: c.c.id,
                   start: c.c.start,
                   type: "ENZYME",

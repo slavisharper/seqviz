@@ -85,6 +85,7 @@ const SingleCutSite = (props: {
       <path
         ref={inputRef(id, {
           end: end,
+          name: cutSite.name,
           ref: id,
           start: start,
           type: "ENZYME",
