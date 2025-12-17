@@ -210,6 +210,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     name: "",
     onSearch: (_: Range[]) => null,
     onSelection: (_: Selection) => null,
+    onContextMenu: (_: ViewerContextMenuEvent) => null,
     primers: [],
     rotateOnScroll: true,
     search: { mismatch: 0, query: "" },

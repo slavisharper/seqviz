@@ -40,6 +40,27 @@
 
 You can see a demo at [tools.latticeautomation.com/seqviz](https://tools.latticeautomation.com/seqviz). The source is in [/demo](./demo).
 
+### Amino-only Example Dataset
+
+For amino-acid centric testing the demo now ships with `AMINO_LINEAR_EXAMPLE` (see [demo/lib/constants.ts](demo/lib/constants.ts)). The dataset:
+
+- uses a synthetic 60-amino-acid ORF split into three annotated domains
+- disables circular/enzymatic layers so only the linear sequence and translations render
+- sets `viewer="linear"` with `enzymes=[]` to keep the canvas focused on amino readouts
+
+You can import it anywhere inside the repo (for instance in the demo app) to pre-populate state:
+
+```ts
+import { AMINO_LINEAR_EXAMPLE } from "./demo/lib/constants";
+
+setState(prev => ({
+  ...prev,
+  ...AMINO_LINEAR_EXAMPLE,
+}));
+```
+
+This keeps the viewer ready for future refactors that might swap between the default plasmid data and the amino-focused example.
+
 ## Features
 
 ### Linear and Circular Sequence Viewers

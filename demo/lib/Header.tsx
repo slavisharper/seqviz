@@ -2,15 +2,16 @@ import * as React from "react";
 
 interface HeaderProps {
   selection: any;
+  sequenceUnitLabel: string;
   showSelectionMeta: boolean;
   toggleShowSelectionMeta: () => void;
   toggleSidebar: () => void;
 }
 
-const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
+const Header = ({ selection, sequenceUnitLabel, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
   <header className="header" id="app-header">
     <div id="header-primary">
-      <SelectionMetaRow selection={selection} />
+      <SelectionMetaRow selection={selection} sequenceUnitLabel={sequenceUnitLabel} />
       <a href="https://github.com/slavisharper/seqviz" id="github-link" rel="noopener noreferrer" target="_blank">
         GitHub
       </a>
@@ -26,7 +27,7 @@ const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleS
 
 export default Header;
 
-const SelectionMetaRow = ({ selection }) => {
+const SelectionMetaRow = ({ selection, sequenceUnitLabel }) => {
   const { end, name, type, length, start } = selection;
 
   return (
@@ -41,7 +42,9 @@ const SelectionMetaRow = ({ selection }) => {
         {length > 0 && (
           <div className="meta-datum">
             <p id="field">LENGTH</p>
-            <p id="value">{length}bp</p>
+            <p id="value">
+              {length} {sequenceUnitLabel}
+            </p>
           </div>
         )}
         {start !== end && (
