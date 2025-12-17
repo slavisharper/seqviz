@@ -271,6 +271,10 @@ This occurs after drag/drop selections and clicks. It will have meta on `annotat
 }
 ```
 
+#### `onContextMenu`
+
+Fired when the user right-clicks within the viewer. Receives an object with the native `event`, the resolved `selection`, the raw `sequence` string for that region, and any available `name`/`type` metadata (e.g., `ANNOTATION`, `PRIMER`). Use this to show custom context menus without the right-click altering the active selection; call `event.preventDefault()` inside the handler if you want to suppress the browser menu.
+
 #### `search (={})`
 
 Sequence search parameters. Takes a `query` sequence and the [maximum allowable `mismatch`](https://en.wikipedia.org/wiki/Hamming_distance) for a match (default: 0). Matches are highlighted.

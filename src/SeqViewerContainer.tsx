@@ -4,7 +4,7 @@ import Circular, { CircularProps } from "./Circular/Circular";
 import { EventHandler } from "./EventHandler";
 import Linear, { LinearProps } from "./Linear/Linear";
 import LinearMap, { LinearMapProps } from "./LinearMap/LinearMap";
-import SelectionHandler, { InputRefFunc } from "./SelectionHandler";
+import SelectionHandler, { InputRefFunc, ViewerContextMenuEvent } from "./SelectionHandler";
 import CentralIndexContext from "./centralIndexContext";
 import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size } from "./elements";
 import { isEqual } from "./isEqual";
@@ -25,6 +25,7 @@ export const CHAR_WIDTH = 7.2;
 
 export interface CustomChildrenProps {
   circularProps: Omit<CircularProps, "handleMouseEvent" | "inputRef" | "onUnmount">;
+  handleContextMenu: (event: React.MouseEvent) => void;
   handleMouseEvent: React.MouseEventHandler;
   inputRef: InputRefFunc;
   linearMapProps: Omit<LinearMapProps, "handleMouseEvent" | "inputRef">;
@@ -61,6 +62,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   disableLinearSequence?: boolean;
   highlights: Highlight[];
   name: string;
+  onContextMenu?: (event: ViewerContextMenuEvent) => void;
   onSelection: (selection: Selection) => void;
   primers: Primer[];
   refs?: SeqVizChildRefs;
@@ -334,16 +336,18 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
             <SelectionHandler
               center={circularProps.center}
               centralIndex={centralIndex.circular}
+              onContextMenu={this.props.onContextMenu}
               seq={seq}
               setCentralIndex={this.setCentralIndex}
               setSelection={this.setSelection}
               yDiff={circularProps.yDiff}
             >
-              {(inputRef, handleMouseEvent, onUnmount) => (
+              {(inputRef, handleMouseEvent, onUnmount, handleContextMenu) => (
                 <EventHandler
                   bpsPerBlock={linearProps.bpsPerBlock}
                   copyEvent={this.props.copyEvent}
                   handleMouseEvent={handleMouseEvent}
+                  onContextMenu={handleContextMenu}
                   selectAllEvent={this.props.selectAllEvent}
                   selection={mergedSelection}
                   seq={seq}
@@ -352,6 +356,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                   {this.props.children
                     ? this.props.children({
                         circularProps,
+                        handleContextMenu,
                         handleMouseEvent,
                         inputRef,
                         linearMapProps,
@@ -361,6 +366,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                     : renderViewerPanels({
                         circularProps,
                         combinedLinearMapProps,
+                        handleContextMenu,
                         handleMouseEvent,
                         inputRef,
                         linearMapProps,

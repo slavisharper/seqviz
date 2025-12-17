@@ -11,8 +11,17 @@ interface RefSelection extends Selection {
 export type InputRefFunc = (id: string, ref: RefSelection) => any;
 
 export type SeqVizMouseEvent = React.MouseEvent & {
-  target: { id: string };
+  target: EventTarget & { id?: string; dataset?: DOMStringMap };
+  currentTarget: EventTarget & { id?: string; dataset?: DOMStringMap };
 };
+
+export interface ViewerContextMenuEvent {
+  event: React.MouseEvent;
+  name?: string;
+  selection: Selection;
+  sequence: string;
+  type?: Selection["type"];
+}
 
 export interface SelectionHandlerProps {
   center: { x: number; y: number };
@@ -20,8 +29,10 @@ export interface SelectionHandlerProps {
   children: (
     inputRef: InputRefFunc,
     handleMouseEvent: (e: SeqVizMouseEvent) => void,
-    onUnmount: (ref: string) => void
+    onUnmount: (ref: string) => void,
+    handleContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void,
   ) => React.ReactNode;
+  onContextMenu?: (event: ViewerContextMenuEvent) => void;
   seq: string;
   setCentralIndex: (viewer: "LINEAR" | "CIRCULAR", index: number) => void;
   setSelection: (selection: Selection) => void;
@@ -66,6 +77,13 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   /** a map between the id of child elements and their associated SelectRanges */
   idToRange = new Map<string, Selection>();
 
+  private activeViewer: "LINEAR" | "CIRCULAR" | null = null;
+
+  private linearDragMeta: {
+    blockRect: DOMRect;
+    range: { end: number; linearOffset?: number; linearWidth?: number; ref?: string | null; start: number };
+  } | null = null;
+
   componentDidMount = () => {
     if (!document) return;
     document.addEventListener("mouseup", this.stopDrag);
@@ -79,19 +97,273 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   /** Stop the current drag event from happening */
   stopDrag = () => {
     this.dragEvent = false;
+    this.linearDragMeta = null;
+    this.activeViewer = null;
+  };
+
+  private findRangeForEvent = (e: SeqVizMouseEvent, preferCurrentTarget = false): Selection | null => {
+    const target = e.target as HTMLElement | null;
+    const currentTarget = e.currentTarget as HTMLElement | null;
+    const targetId = target?.id;
+    const currentId = currentTarget?.id;
+
+    let knownRange: Selection | undefined | null = null;
+
+    if (preferCurrentTarget && currentId) {
+      knownRange = this.idToRange.get(currentId) || null;
+    }
+
+    if (!knownRange && targetId) {
+      knownRange = this.idToRange.get(targetId) || null;
+    }
+
+    if (!knownRange && !preferCurrentTarget && currentId) {
+      knownRange = this.idToRange.get(currentId) || null;
+    }
+
+    if (!knownRange) {
+      const datasetRange = this.getDatasetRange(target) || this.getDatasetRange(currentTarget);
+      if (datasetRange) {
+        knownRange = datasetRange;
+      }
+    }
+
+    if (!knownRange) {
+      return null;
+    }
+
+    return {
+      ...knownRange,
+      end: typeof knownRange.end === "number" ? knownRange.end : knownRange.start || 0,
+      start: typeof knownRange.start === "number" ? knownRange.start : knownRange.end || 0,
+    } as Selection;
+  };
+
+  private normalizeSelection = (selection: Selection): Selection => {
+    const start = typeof selection.start === "number" ? selection.start : selection.end || 0;
+    const end = typeof selection.end === "number" ? selection.end : start;
+
+    return {
+      ...selection,
+      clockwise: typeof selection.clockwise === "boolean" ? selection.clockwise : true,
+      end,
+      start,
+    };
+  };
+
+  private deriveSelectionFromContextTarget = (range: Selection, e: SeqVizMouseEvent): Selection | null => {
+    const normalizedRange: Selection & { end: number; start: number } = {
+      ...range,
+      end: range.end ?? range.start ?? 0,
+      start: range.start ?? range.end ?? 0,
+    };
+
+    switch (range.type) {
+      case "SEQ": {
+        const seqRange = normalizedRange as RefSelection & {
+          linearOffset?: number;
+          linearWidth?: number;
+        };
+        const viewerType = seqRange.viewer || "LINEAR";
+        const blockElement =
+          typeof seqRange.ref === "string" && typeof document !== "undefined"
+            ? (document.getElementById(seqRange.ref) as HTMLElement | null)
+            : null;
+        const blockRect = blockElement?.getBoundingClientRect();
+        const base =
+          viewerType === "LINEAR"
+            ? this.calculateBaseLinear(
+                e,
+                {
+                  end: seqRange.end as number,
+                  linearOffset: seqRange.linearOffset,
+                  linearWidth: seqRange.linearWidth,
+                  start: seqRange.start as number,
+                },
+                blockRect,
+              )
+            : this.calculateBaseCircular(e, blockRect);
+
+        if (typeof base !== "number" || Number.isNaN(base)) {
+          return null;
+        }
+
+        return {
+          ...defaultSelection,
+          clockwise: true,
+          end: base,
+          ref: "SEQ-RIGHT-CLICK",
+          start: base,
+          type: "SEQ",
+          viewer: viewerType,
+        };
+      }
+      case "ANNOTATION":
+      case "FIND":
+      case "TRANSLATION":
+      case "TRANSLATION_HANDLE":
+      case "ENZYME":
+      case "PRIMER":
+      case "HIGHLIGHT":
+      case "AMINOACID": {
+        const clockwise = typeof range.direction === "number" ? range.direction === 1 : true;
+        const selectionStart = clockwise ? normalizedRange.start : normalizedRange.end;
+        const selectionEnd = clockwise ? normalizedRange.end : normalizedRange.start;
+
+        return {
+          ...normalizedRange,
+          clockwise,
+          end: selectionEnd,
+          start: selectionStart,
+        };
+      }
+      default:
+        return normalizedRange;
+    }
+  };
+
+  private getSequenceForSelection = (selection: Selection): string => {
+    const { seq } = this.props;
+    if (!seq || !seq.length) {
+      return "";
+    }
+
+    const start = selection.start || 0;
+    const end = selection.end || start;
+
+    if (start === end) {
+      return "";
+    }
+
+    if (start < end) {
+      return seq.substring(start, end);
+    }
+
+    return seq.substring(start) + seq.substring(0, end);
+  };
+
+  private getLinearBlockRect = (ref: Selection["ref"], fallback?: EventTarget | null): DOMRect | null => {
+    if (typeof document !== "undefined" && typeof ref === "string") {
+      const element = document.getElementById(ref);
+      if (element) {
+        return element.getBoundingClientRect();
+      }
+    }
+
+    const fallbackElement = fallback as HTMLElement | null;
+    if (fallbackElement && typeof fallbackElement.getBoundingClientRect === "function") {
+      return fallbackElement.getBoundingClientRect();
+    }
+
+    return null;
+  };
+
+  private storeLinearDragMeta = (
+    blockRect: DOMRect,
+    knownRange: {
+      end: number;
+      linearOffset?: number;
+      linearWidth?: number;
+      ref?: string | null;
+      start: number;
+    },
+  ) => {
+    this.linearDragMeta = {
+      blockRect,
+      range: { ...knownRange },
+    };
+    this.activeViewer = "LINEAR";
+  };
+
+  private continueLinearDragThroughOverlay = (e: SeqVizMouseEvent) => {
+    if (!this.linearDragMeta) {
+      return;
+    }
+
+    const selection = this.context;
+    const currBase = this.calculateBaseLinear(e, this.linearDragMeta.range, this.linearDragMeta.blockRect);
+
+    const clockwiseDrag = selection.start !== null && currBase >= (selection.start || 0);
+
+    if (e.type === "mousedown" && currBase !== null) {
+      this.setSelection({
+        ...defaultSelection,
+        clockwise: clockwiseDrag,
+        end: currBase,
+        start: e.shiftKey ? selection.start : currBase,
+        type: "SEQ",
+      });
+      return;
+    }
+
+    if (this.dragEvent && currBase !== null) {
+      this.setSelection({
+        ...defaultSelection,
+        clockwise: clockwiseDrag,
+        end: currBase,
+        start: selection.start,
+        type: "SEQ",
+      });
+    }
+  };
+
+  private getRangeAtViewportPoint = (clientX: number, clientY: number): Selection | null => {
+    if (typeof document === "undefined") {
+      return null;
+    }
+
+    const router = document.getElementById("la-vz-event-router");
+    let previousPointerEvents: string | null = null;
+    if (router) {
+      previousPointerEvents = router.style.pointerEvents || null;
+      router.style.pointerEvents = "none";
+    }
+
+    const element = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+
+    if (router) {
+      if (previousPointerEvents === null) {
+        router.style.removeProperty("pointer-events");
+      } else {
+        router.style.pointerEvents = previousPointerEvents;
+      }
+    }
+
+    if (!element) {
+      return null;
+    }
+
+    return this.getDatasetRange(element) || this.idToRange.get(element.id) || null;
   };
 
   private getDatasetRange = (target?: EventTarget | null): RefSelection | null => {
-    if (!target || typeof (target as Element).getAttribute !== "function") {
+    if (!target) {
       return null;
     }
 
-    const element = target as Element & { dataset?: DOMStringMap };
-    if (!element.dataset) {
+    let element = target as Element | null;
+
+    while (element && typeof element.getAttribute !== "function") {
+      element = element.parentElement;
+    }
+
+    if (!element) {
       return null;
     }
 
-    const dataset = element.dataset;
+    const selectionElement = element.matches?.("[data-selection-type]")
+      ? element
+      : element.closest?.("[data-selection-type]") || null;
+
+    if (!selectionElement) {
+      return null;
+    }
+
+    const datasetElement = selectionElement as Element & { dataset?: DOMStringMap };
+    const dataset = datasetElement.dataset;
+    if (!dataset) {
+      return null;
+    }
     const { selectionEnd, selectionRef, selectionStart, selectionType, selectionViewer } = dataset;
     if (!selectionType || typeof selectionStart === "undefined" || typeof selectionEnd === "undefined") {
       return null;
@@ -107,7 +379,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     return {
       clockwise: true,
       end,
-      ref: selectionRef || element.id || `${viewer}-${start}-${end}`,
+      ref: selectionRef || datasetElement.id || `${viewer}-${start}-${end}`,
       start,
       type: selectionType as Selection["type"],
       viewer,
@@ -144,8 +416,60 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    * update its SeqBlock's range (or any others affected) with the newly
    * active range
    */
+  handleContextMenu = (rawEvent: React.MouseEvent<HTMLDivElement>) => {
+    rawEvent.preventDefault();
+    rawEvent.stopPropagation();
+    const e = rawEvent as SeqVizMouseEvent;
+    const { onContextMenu } = this.props;
+
+    let clickedRange = this.findRangeForEvent(e, this.dragEvent);
+    if (!clickedRange) {
+      clickedRange = this.getRangeAtViewportPoint(e.clientX, e.clientY);
+    }
+    let selectionForEvent: Selection | null = null;
+
+    if (clickedRange) {
+      selectionForEvent = this.deriveSelectionFromContextTarget(clickedRange, e);
+    }
+
+    if (selectionForEvent) {
+      this.setSelection(selectionForEvent);
+    } else {
+      selectionForEvent = this.context;
+    }
+
+    if (onContextMenu && selectionForEvent) {
+      const normalized = this.normalizeSelection(selectionForEvent);
+      const sequence = this.getSequenceForSelection(normalized);
+
+      onContextMenu({
+        event: rawEvent,
+        name: normalized.name,
+        selection: normalized,
+        sequence,
+        type: normalized.type,
+      });
+    }
+  };
+
   mouseEvent = (e: SeqVizMouseEvent) => {
     const { setCentralIndex } = this.props;
+
+    const currentEl = e.currentTarget as HTMLElement | null;
+    const targetEl = e.target as HTMLElement | null;
+    if (
+      this.dragEvent &&
+      currentEl?.id === "la-vz-event-router" &&
+      targetEl &&
+      targetEl !== currentEl &&
+      this.idToRange.has(targetEl.id)
+    ) {
+      return;
+    }
+
+    if ((e.type === "mousedown" || e.type === "mouseup") && typeof e.button === "number" && e.button !== 0) {
+      return;
+    }
 
     // should not be updating selection since it's not a drag event time
     if ((e.type === "mousemove" || e.type === "mouseup") && !this.dragEvent) {
@@ -154,22 +478,19 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     // storing this to figure out if it was a double click
     const msSinceLastClick = Date.now() - this.lastClick;
-
-    let knownRange = this.dragEvent
-      ? this.idToRange.get(e.currentTarget.id) // only look for SeqBlocks
-      : this.idToRange.get(e.target.id) || this.idToRange.get(e.currentTarget.id); // elements and SeqBlocks
+    let knownRange = this.findRangeForEvent(e, this.dragEvent);
 
     if (!knownRange) {
-      const datasetRange = this.getDatasetRange(e.target) || this.getDatasetRange(e.currentTarget);
-      if (datasetRange) {
-        knownRange = datasetRange;
+      if (this.dragEvent && this.activeViewer === "LINEAR") {
+        this.continueLinearDragThroughOverlay(e);
       }
-    }
-
-    if (!knownRange) {
       return; // there isn't a known range with the id of the element
     }
-    knownRange = { ...knownRange, end: knownRange.end || 0, start: knownRange.start || 0 };
+
+    if (this.dragEvent && this.activeViewer === "LINEAR" && knownRange.type !== "SEQ") {
+      this.continueLinearDragThroughOverlay(e);
+      return;
+    }
 
     const { direction, end, scrollLinearOnSelect, start, viewer } = knownRange as Selection & {
       scrollLinearOnSelect?: boolean;
@@ -257,16 +578,22 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       end: number;
       linearOffset?: number;
       linearWidth?: number;
+      ref?: string | null;
       scrollLinearOnSelect?: boolean;
       start: number;
-    }
+    },
   ) => {
     const selection = this.context;
-
-    const currBase = this.calculateBaseLinear(e, knownRange);
+    const blockRect = this.getLinearBlockRect(knownRange.ref, e.currentTarget as HTMLElement | null);
+    if (!blockRect) {
+      return;
+    }
+    const currBase = this.calculateBaseLinear(e, knownRange, blockRect);
+    this.storeLinearDragMeta(blockRect, knownRange);
     const clockwiseDrag = selection.start !== null && currBase >= (selection.start || 0);
 
     if (e.type === "mousedown" && currBase !== null) {
+      this.activeViewer = "LINEAR";
       if (knownRange.scrollLinearOnSelect) {
         this.props.setCentralIndex("LINEAR", currBase);
       }
@@ -305,6 +632,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const seqLength = seq.length;
 
     if (e.type === "mousedown") {
+      this.activeViewer = "CIRCULAR";
       const selStart = e.shiftKey ? start || 0 : currBase;
       const lookahead = e.shiftKey
         ? this.calcSelectionLength(selStart, currBase, false)
@@ -410,9 +738,10 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    */
   calculateBaseLinear = (
     e: SeqVizMouseEvent,
-    knownRange: { end: number; linearOffset?: number; linearWidth?: number; start: number }
+    knownRange: { end: number; linearOffset?: number; linearWidth?: number; start: number },
+    blockOverride?: DOMRect,
   ) => {
-    const block = e.currentTarget.getBoundingClientRect();
+    const block = blockOverride ?? e.currentTarget.getBoundingClientRect();
     const offset = knownRange.linearOffset || 0;
     const width = knownRange.linearWidth || block.width;
     if (width <= 0) {
@@ -433,12 +762,12 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    * in a circular plasmid viewer, given the center of the viewer, and position of the
    * mouse event, find the currently hovered or clicked basepair
    */
-  calculateBaseCircular = (e: SeqVizMouseEvent) => {
+  calculateBaseCircular = (e: SeqVizMouseEvent, blockOverride?: DOMRect | null) => {
     const { center, centralIndex, seq, yDiff } = this.props;
 
     if (!center) return 0;
 
-    const block = e.currentTarget.getBoundingClientRect();
+    const block = blockOverride ?? e.currentTarget.getBoundingClientRect();
 
     // position on the plasmid viewer
     const distFromLeft = e.clientX - block.left;
@@ -520,6 +849,6 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   };
 
   render() {
-    return this.props.children(this.inputRef, this.mouseEvent, this.removeMountedBlock);
+    return this.props.children(this.inputRef, this.mouseEvent, this.removeMountedBlock, this.handleContextMenu);
   }
 }

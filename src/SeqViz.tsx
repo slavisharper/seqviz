@@ -20,6 +20,7 @@ import {
 import { isEqual } from "./isEqual";
 import search from "./search";
 import { ExternalSelection, Selection } from "./selectionContext";
+import { ViewerContextMenuEvent } from "./SelectionHandler";
 import { complement, directionality, guessType, randomID } from "./sequence";
 
 /** `SeqViz` props. See the README for more details. One of `seq`, `file` or `accession` is required. */
@@ -108,6 +109,9 @@ export interface SeqVizProps {
 
   /** a callback that's executed on each click of the sequence viewer. Selection includes meta about the selected element */
   onSelection?: (selection: Selection) => void;
+
+  /** fired on right-clicks within the viewer with the associated selection metadata */
+  onContextMenu?: (event: ViewerContextMenuEvent) => void;
 
   /** a list of primers to render above or below the sequences. At the time of writing, only the Linear viewer is supported. */
   primers: PrimerProp[];

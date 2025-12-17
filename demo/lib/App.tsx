@@ -443,7 +443,6 @@ export default class App extends React.Component<any, AppState> {
               label="Custom children"
               set={(customChildren: boolean) => this.setState({ customChildren })}
             />
-            <EnzymeInput enzymes={this.state.enzymes} toggleEnzyme={this.toggleEnzyme} />
           </div>
           <SidebarFooter />
         </aside>
@@ -479,6 +478,9 @@ export default class App extends React.Component<any, AppState> {
                   zoom={{ linear: this.state.zoom }}
                   onSelection={selection => {
                     this.setState({ selection });
+                  }}
+                  onContextMenu={(ev) => {
+                    console.log("context menu!", ev);
                   }}
                 >
                   {customChildren}
@@ -536,24 +538,6 @@ const CheckboxInput = ({ checked, label, set }: { checked: boolean; label: strin
     <input checked={checked} type="checkbox" onChange={e => set(e.target.checked)} />
     <span>{label}</span>
   </label>
-);
-
-const EnzymeInput = ({ enzymes, toggleEnzyme }: { enzymes: string[]; toggleEnzyme: (e: string) => void }) => (
-  <div className="option" id="enzymes">
-    <span>Enzymes</span>
-    <div className="enzyme-grid">
-      {["PstI", "EcoRI", "XbaI", "SpeI"].map(enzyme => (
-        <button
-          className={`enzyme-button ${enzymes.includes(enzyme) ? "active" : ""}`}
-          key={enzyme}
-          onClick={() => toggleEnzyme(enzyme)}
-          type="button"
-        >
-          {enzyme}
-        </button>
-      ))}
-    </div>
-  </div>
 );
 
 const SidebarHeader = ({ toggleSidebar }: { toggleSidebar: () => void }) => (

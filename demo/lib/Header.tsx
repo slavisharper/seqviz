@@ -17,7 +17,7 @@ const Header = ({ selection, showSelectionMeta, toggleShowSelectionMeta, toggleS
       <a href="https://github.com/slavisharper/seqviz" id="github-link" rel="noopener noreferrer" target="_blank">
         GitHub
       </a>
-      <img alt="SeqViz" id="brand" src="https://tools.latticeautomation.com/seqviz/seqviz-logo.png" />
+      <img alt="SeqViz" id="brand" src="https://cdn.prod.website-files.com/683ef1d9d38049ac675f4cda/6932cc66f37f0c47fb14c938_Logo-Space2-WF.png" />
     </div>
     {showSelectionMeta && (
       <div id="header-meta">
@@ -44,7 +44,7 @@ const ToggleSelectionMetaButton = ({ showSelectionMeta, toggleShowSelectionMeta 
 );
 
 const SelectionMetaRow = ({ selection }) => {
-  const { end, feature, length, start } = selection;
+  const { end, name, type, length, start } = selection;
   const noneSelected = start === end;
 
   return (
@@ -55,16 +55,10 @@ const SelectionMetaRow = ({ selection }) => {
             <p>Make a selection on the circular or linear viewer.</p>
           </div>
         )}
-        {feature && (
+        {type && (
           <div className="meta-datum" id="feature-name">
-            <p id="field">FEATURE</p>
-            <p id="value">{feature ? feature.name : ""}</p>
-          </div>
-        )}
-        {feature && feature.type && (
-          <div className="meta-datum" id="feature-type">
-            <p id="field">TYPE</p>
-            <p id="value">{feature.type}</p>
+            <p id="field">{type}</p>
+            <p id="value">{name}</p>
           </div>
         )}
         {length !== 0 && (
