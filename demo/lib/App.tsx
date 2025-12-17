@@ -7,6 +7,8 @@ import LinearMap from "../../src/LinearMap/LinearMap";
 import SeqViz from "../../src/SeqViz";
 import { chooseRandomColor } from "../../src/colors";
 import { AnnotationProp, Primer, TranslationProp } from "../../src/elements";
+import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
+import type { Selection as SelectionType } from "../../src/selectionContext";
 import Header from "./Header";
 import file from "./file";
 
@@ -21,8 +23,16 @@ const viewerTypeOptions = [
   { key: "linear_map_linear", text: "Linear Map + Linear", value: "linear_map_linear" },
 ];
 
+interface ContextInfo {
+  name?: string;
+  selection: SelectionType;
+  sequence: string;
+  type?: SelectionType["type"];
+}
+
 interface AppState {
   annotations: AnnotationProp[];
+  contextInfo: ContextInfo | null;
   customChildren: boolean;
   disableCircularMap: boolean;
   disableLinearMap: boolean;
@@ -46,6 +56,7 @@ interface AppState {
 export default class App extends React.Component<any, AppState> {
   state: AppState = {
     annotations: [],
+    contextInfo: null,
     customChildren: false,
     disableCircularMap: false,
     disableLinearMap: false,
@@ -254,6 +265,103 @@ export default class App extends React.Component<any, AppState> {
     } else {
       this.setState({ enzymes: [...enzymes, e] });
     }
+  };
+
+  handleContextMenuEvent = (contextEvent: ViewerContextMenuEvent) => {
+    if (!contextEvent) {
+      return;
+    }
+
+    const { name, selection, sequence, type } = contextEvent;
+    this.setState({
+      contextInfo: {
+        name: name || selection?.name || "Sequence selection",
+        selection,
+        sequence,
+        type: type || selection?.type,
+      },
+    });
+  };
+
+  dismissContextInfo = () => {
+    this.setState({ contextInfo: null });
+  };
+
+  copyContextSequence = () => {
+    const { contextInfo } = this.state;
+    if (!contextInfo || !contextInfo.sequence) {
+      return;
+    }
+
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      return;
+    }
+
+    navigator.clipboard.writeText(contextInfo.sequence).catch(err => {
+      console.warn("Unable to copy sequence", err);
+    });
+  };
+
+  renderContextInfoPanel = () => {
+    const { contextInfo } = this.state;
+    if (!contextInfo) {
+      return null;
+    }
+
+    const { selection, sequence } = contextInfo;
+    const start = selection?.start ?? 0;
+    const end = selection?.end ?? start;
+    const derivedLength =
+      typeof selection?.length === "number" && selection.length > 0
+        ? selection.length
+        : Math.abs(end - start) || sequence.length || 0;
+    const viewerLabel = selection?.viewer ? selection.viewer.toLowerCase() : "linear";
+    const typeLabel = (contextInfo.type || selection?.type || "SEQ").toLowerCase();
+    const displayName = contextInfo.name || selection?.name || "Sequence selection";
+    const truncatedSequence = sequence
+      ? sequence.length > 220
+        ? `${sequence.slice(0, 220)}…`
+        : sequence
+      : "No bases selected";
+
+    return (
+      <section className="context-info-panel" aria-live="polite">
+        <header className="context-info-header">
+          <div>
+            <p className="context-info-label">Context Menu Insight</p>
+            <h4>{displayName}</h4>
+          </div>
+          <button
+            aria-label="Dismiss selection details"
+            className="context-info-close"
+            onClick={this.dismissContextInfo}
+            type="button"
+          >
+            ×
+          </button>
+        </header>
+        <div className="context-info-body">
+          <div className="context-info-meta">
+            <span className="context-pill">{typeLabel}</span>
+            <span className="context-pill">{viewerLabel} view</span>
+            <span className="context-pill">{derivedLength} bp</span>
+          </div>
+          <dl className="context-info-stats">
+            <div>
+              <dt>Range</dt>
+              <dd>
+                {start} – {end}
+              </dd>
+            </div>
+            <div>
+              <dt>Clockwise</dt>
+              <dd>{selection?.clockwise === false ? "No" : "Yes"}</dd>
+            </div>
+          </dl>
+          <pre className="context-info-seq">{truncatedSequence}</pre>
+        </div>
+      </section>
+    );
   };
 
   render() {
@@ -479,14 +587,13 @@ export default class App extends React.Component<any, AppState> {
                   onSelection={selection => {
                     this.setState({ selection });
                   }}
-                  onContextMenu={(ev) => {
-                    console.log("context menu!", ev);
-                  }}
+                  onContextMenu={this.handleContextMenuEvent}
                 >
                   {customChildren}
                 </SeqViz>
               )}
             </div>
+            {this.renderContextInfoPanel()}
           </div>
         </div>
       </div>
@@ -551,7 +658,6 @@ const SidebarHeader = ({ toggleSidebar }: { toggleSidebar: () => void }) => (
 
 const SidebarFooter = () => (
   <div className="sidebar-footer">
-    <hr />
     <img
       alt="Lattice Automation"
       className="brand-logo"

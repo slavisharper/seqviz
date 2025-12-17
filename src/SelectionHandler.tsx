@@ -151,7 +151,48 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     };
   };
 
-  private deriveSelectionFromContextTarget = (range: Selection, e: SeqVizMouseEvent): Selection | null => {
+  private selectionHasLength = (
+    selection?: Selection | null,
+  ): selection is Selection & { end: number; start: number } => {
+    if (!selection) {
+      return false;
+    }
+
+    const { end, start } = selection;
+    return typeof start === "number" && typeof end === "number" && start !== end;
+  };
+
+  private selectionContainsBase = (selection: Selection, base: number): boolean => {
+    if (typeof base !== "number" || Number.isNaN(base)) {
+      return false;
+    }
+
+    const start = typeof selection.start === "number" ? selection.start : selection.end ?? 0;
+    const end = typeof selection.end === "number" ? selection.end : selection.start ?? start;
+    const viewer = selection.viewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
+
+    if (start === end) {
+      return false;
+    }
+
+    if (start < end) {
+      return base >= start && base <= end;
+    }
+
+    if (viewer === "CIRCULAR") {
+      return base >= start || base <= end;
+    }
+
+    const min = Math.min(start, end);
+    const max = Math.max(start, end);
+    return base >= min && base <= max;
+  };
+
+  private deriveSelectionFromContextTarget = (
+    range: Selection,
+    e: SeqVizMouseEvent,
+    existingSelection?: Selection | null,
+  ): Selection | null => {
     const normalizedRange: Selection & { end: number; start: number } = {
       ...range,
       end: range.end ?? range.start ?? 0,
@@ -186,6 +227,11 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
         if (typeof base !== "number" || Number.isNaN(base)) {
           return null;
+        }
+
+        const normalizedSelection = existingSelection ? this.normalizeSelection(existingSelection) : null;
+        if (this.selectionHasLength(normalizedSelection) && this.selectionContainsBase(normalizedSelection, base)) {
+          return { ...normalizedSelection };
         }
 
         return {
@@ -429,7 +475,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     let selectionForEvent: Selection | null = null;
 
     if (clickedRange) {
-      selectionForEvent = this.deriveSelectionFromContextTarget(clickedRange, e);
+      selectionForEvent = this.deriveSelectionFromContextTarget(clickedRange, e, this.context);
     }
 
     if (selectionForEvent) {

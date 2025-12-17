@@ -431,7 +431,6 @@ const renderViewerPanels = ({
   };
 
   const linearMapStyle: React.CSSProperties = {
-    background: viewer === "linear_map_linear" ? "#f7f8fc" : undefined,
     borderBottom: viewer === "linear_map_linear" ? "1px solid rgba(0, 0, 0, 0.15)" : undefined,
     boxShadow: viewer === "linear_map_linear" ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
     flex: viewer === "linear_map_linear" ? "0 0 auto" : undefined,
