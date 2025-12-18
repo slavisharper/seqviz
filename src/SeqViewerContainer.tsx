@@ -1,14 +1,14 @@
 import * as React from "react";
 
-import Circular, { CircularProps } from "./Circular/Circular";
+import Circular, { CircularProps } from "./viewers/Circular/Circular";
 import { EventHandler } from "./EventHandler";
-import Linear, { LinearProps } from "./Linear/Linear";
-import LinearMap, { LinearMapProps } from "./LinearMap/LinearMap";
+import Linear, { LinearProps } from "./viewers/Linear/Linear";
+import LinearMap, { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 import SelectionHandler, { InputRefFunc, ViewerContextMenuEvent } from "./SelectionHandler";
-import CentralIndexContext from "./centralIndexContext";
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size } from "./elements";
-import { isEqual } from "./isEqual";
-import SelectionContext, { ExternalSelection, Selection, defaultSelection } from "./selectionContext";
+import CentralIndexContext from "./state/centralIndexContext";
+import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size, TranslationProp } from "./core/elements";
+import { isEqual } from "./utils/isEqual";
+import SelectionContext, { ExternalSelection, Selection, defaultSelection } from "./state/selectionContext";
 import { useResizeDetector } from "react-resize-detector";
 import {
   createCircularPropsBuilder,
@@ -76,6 +76,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   seqType: SeqType;
   showComplement: boolean;
   showIndex: boolean;
+  orfs: TranslationProp[];
   /** testSize is a forced height/width that overwrites anything from sizeMe. For testing */
   testSize?: { height: number; width: number };
   translations: NameRange[];
@@ -251,6 +252,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       cutSites,
       highlights,
       name,
+      orfs,
       rotateOnScroll,
       search,
       seq,
@@ -264,6 +266,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       compSeq,
       cutSites,
       highlights,
+      orfs,
       name,
       rotateOnScroll,
       search,

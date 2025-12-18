@@ -2,7 +2,7 @@ import * as React from "react";
 import seqparse from "seqparse";
 
 import SeqViz from "../../src/SeqViz";
-import { AnnotationProp, Primer } from "../../src/elements";
+import { AnnotationProp, Primer } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
 import Header from "./Header";
@@ -28,6 +28,7 @@ import {
   createDefaultTranslations,
 } from "./constants";
 import file from "./file";
+import TranslationSettingsInput from "./components/TranslationSettingsInput";
 
 type ViewerTypeOptionConfig = (typeof VIEWER_TYPE_OPTIONS)[number];
 
@@ -45,6 +46,7 @@ const buildDefaultPresetState = () => ({
   showIndex: true,
   showSelectionMeta: false,
   seqType: "dna" as SupportedSeqType,
+  showTranslations: true,
   translations: createDefaultTranslations(),
   viewer: "both" as ViewerOption,
   zoom: DEFAULT_ZOOM,
@@ -69,6 +71,7 @@ interface AppState {
   showIndex: boolean;
   showSelectionMeta: boolean;
   showSidebar: boolean;
+  showTranslations: boolean;
   translations?: TranslationSettings;
   viewer: ViewerOption;
   zoom: number;
@@ -160,6 +163,21 @@ export default class App extends React.Component<any, AppState> {
     });
   };
 
+  handleTranslationsToggle = (enabled: boolean) => {
+    if (enabled) {
+      this.setState(prevState => ({
+        showTranslations: true,
+        translations: prevState.translations ?? createDefaultTranslations(),
+      }));
+      return;
+    }
+    this.setState({ showTranslations: false });
+  };
+
+  handleTranslationsChange = (translations: TranslationSettings) => {
+    this.setState({ translations });
+  };
+
   handleExampleChange = (exampleId: DemoExampleId) => {
     if (exampleId === this.state.exampleId) {
       return;
@@ -188,6 +206,7 @@ export default class App extends React.Component<any, AppState> {
 
     this.setState(prevState => ({
       ...presetState,
+      showTranslations: typeof presetState.showTranslations === "boolean" ? presetState.showTranslations : true,
       contextInfo: null,
       exampleId,
       searchResults: {},
@@ -251,6 +270,13 @@ export default class App extends React.Component<any, AppState> {
               label="Disable linear sequence"
               set={(disableLinearSequence: boolean) => this.setState({ disableLinearSequence })}
             />
+            <TranslationSettingsInput
+              enabled={this.state.showTranslations}
+              seqType={this.state.seqType}
+              value={this.state.translations}
+              onToggle={this.handleTranslationsToggle}
+              onChange={this.handleTranslationsChange}
+            />
           </div>
           <SidebarFooter />
         </aside>
@@ -282,7 +308,7 @@ export default class App extends React.Component<any, AppState> {
                   seq={this.state.seq}
                   showComplement={this.state.showComplement}
                   showIndex={this.state.showIndex}
-                  translations={this.state.translations}
+                  translations={this.state.showTranslations ? this.state.translations : undefined}
                   viewer={this.state.viewer}
                   zoom={{ linear: this.state.zoom }}
                   onSelection={selection => {

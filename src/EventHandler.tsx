@@ -1,8 +1,8 @@
 import * as React from "react";
 
-import CentralIndexContext from "./centralIndexContext";
-import debounce from "./debounce";
-import { Selection } from "./selectionContext";
+import CentralIndexContext from "./state/centralIndexContext";
+import debounce from "./utils/debounce";
+import { Selection } from "./state/selectionContext";
 
 export interface EventsHandlerProps {
   bpsPerBlock: number;

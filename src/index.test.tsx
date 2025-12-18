@@ -4,7 +4,7 @@ import { cleanup, render } from "@testing-library/react";
 import * as React from "react";
 
 import { SeqViz } from ".";
-import demoPart from "./demoPart";
+import demoPart from "./core/demoPart";
 
 const props = {
   annotations: [

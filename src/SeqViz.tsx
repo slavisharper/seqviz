@@ -2,8 +2,7 @@ import * as React from "react";
 import seqparse, { ParseOptions, parseFile } from "seqparse";
 
 import SeqViewerContainer, { CustomChildrenProps, SeqVizChildRefs } from "./SeqViewerContainer";
-import { COLORS, colorByIndex } from "./colors";
-import digest from "./digest";
+import { COLORS, colorByIndex } from "./core/colors";
 import {
   Annotation,
   AnnotationProp,
@@ -16,16 +15,17 @@ import {
   Range,
   SeqType,
   TranslationProp,
-} from "./elements";
-import { isEqual } from "./isEqual";
-import search from "./search";
-import { ExternalSelection, Selection } from "./selectionContext";
+} from "./core/elements";
+import { isEqual } from "./utils/isEqual";
+import search from "./utils/search";
+import { ExternalSelection, Selection } from "./state/selectionContext";
 import { ViewerContextMenuEvent } from "./SelectionHandler";
-import { complement, directionality, guessType, randomID } from "./sequence";
-import { generateTranslations } from "./translations";
-import type { TranslationSettings } from "./translations";
+import { complement, directionality, guessType, randomID } from "./core/sequence";
+import { generateOrfs, generateTranslations } from "./core/translations";
+import type { TranslationSettings } from "./core/translations";
+import digest from "./core/digest";
 
-export type { TranslationFrame, TranslationOrfSettings, TranslationSettings } from "./translations";
+export type { TranslationFrame, TranslationOrfSettings, TranslationSettings } from "./core/translations";
 
 /** `SeqViz` props. See the README for more details. One of `seq`, `file` or `accession` is required. */
 export interface SeqVizProps {
@@ -427,6 +427,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     const { highlights, primers, showComplement, showIndex, style, zoom } = this.props;
     const { compSeq, seq, seqType } = this.state;
     const translations = generateTranslations(seq, seqType, this.props.translations);
+    const orfs = generateOrfs(seq, seqType, this.props.translations);
 
     // This is an unfortunate bit of seq checking. We could get a seq directly or from a file parsed to a part.
     if (!seq) return <div className="la-vz-seqviz" />;
@@ -453,6 +454,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           // do nothing
         }),
       primers: primers.map((p, i) => ({ color: colorByIndex(i), id: `primer${p.name}${i}${p.start}${p.end}`, ...p })),
+      orfs,
       rotateOnScroll: !!this.props.rotateOnScroll,
       showComplement: (!!compSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
       showIndex: !!showIndex,

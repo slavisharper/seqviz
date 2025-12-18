@@ -2,11 +2,11 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { renderToString as reactRenderToString } from "react-dom/server";
 
-import Circular from "./Circular/Circular";
-import Linear from "./Linear/Linear";
-import LinearMap from "./LinearMap/LinearMap";
+import Circular from "./viewers/Circular/Circular";
+import Linear from "./viewers/Linear/Linear";
+import LinearMap from "./viewers/LinearMap/LinearMap";
 import SeqViz, { SeqVizProps } from "./SeqViz";
-import enzymes from "./enzymes";
+import enzymes from "./core/enzymes";
 
 /**
  * Export a React component directly for React-based development
@@ -17,11 +17,11 @@ export default SeqViz;
 
 export type { SeqVizProps, TranslationFrame, TranslationOrfSettings, TranslationSettings } from "./SeqViz";
 
-export type { CircularProps } from "./Circular/Circular";
+export type { CircularProps } from "./viewers/Circular/Circular";
 
-export type { LinearProps } from "./Linear/Linear";
+export type { LinearProps } from "./viewers/Linear/Linear";
 
-export type { LinearMapProps } from "./LinearMap/LinearMap";
+export type { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
 /**
  * Return a Viewer object with three properties:

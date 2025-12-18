@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 
 import SelectionHandler from "./SelectionHandler";
-import SelectionContext, { Selection, defaultSelection } from "./selectionContext";
+import SelectionContext, { Selection, defaultSelection } from "./state/selectionContext";
 
 const mockRect = () => ({
   bottom: 40,

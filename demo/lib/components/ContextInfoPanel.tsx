@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import type { Selection as SelectionType } from "../../../src/selectionContext";
+import type { Selection as SelectionType } from "../../../src/state/selectionContext";
 
 export interface ContextInfo {
   name?: string;

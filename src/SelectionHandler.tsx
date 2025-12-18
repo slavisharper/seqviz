@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import SelectionContext, { Selection, defaultSelection } from "./selectionContext";
+import SelectionContext, { Selection, defaultSelection } from "./state/selectionContext";
 
 interface RefSelection extends Selection {
   linearOffset?: number;

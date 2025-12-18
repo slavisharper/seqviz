@@ -1,8 +1,8 @@
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size } from "./elements";
-import { CircularProps } from "./Circular/Circular";
-import { LinearProps } from "./Linear/Linear";
-import { LinearMapProps } from "./LinearMap/LinearMap";
-import { Selection } from "./selectionContext";
+import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size, TranslationProp } from "./core/elements";
+import { CircularProps } from "./viewers/Circular/Circular";
+import { LinearProps } from "./viewers/Linear/Linear";
+import { LinearMapProps } from "./viewers/LinearMap/LinearMap";
+import { Selection } from "./state/selectionContext";
 
 export const memoizeOne = <Args extends unknown[], Result>(
   fn: (...args: Args) => Result
@@ -111,6 +111,7 @@ export const createCircularPropsBuilder = () =>
       compSeq: string,
       cutSites: CutSite[],
       highlights: Highlight[],
+      orfs: TranslationProp[],
       name: string,
       rotateOnScroll: boolean,
       search: NameRange[],
@@ -135,6 +136,7 @@ export const createCircularPropsBuilder = () =>
         compSeq,
         cutSites,
         highlights,
+        orfs,
         name,
         radius: radius === 0 ? 1 : radius,
         rotateOnScroll,
