@@ -434,6 +434,7 @@ const renderViewerPanels = ({
     flexDirection: layoutDirection,
     height: "100%",
     width: "100%",
+    overflow: "hidden",
   };
 
   const circularStyle: React.CSSProperties = {
@@ -441,16 +442,24 @@ const renderViewerPanels = ({
     order: viewer === "both_flip" ? 2 : undefined,
   };
 
+  const isLinearMapLinear = viewer === "linear_map_linear";
+  const isLinearMapOnly = viewer === "linear_map";
+
   const linearMapStyle: React.CSSProperties = {
-    borderBottom: viewer === "linear_map_linear" ? "1px solid rgba(0, 0, 0, 0.15)" : undefined,
-    boxShadow: viewer === "linear_map_linear" ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
-    flex: viewer === "linear_map_linear" ? "0 0 auto" : undefined,
+    borderBottom: isLinearMapLinear ? "1px solid rgba(0, 0, 0, 0.15)" : undefined,
+    boxShadow: isLinearMapLinear ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
+    flex: isLinearMapLinear ? "0 0 auto" : isLinearMapOnly ? "1 1 auto" : undefined,
+    overflowY: isLinearMapLinear || isLinearMapOnly ? "auto" : undefined,
+    overflowX: isLinearMapLinear || isLinearMapOnly ? "hidden" : undefined,
+    maxHeight: isLinearMapLinear ? "50%" : undefined,
+    minHeight: isLinearMapLinear ? "14rem" : undefined,
+    height: isLinearMapOnly ? "100%" : undefined,
   };
 
   const linearStyle: React.CSSProperties = {
-    flex: viewer === "linear_map_linear" ? "1 1 auto" : isDual ? "1 1 50%" : showLinear ? "1 1 auto" : undefined,
-    minHeight: viewer === "linear_map_linear" || !isDual ? 0 : undefined,
-    overflow: viewer === "linear_map_linear" ? "hidden" : undefined,
+    flex: isLinearMapLinear ? "1 1 auto" : isDual ? "1 1 50%" : showLinear ? "1 1 auto" : undefined,
+    minHeight: isLinearMapLinear || !isDual ? 0 : undefined,
+    overflow: isLinearMapLinear ? "hidden" : undefined,
     order: viewer === "both" ? 2 : viewer === "both_flip" ? 1 : undefined,
   };
 

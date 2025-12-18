@@ -19,8 +19,9 @@ import { LinearMapScale, clamp, createSegments, normalizeBase, rangeLength, rang
 const LINE_HEIGHT = 14;
 const TRACK_GAP = 12;
 const ROW_GAP = 4;
-const PADDING_X = 40;
-const PADDING_Y = 30;
+const PADDING_X = 30;
+const PADDING_TOP = 20;
+const PADDING_BOTTOM = 0;
 const LABEL_GAP = 14;
 const MIN_MAP_WIDTH = 160;
 const ANNOTATION_HEIGHT_RATIO = 0.8;
@@ -246,9 +247,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const enzymeLabelsHeight = enzymeLabelRowMax >= 0 ? (enzymeLabelRowMax + 1) * LINE_HEIGHT : 0;
     const featureLabelRowMax = featureLabels.reduce((acc, label) => Math.max(acc, label.row), -1);
     const featureLabelsHeight = featureLabelRowMax >= 0 ? (featureLabelRowMax + 1) * LINE_HEIGHT : 0;
-    const enzymeLabelsStartY = PADDING_Y;
+    const enzymeLabelsStartY = PADDING_TOP;
 
-    let currentY = PADDING_Y;
+    let currentY = PADDING_TOP;
     if (enzymeLabelsHeight) {
       currentY += enzymeLabelsHeight + LABEL_GAP;
     }
@@ -347,7 +348,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       currentY = featureAreaBottom;
     }
 
-    const totalHeight = Math.max(size.height || 0, Math.max(currentY, mapBottom) + PADDING_Y);
+    const totalHeight = Math.max(size.height || 0, Math.max(currentY, mapBottom) + PADDING_BOTTOM);
     const totalWidth = baseWidth > 0 ? baseWidth : mapWidth + 2 * PADDING_X;
 
     const mapSlug = name ? name.replace(/[^a-zA-Z0-9_-]+/g, "-") : "map";
