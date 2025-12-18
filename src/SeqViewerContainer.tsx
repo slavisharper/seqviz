@@ -279,13 +279,14 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   };
 
   private getLinearMapProps = (viewerSize: Size, selection: Selection) => {
-    const { annotations, cutSites, highlights, name, primers, rotateOnScroll, search, seq, showIndex } = this.props;
+    const { annotations, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } = this.props;
 
     return this.buildLinearMapProps(
       annotations,
       cutSites,
       highlights,
       name,
+      orfs,
       primers,
       rotateOnScroll,
       search,
