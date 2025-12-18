@@ -43,6 +43,34 @@ interface LabelsState {
   labelGroups: GroupedLabelsWithCoors[];
 }
 
+const getSelectionAttributes = (label: ILabel): Record<string, string | number> => {
+  if (
+    typeof label.selectionStart !== "number" ||
+    typeof label.selectionEnd !== "number" ||
+    !label.selectionType
+  ) {
+    return {};
+  }
+
+  const attrs: Record<string, string | number> = {
+    "data-selection-start": label.selectionStart,
+    "data-selection-end": label.selectionEnd,
+    "data-selection-type": label.selectionType,
+    "data-selection-name": label.selectionName || label.name,
+    "data-selection-viewer": label.selectionViewer || "CIRCULAR",
+  };
+
+  if (label.id) {
+    attrs["data-selection-ref"] = label.id;
+  }
+
+  if (label.selectionScrollLinearOnSelect) {
+    attrs["data-scroll-linear-on-select"] = "true";
+  }
+
+  return attrs;
+};
+
 /**
  * used to build up all plasmid labels, for annotations, enzymes, etc
  *
@@ -291,6 +319,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
       <g className="la-vz-circular-labels" onMouseLeave={() => this.setHoveredGroup("")}>
         {labelGroups.map(g => {
           const [first] = g.labels;
+          const selectionAttrs = getSelectionAttributes(first);
           // generate the line between the name and plasmid surface
           const fC = g.forkCoor || g.textCoor;
           const labelLines = (
@@ -318,6 +347,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                 <text
                   className="la-vz-circular-label"
                   id={first.id}
+                  {...selectionAttrs}
                   {...g.textCoor}
                   dominantBaseline="middle"
                   style={circularLabel}
@@ -341,6 +371,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                 className="la-vz-circular-label"
                 dominantBaseline="middle"
                 id={first.id}
+                {...selectionAttrs}
                 style={circularLabel}
                 textAnchor={g.textAnchor}
                 onMouseEnter={() => this.setHoveredGroup(first.id || "")}
@@ -353,6 +384,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
         })}
         {hovered && (
           <WrappedGroupLabel
+            getSelectionAttributes={getSelectionAttributes}
             group={hovered}
             lineHeight={lineHeight}
             setHoveredGroup={this.setHoveredGroup}

@@ -12,7 +12,7 @@ import { Selection as SelectionState } from "../selectionContext";
 import { annotationLabel, annotation as annotationStyle, circularLabelLine, viewerCircular } from "../style";
 import { Find } from "./Find";
 import { Index } from "./Index";
-import { Labels, LinearLabelDatum } from "./Labels";
+import { Labels, LinearLabelDatum, LinearLabelItem } from "./Labels";
 import { Selection } from "./Selection";
 import { LinearMapScale, clamp, createSegments, normalizeBase, rangeLength, rangeMidpoint } from "./utils";
 
@@ -27,12 +27,7 @@ const ANNOTATION_HEIGHT_RATIO = 0.8;
 const PRIMER_HEIGHT_RATIO = 0.7;
 const SELECTION_HEIGHT_RATIO = 0.85;
 
-type RawLabelItem = {
-  direction?: 1 | -1;
-  id: string;
-  name: string;
-  type: "annotation" | "primer" | "enzyme";
-};
+type RawLabelItem = LinearLabelItem;
 
 interface RawLabel {
   cutPosition?: number;
@@ -44,6 +39,44 @@ interface RawLabel {
   start: number;
   type: "annotation" | "primer" | "enzyme";
 }
+
+const createLabelItemWithSelection = (
+  config: {
+    direction?: 1 | -1;
+    end: number;
+    id: string;
+    name: string;
+    start: number;
+    type: "annotation" | "primer" | "enzyme";
+  },
+  selectionType: SelectionState["type"],
+  options?: { scrollLinearOnSelect?: boolean }
+): LinearLabelItem => ({
+  direction: config.direction,
+  id: config.id,
+  name: config.name,
+  selectionEnd: config.end,
+  selectionName: config.name,
+  selectionRef: config.id,
+  selectionStart: config.start,
+  selectionScrollLinearOnSelect: options?.scrollLinearOnSelect,
+  selectionType,
+  selectionViewer: "LINEAR",
+  type: config.type,
+});
+
+const getSelectionTypeForLabel = (type: RawLabel["type"]): SelectionState["type"] => {
+  switch (type) {
+    case "annotation":
+      return "ANNOTATION";
+    case "primer":
+      return "PRIMER";
+    case "enzyme":
+      return "ENZYME";
+    default:
+      return "";
+  }
+};
 
 export interface LinearMapProps {
   annotations: Annotation[];
@@ -761,12 +794,17 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
           end: annotation.end,
           id: annotation.id,
           items: [
-            {
-              direction: annotation.direction === 1 || annotation.direction === -1 ? annotation.direction : undefined,
-              id: annotation.id,
-              name: annotation.name,
-              type: "annotation",
-            },
+            createLabelItemWithSelection(
+              {
+                direction: annotation.direction === 1 || annotation.direction === -1 ? annotation.direction : undefined,
+                end: annotation.end,
+                id: annotation.id,
+                name: annotation.name,
+                start: annotation.start,
+                type: "annotation",
+              },
+              "ANNOTATION"
+            ),
           ],
           name: annotation.name,
           start: annotation.start,
@@ -787,12 +825,17 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
           end: primer.end,
           id: primer.id,
           items: [
-            {
-              direction: primer.direction,
-              id: primer.id,
-              name: primer.name,
-              type: "primer",
-            },
+            createLabelItemWithSelection(
+              {
+                direction: primer.direction,
+                end: primer.end,
+                id: primer.id,
+                name: primer.name,
+                start: primer.start,
+                type: "primer",
+              },
+              "PRIMER"
+            ),
           ],
           name: primer.name,
           start: primer.start,
@@ -820,12 +863,18 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         end: site.end,
         id: site.id,
         items: [
-          {
-            direction,
-            id: site.id,
-            name,
-            type: "enzyme",
-          },
+          createLabelItemWithSelection(
+            {
+              direction,
+              end: site.end,
+              id: site.id,
+              name,
+              start: site.start,
+              type: "enzyme",
+            },
+            "ENZYME",
+            { scrollLinearOnSelect: true }
+          ),
         ],
         name,
         start: site.start,
@@ -862,12 +911,18 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         label.items && label.items.length
           ? label.items
           : [
-              {
-                direction: label.direction,
-                id: label.id,
-                name: label.name,
-                type: label.type,
-              },
+              createLabelItemWithSelection(
+                {
+                  direction: label.direction,
+                  end: label.end,
+                  id: label.id,
+                  name: label.name,
+                  start: label.start,
+                  type: label.type,
+                },
+                getSelectionTypeForLabel(label.type),
+                { scrollLinearOnSelect: label.type === "enzyme" }
+              ),
             ];
       const uniqueNames = Array.from(
         new Set(

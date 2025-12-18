@@ -6,6 +6,7 @@ import { ILabel } from "./Circular";
 import { GroupedLabelsWithCoors } from "./Labels";
 
 interface WrappedGroupLabelProps {
+  getSelectionAttributes: (label: ILabel) => Record<string, string | number>;
   group: GroupedLabelsWithCoors;
   lineHeight: number;
   setHoveredGroup: (hoveredGroup: string) => void;
@@ -26,6 +27,7 @@ interface WrappedGroupLabelProps {
  */
 export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
   const {
+    getSelectionAttributes,
     group,
     lineHeight,
     setHoveredGroup,
@@ -119,6 +121,7 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
                   className="la-vz-circular-label"
                   dominantBaseline="middle"
                   id={l.id}
+                  {...getSelectionAttributes(l)}
                   style={circularLabel}
                   tabIndex={-1}
                   y={groupCoor.y + (i + 0.5) * lineHeight}

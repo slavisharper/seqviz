@@ -4,11 +4,11 @@ import { InputRefFunc } from "../SelectionHandler";
 import { CHAR_WIDTH } from "../SeqViewerContainer";
 import CentralIndexContext from "../centralIndexContext";
 import { Annotation, Coor, CutSite, Highlight, Range, Size } from "../elements";
+import type { Selection as SelectionRange } from "../selectionContext";
 import { stackElements } from "../elementsToRows";
 import { isEqual } from "../isEqual";
 import { viewerCircular } from "../style";
 import { Annotations } from "./Annotations";
-import { CutSites } from "./CutSites";
 import { Find } from "./Find";
 import { Index } from "./Index";
 import { Labels } from "./Labels";
@@ -21,6 +21,12 @@ export interface ILabel {
   end: number;
   id?: string;
   name: string;
+  selectionEnd?: number;
+  selectionName?: string;
+  selectionScrollLinearOnSelect?: boolean;
+  selectionStart?: number;
+  selectionType?: SelectionRange["type"];
+  selectionViewer?: "LINEAR" | "CIRCULAR";
   start: number;
   type: "enzyme" | "annotation";
 }
@@ -116,7 +122,19 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         } else {
           const { end, id, name, start } = ann;
           const type = "annotation";
-          outerLabels.push({ end, id, name, start, type });
+          outerLabels.push({
+            end,
+            id,
+            name,
+            selectionEnd: end,
+            selectionName: name,
+            selectionScrollLinearOnSelect: true,
+            selectionStart: start,
+            selectionType: "ANNOTATION",
+            selectionViewer: "CIRCULAR",
+            start,
+            type,
+          });
         }
       });
       innerRadius -= lineHeight;
@@ -130,6 +148,12 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       outerLabels.push({
         ...c.enzyme,
         ...c,
+        selectionEnd: c.end,
+        selectionName: c.name,
+        selectionScrollLinearOnSelect: true,
+        selectionStart: c.start,
+        selectionType: "ENZYME",
+        selectionViewer: "CIRCULAR",
         start: c.fcut,
         type: "enzyme",
       });
@@ -317,7 +341,6 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     const {
       center,
       compSeq,
-      cutSites,
       handleMouseEvent,
       inputRef,
       name,
@@ -368,7 +391,6 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       >
         <g className="la-vz-circular-root" transform={`translate(0, ${yDiff})`}>
           <Selection {...props} seq={seq} totalRows={totalRows} />
-          <CutSites {...props} cutSites={cutSites} selectionRows={4} />
           <Index
             {...props}
             compSeq={compSeq}

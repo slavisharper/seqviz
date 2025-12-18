@@ -119,15 +119,15 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       knownRange = this.idToRange.get(targetId) || null;
     }
 
-    if (!knownRange && !preferCurrentTarget && currentId) {
-      knownRange = this.idToRange.get(currentId) || null;
-    }
-
     if (!knownRange) {
       const datasetRange = this.getDatasetRange(target) || this.getDatasetRange(currentTarget);
       if (datasetRange) {
         knownRange = datasetRange;
       }
+    }
+
+    if (!knownRange && !preferCurrentTarget && currentId) {
+      knownRange = this.idToRange.get(currentId) || null;
     }
 
     if (!knownRange) {
@@ -412,7 +412,15 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     if (!dataset) {
       return null;
     }
-    const { selectionEnd, selectionName, selectionRef, selectionStart, selectionType, selectionViewer } = dataset;
+    const {
+      selectionEnd,
+      selectionName,
+      selectionRef,
+      selectionStart,
+      selectionType,
+      selectionViewer,
+      scrollLinearOnSelect,
+    } = dataset;
     if (!selectionType || typeof selectionStart === "undefined" || typeof selectionEnd === "undefined") {
       return null;
     }
@@ -424,11 +432,13 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     }
 
     const viewer = selectionViewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
+    const shouldScrollLinear = typeof scrollLinearOnSelect === "string" ? scrollLinearOnSelect === "true" : undefined;
     return {
       clockwise: true,
       end,
       name: selectionName,
       ref: selectionRef || datasetElement.id || `${viewer}-${start}-${end}`,
+      scrollLinearOnSelect: shouldScrollLinear,
       start,
       type: selectionType as Selection["type"],
       viewer,
@@ -547,6 +557,10 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     // storing this to figure out if it was a double click
     const msSinceLastClick = Date.now() - this.lastClick;
     let knownRange = this.findRangeForEvent(e, this.dragEvent);
+
+    if (!knownRange && e.type === "mousedown") {
+      knownRange = this.getRangeAtViewportPoint(e.clientX, e.clientY);
+    }
 
     if (!knownRange) {
       if (this.dragEvent && this.activeViewer === "LINEAR") {

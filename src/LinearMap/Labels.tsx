@@ -1,10 +1,25 @@
 import * as React from "react";
 
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
+import { Selection as SelectionRange } from "../selectionContext";
 import { circularLabel, circularLabelLine, circularLabelLineHover } from "../style";
 
 const ANNOTATION_HEIGHT_RATIO = 0.8;
 const PRIMER_HEIGHT_RATIO = 0.7;
+
+export interface LinearLabelItem {
+  direction?: 1 | -1;
+  id: string;
+  name: string;
+  selectionEnd?: number;
+  selectionName?: string;
+  selectionRef?: string;
+  selectionStart?: number;
+  selectionScrollLinearOnSelect?: boolean;
+  selectionType?: SelectionRange["type"];
+  selectionViewer?: "LINEAR" | "CIRCULAR";
+  type: "annotation" | "primer" | "enzyme";
+}
 
 export interface LinearLabelDatum {
   anchorX: number;
@@ -12,7 +27,7 @@ export interface LinearLabelDatum {
   groupId: string;
   groupType: "annotation" | "primer" | "enzyme";
   grouped: boolean;
-  labels: Array<{ direction?: 1 | -1; id: string; name: string; type: "annotation" | "primer" | "enzyme" }>;
+  labels: LinearLabelItem[];
   left: number;
   right: number;
   row: number;
@@ -35,6 +50,35 @@ interface LinearLabelsProps {
 export class Labels extends React.PureComponent<LinearLabelsProps> {
   private currentLabel: LinearLabelDatum | null = null;
   private currentHoveredFeatureIds: string[] = [];
+
+  private getSelectionAttributes = (label?: LinearLabelItem): Record<string, string | number> => {
+    if (
+      !label ||
+      typeof label.selectionStart !== "number" ||
+      typeof label.selectionEnd !== "number" ||
+      !label.selectionType
+    ) {
+      return {};
+    }
+
+    const attrs: Record<string, string | number> = {
+      "data-selection-start": label.selectionStart,
+      "data-selection-end": label.selectionEnd,
+      "data-selection-type": label.selectionType,
+      "data-selection-name": label.selectionName || label.name,
+      "data-selection-viewer": label.selectionViewer || "LINEAR",
+    };
+
+    if (label.selectionRef || label.id) {
+      attrs["data-selection-ref"] = label.selectionRef || label.id;
+    }
+
+    if (label.selectionScrollLinearOnSelect) {
+      attrs["data-scroll-linear-on-select"] = "true";
+    }
+
+    return attrs;
+  };
 
   handleLabelEnter = (label: LinearLabelDatum) => {
     if (this.currentLabel && this.currentLabel.groupId !== label.groupId) {
@@ -104,6 +148,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
           };
           const connectorStyle = labelHovered ? circularLabelLineHover : circularLabelLine;
           const stemStyle = connectorStyle;
+          const selectionAttrs = this.getSelectionAttributes(label.labels[0]);
 
           return (
             <g key={`linear-label-${label.groupId}`}>
@@ -135,6 +180,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
                 textAnchor={label.textAnchor}
                 x={label.textX}
                 y={textY}
+                {...selectionAttrs}
                 onMouseEnter={() => this.handleLabelEnter(label)}
               >
                 {label.displayName}
