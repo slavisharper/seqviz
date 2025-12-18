@@ -31,8 +31,10 @@ export interface SelectionHandlerProps {
     handleMouseEvent: (e: SeqVizMouseEvent) => void,
     onUnmount: (ref: string) => void,
     handleContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void,
+    handleDoubleClick: (e: React.MouseEvent<HTMLDivElement>) => void,
   ) => React.ReactNode;
   onContextMenu?: (event: ViewerContextMenuEvent) => void;
+  onDoubleClick?: (event: ViewerContextMenuEvent) => void;
   seq: string;
   setCentralIndex: (viewer: "LINEAR" | "CIRCULAR", index: number) => void;
   setSelection: (selection: Selection) => void;
@@ -463,39 +465,58 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    * update its SeqBlock's range (or any others affected) with the newly
    * active range
    */
-  handleContextMenu = (rawEvent: React.MouseEvent<HTMLDivElement>) => {
-    rawEvent.preventDefault();
-    rawEvent.stopPropagation();
+  private createViewerEventPayload = (
+    rawEvent: React.MouseEvent<HTMLDivElement>,
+    preferCurrentTarget = false,
+  ): ViewerContextMenuEvent | null => {
     const e = rawEvent as SeqVizMouseEvent;
-    const { onContextMenu } = this.props;
 
-    let clickedRange = this.findRangeForEvent(e, this.dragEvent);
+    let clickedRange = this.findRangeForEvent(e, preferCurrentTarget);
     if (!clickedRange) {
       clickedRange = this.getRangeAtViewportPoint(e.clientX, e.clientY);
     }
+
     let selectionForEvent: Selection | null = null;
 
     if (clickedRange) {
       selectionForEvent = this.deriveSelectionFromContextTarget(clickedRange, e, this.context);
     }
 
-    if (selectionForEvent) {
-      this.setSelection(selectionForEvent);
-    } else {
+    if (!selectionForEvent) {
       selectionForEvent = this.context;
     }
 
-    if (onContextMenu && selectionForEvent) {
-      const normalized = this.normalizeSelection(selectionForEvent);
-      const sequence = this.getSequenceForSelection(normalized);
+    if (!selectionForEvent) {
+      return null;
+    }
 
-      onContextMenu({
-        event: rawEvent,
-        name: normalized.name,
-        selection: normalized,
-        sequence,
-        type: normalized.type,
-      });
+    this.setSelection(selectionForEvent);
+
+    const normalized = this.normalizeSelection(selectionForEvent);
+    const sequence = this.getSequenceForSelection(normalized);
+
+    return {
+      event: rawEvent,
+      name: normalized.name,
+      selection: normalized,
+      sequence,
+      type: normalized.type,
+    };
+  };
+
+  handleContextMenu = (rawEvent: React.MouseEvent<HTMLDivElement>) => {
+    rawEvent.preventDefault();
+    rawEvent.stopPropagation();
+    const payload = this.createViewerEventPayload(rawEvent, this.dragEvent);
+    if (payload && this.props.onContextMenu) {
+      this.props.onContextMenu(payload);
+    }
+  };
+
+  handleDoubleClick = (rawEvent: React.MouseEvent<HTMLDivElement>) => {
+    const payload = this.createViewerEventPayload(rawEvent);
+    if (payload && this.props.onDoubleClick) {
+      this.props.onDoubleClick(payload);
     }
   };
 
@@ -896,6 +917,12 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   };
 
   render() {
-    return this.props.children(this.inputRef, this.mouseEvent, this.removeMountedBlock, this.handleContextMenu);
+    return this.props.children(
+      this.inputRef,
+      this.mouseEvent,
+      this.removeMountedBlock,
+      this.handleContextMenu,
+      this.handleDoubleClick,
+    );
   }
 }

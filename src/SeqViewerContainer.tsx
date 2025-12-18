@@ -31,6 +31,7 @@ export interface CustomChildrenProps {
   linearMapProps: Omit<LinearMapProps, "handleMouseEvent" | "inputRef">;
   linearProps: Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount">;
   onUnmount: (ref: string) => void;
+  handleDoubleClick: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export interface SeqVizChildRefs {
@@ -63,6 +64,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   highlights: Highlight[];
   name: string;
   onContextMenu?: (event: ViewerContextMenuEvent) => void;
+  onDoubleClick?: (event: ViewerContextMenuEvent) => void;
   onSelection: (selection: Selection) => void;
   primers: Primer[];
   refs?: SeqVizChildRefs;
@@ -337,17 +339,19 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
               center={circularProps.center}
               centralIndex={centralIndex.circular}
               onContextMenu={this.props.onContextMenu}
+              onDoubleClick={this.props.onDoubleClick}
               seq={seq}
               setCentralIndex={this.setCentralIndex}
               setSelection={this.setSelection}
               yDiff={circularProps.yDiff}
             >
-              {(inputRef, handleMouseEvent, onUnmount, handleContextMenu) => (
+              {(inputRef, handleMouseEvent, onUnmount, handleContextMenu, handleDoubleClick) => (
                 <EventHandler
                   bpsPerBlock={linearProps.bpsPerBlock}
                   copyEvent={this.props.copyEvent}
                   handleMouseEvent={handleMouseEvent}
                   onContextMenu={handleContextMenu}
+                  onDoubleClick={handleDoubleClick}
                   selectAllEvent={this.props.selectAllEvent}
                   selection={mergedSelection}
                   seq={seq}
@@ -357,6 +361,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                     ? this.props.children({
                         circularProps,
                         handleContextMenu,
+                        handleDoubleClick,
                         handleMouseEvent,
                         inputRef,
                         linearMapProps,
@@ -367,6 +372,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                         circularProps,
                         combinedLinearMapProps,
                         handleContextMenu,
+                        handleDoubleClick,
                         handleMouseEvent,
                         inputRef,
                         linearMapProps,

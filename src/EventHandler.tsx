@@ -10,6 +10,7 @@ export interface EventsHandlerProps {
   copyEvent: (e: React.KeyboardEvent<HTMLElement>) => boolean;
   handleMouseEvent: (e: any) => void;
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   selectAllEvent: (e: React.KeyboardEvent<HTMLElement>) => boolean;
   selection: Selection;
   seq: string;
@@ -267,6 +268,7 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
       onMouseMove={this.props.handleMouseEvent}
       onMouseUp={this.handleMouseEvent}
       onContextMenu={this.props.onContextMenu}
+      onDoubleClick={this.props.onDoubleClick}
     >
       {this.props.children}
     </div>

@@ -7,6 +7,7 @@ export interface ContextInfo {
   selection: SelectionType;
   sequence: string;
   type?: SelectionType["type"];
+  triggerLabel?: string;
 }
 
 interface ContextInfoPanelProps {
@@ -37,11 +38,13 @@ const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }
       : sequence
     : "No bases selected";
 
+  const triggerLabel = info.triggerLabel || "Context Menu";
+
   return (
     <section className="context-info-panel" aria-live="polite">
       <header className="context-info-header">
         <div>
-          <p className="context-info-label">Context Menu Insight</p>
+          <p className="context-info-label">{`${triggerLabel} Insight`}</p>
           <h4>{displayName}</h4>
         </div>
         <button

@@ -113,6 +113,9 @@ export interface SeqVizProps {
   /** fired on right-clicks within the viewer with the associated selection metadata */
   onContextMenu?: (event: ViewerContextMenuEvent) => void;
 
+  /** fired on double-clicks within the viewer with the associated selection metadata */
+  onDoubleClick?: (event: ViewerContextMenuEvent) => void;
+
   /** a list of primers to render above or below the sequences. At the time of writing, only the Linear viewer is supported. */
   primers: PrimerProp[];
 
@@ -211,6 +214,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     onSearch: (_: Range[]) => null,
     onSelection: (_: Selection) => null,
     onContextMenu: (_: ViewerContextMenuEvent) => null,
+    onDoubleClick: (_: ViewerContextMenuEvent) => null,
     primers: [],
     rotateOnScroll: true,
     search: { mismatch: 0, query: "" },

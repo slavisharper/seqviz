@@ -123,7 +123,7 @@ export default class App extends React.Component<any, AppState> {
     }
   };
 
-  handleContextMenuEvent = (contextEvent: ViewerContextMenuEvent) => {
+  handleContextMenuEvent = (contextEvent: ViewerContextMenuEvent, triggerLabel = "Context Menu") => {
     if (!contextEvent) {
       return;
     }
@@ -135,6 +135,7 @@ export default class App extends React.Component<any, AppState> {
         selection,
         sequence,
         type: type || selection?.type,
+        triggerLabel,
       },
     });
   };
@@ -286,7 +287,8 @@ export default class App extends React.Component<any, AppState> {
                   onSelection={selection => {
                     this.setState({ selection });
                   }}
-                  onContextMenu={this.handleContextMenuEvent}
+                  onContextMenu={event => this.handleContextMenuEvent(event, "Context Menu")}
+                  onDoubleClick={event => this.handleContextMenuEvent(event, "Double Click")}
                 >
                 </SeqViz>
               )}
