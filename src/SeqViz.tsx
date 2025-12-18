@@ -22,6 +22,10 @@ import search from "./search";
 import { ExternalSelection, Selection } from "./selectionContext";
 import { ViewerContextMenuEvent } from "./SelectionHandler";
 import { complement, directionality, guessType, randomID } from "./sequence";
+import { generateTranslations } from "./translations";
+import type { TranslationSettings } from "./translations";
+
+export type { TranslationFrame, TranslationOrfSettings, TranslationSettings } from "./translations";
 
 /** `SeqViz` props. See the README for more details. One of `seq`, `file` or `accession` is required. */
 export interface SeqVizProps {
@@ -91,13 +95,6 @@ export interface SeqVizProps {
    */
   file?: string | File;
 
-  /**
-   * ranges of the viewer to highlight.
-   *
-   * @deprecated use `highlights`
-   */
-  highlightedRegions?: HighlightProp[];
-
   /** ranges of sequence to highlight on the viewer */
   highlights?: HighlightProp[];
 
@@ -146,13 +143,6 @@ export interface SeqVizProps {
   /** the type of the sequence. If this isn't passed, the type is guessed */
   seqType?: "dna" | "rna" | "aa";
 
-  /**
-   * whether to render the annotation rows
-   *
-   * @deprecated to avoid rendering annotations, don't pass any
-   */
-  showAnnotations?: boolean;
-
   /** whether to render the complement sequence */
   showComplement?: boolean;
 
@@ -162,19 +152,18 @@ export interface SeqVizProps {
   /** extra style props to apply to the outermost div of SeqViz */
   style?: Record<string, unknown>;
 
-  /** ranges of sequence that should have amino acid translations shown */
-  translations?: TranslationProp[];
+  /**
+   * Configure amino acid translations. Pass a TranslationSettings object to select frames/ORFs or provide
+   * a TranslationProp[] for legacy manual ranges.
+   */
+  translations?: TranslationProp[] | TranslationSettings;
 
   /** the orientation of the viewer(s). "both", the default, has a circular viewer on left and a linear viewer on right. */
   viewer?: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear";
 
   /** how large to make the sequence and elements [0,100]. A larger zoom increases the size of text and elements for that viewer. */
   zoom?: {
-    /**
-     * how zoomed to make the circular viewer. default: 0
-     *
-     * @deprecated make a Github issue if this is a desired feature
-     */
+    /** how zoomed to make the circular viewer. default: 0 */
     circular?: number;
 
     /** how zoomed to make the linear viewer. default: 50 */
@@ -223,7 +212,6 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     showComplement: true,
     showIndex: true,
     style: {},
-    translations: [],
     viewer: "both",
     zoom: { circular: 0, linear: 50 },
   };
@@ -436,19 +424,12 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     }));
 
   render() {
-    const { highlightedRegions, highlights, primers, showComplement, showIndex, style, zoom } = this.props;
-    let { translations } = this.props;
+    const { highlights, primers, showComplement, showIndex, style, zoom } = this.props;
     const { compSeq, seq, seqType } = this.state;
+    const translations = generateTranslations(seq, seqType, this.props.translations);
 
     // This is an unfortunate bit of seq checking. We could get a seq directly or from a file parsed to a part.
     if (!seq) return <div className="la-vz-seqviz" />;
-
-    // If the seqType is aa, make the entire sequence the "translation"
-    if (seqType === "aa") {
-      // TODO: during some grand future refactor, make this cleaner and more transparent to the user
-      // Making the name empty so the translation handle doesn't show
-      translations = [{ direction: 1, end: seq.length, start: 0, name: "" }];
-    }
 
     // Since all the props are optional, we need to parse them to defaults.
     const props = {
@@ -456,7 +437,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       copyEvent: this.props.copyEvent || (() => false),
       selectAllEvent: this.props.selectAllEvent || (() => false),
       cutSites: this.state.cutSites,
-      highlights: (highlights || []).concat(highlightedRegions || []).map(
+      highlights: (highlights || []).map(
         (h, i): Highlight => ({
           ...h,
           direction: 1,
@@ -475,7 +456,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       rotateOnScroll: !!this.props.rotateOnScroll,
       showComplement: (!!compSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
       showIndex: !!showIndex,
-      translations: (translations || []).map(
+      translations: translations.map(
         (t, i): { direction: 1 | -1; end: number; start: number; color: string; id: string; name: string } => ({
           direction: t.direction ? (t.direction < 0 ? -1 : 1) : 1,
           end: seqType === "aa" ? t.end : t.start + Math.floor((t.end - t.start) / 3) * 3,

@@ -195,15 +195,19 @@ primers = [
 
 In the example above, the forward and reverse primers of LacZ are define by the direction parameter. Notice that color could be used optionally.
 
-#### `translations (=[])`
+#### `translations`
 
-An array of `translations`: sequence ranges to translate and render as amino acids sequences. Requires 0-based `start` (inclusive) and `end` (exclusive) indexes relative the DNA sequence. A direction is required: `1` (FWD) or `-1` (REV). It will also render a handle to select the entire range. A color is optional for the handle. If the empry string ("") is provided as the name, the handle will not be rendered.
+Configure automatic amino acid translations. Pass a `TranslationSettings` object to request any combination of reading frames and/or open reading frames (ORFs). `frames` accepts the canonical values `[-3,-2,-1,1,2,3]` and renders the entire plasmid for each selected frame. `orf` enables ORF discovery with customizable start/stop codons and minimum base-pair length (defaults: start `ATG/AUG`, stop `TAA/TAG/TGA` or RNA equivalents, min length `90bp`). For backwards compatibility, an explicit `TranslationProp[]` array is still accepted.
 
 ```js
-translations = [
-  { start: 0, end: 90, direction: 1, name: "ORF 1", color: "#FAA887" }, // [0, 90)
-  { start: 191, end: 522, direction: -1, name: "" },
-];
+translations = {
+  frames: [1, 2, -1],
+  orf: {
+    start: ["ATG", "GTG"],
+    end: ["TAA", "TAG", "TGA"],
+    minLength: 120,
+  },
+};
 ```
 
 #### `enzymes (=[])`

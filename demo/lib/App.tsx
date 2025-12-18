@@ -2,7 +2,8 @@ import * as React from "react";
 import seqparse from "seqparse";
 
 import SeqViz from "../../src/SeqViz";
-import { AnnotationProp, Primer, TranslationProp } from "../../src/elements";
+import { AnnotationProp, Primer } from "../../src/elements";
+import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
 import Header from "./Header";
 import CheckboxInput from "./components/CheckboxInput";
@@ -68,7 +69,7 @@ interface AppState {
   showIndex: boolean;
   showSelectionMeta: boolean;
   showSidebar: boolean;
-  translations: TranslationProp[];
+  translations?: TranslationSettings;
   viewer: ViewerOption;
   zoom: number;
 }

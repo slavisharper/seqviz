@@ -15,7 +15,7 @@ export { SeqViz, Linear, Circular, LinearMap, enzymes as Enzymes };
 
 export default SeqViz;
 
-export type { SeqVizProps } from "./SeqViz";
+export type { SeqVizProps, TranslationFrame, TranslationOrfSettings, TranslationSettings } from "./SeqViz";
 
 export type { CircularProps } from "./Circular/Circular";
 

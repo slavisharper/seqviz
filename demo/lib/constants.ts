@@ -1,5 +1,6 @@
 import { chooseRandomColor } from "../../src/colors";
-import { AnnotationProp, Primer, SeqType, TranslationProp } from "../../src/elements";
+import { AnnotationProp, Primer, SeqType } from "../../src/elements";
+import type { TranslationSettings } from "../../src/SeqViz";
 
 export type SupportedSeqType = Extract<SeqType, "dna" | "rna" | "aa">;
 
@@ -165,11 +166,12 @@ export const createDefaultPrimers = (): Primer[] => [
   },
 ];
 
-export const createDefaultTranslations = (): TranslationProp[] => [
-  { color: chooseRandomColor(), direction: -1, end: 630, name: "ORF 1", start: 6 },
-  { end: 1147, name: "", start: 736 },
-  { end: 1885, name: "ORF 2", start: 1165 },
-];
+export const createDefaultTranslations = (): TranslationSettings => ({
+  frames: [],
+  orf: {
+    minLength: 350,
+  },
+});
 
 export interface DemoExampleConfig {
   annotations: AnnotationProp[];
@@ -185,7 +187,7 @@ export interface DemoExampleConfig {
   showComplement: boolean;
   showIndex: boolean;
   seqType: SupportedSeqType;
-  translations: TranslationProp[];
+  translations?: TranslationSettings;
   viewer: ViewerOption;
   zoom: number;
 }
@@ -229,7 +231,6 @@ export const AMINO_LINEAR_EXAMPLE: DemoExampleConfig = {
   seqType: "aa",
   showComplement: false,
   showIndex: true,
-  translations: [],
   viewer: "linear",
   zoom: 35,
 };

@@ -15,7 +15,6 @@ const defaultProps = {
   firstBase: 0,
   forwardPrimerRows: [],
   handleMouseEvent: () => {},
-  highlightedRegions: [],
   highlights: [],
   id: "",
   inputRef: () => {
