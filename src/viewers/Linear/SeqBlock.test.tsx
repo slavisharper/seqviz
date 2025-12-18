@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 
 import * as React from "react";
 
-import { SeqType } from "../core/elements";
+import { SeqType } from "../../core/elements";
 import { SeqBlock } from "./SeqBlock";
 
 const defaultProps = {
