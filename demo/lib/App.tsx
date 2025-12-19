@@ -29,6 +29,7 @@ import {
 } from "./constants";
 import file from "./file";
 import TranslationSettingsInput from "./components/TranslationSettingsInput";
+import CircularZoomInput from "./components/CircularZoomInput";
 
 type ViewerTypeOptionConfig = (typeof VIEWER_TYPE_OPTIONS)[number];
 
@@ -217,7 +218,6 @@ export default class App extends React.Component<any, AppState> {
   };
 
   render() {
-    const { disableCircularMap, disableLinearMap, disableLinearSequence } = this.state;
     const isAminoExample = this.state.exampleId === "amino_linear";
     const allowedLinearViewers: ViewerOption[] = ["linear", "linear_map", "linear_map_linear"];
     const viewerOptions: ReadonlyArray<ViewerTypeOptionConfig> = isAminoExample
