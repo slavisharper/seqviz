@@ -7,7 +7,7 @@ import { randomID } from "../../core/sequence";
 import { translationAminoAcidLabel, translationHandle, translationHandleLabel } from "../../style";
 import { FindXAndWidthElementType, FindXAndWidthType } from "./SeqBlock";
 
-const hoverOtherTranshlationHandleRows = (className: string, opacity: number) => {
+const hoverOtherTranslationHandleRows = (className: string, opacity: number) => {
   if (!document) return;
   const elements = document.getElementsByClassName(className) as HTMLCollectionOf<HTMLElement>;
   for (let i = 0; i < elements.length; i += 1) {
@@ -200,7 +200,8 @@ class SingleNamedElementAminoacids extends React.PureComponent<SingleNamedElemen
 
           // calculate the start and end point of each amino acid
           // modulo needed here for translations that cross zero index
-          let AAStart = (start + i * bpPerBlockCount) % fullSeq.length;
+          const seqLength = fullSeq.length;
+          let AAStart = (start + i * bpPerBlockCount) % seqLength;
           let AAEnd = start + i * bpPerBlockCount + bpPerBlockCount;
 
           if (AAStart > AAEnd && firstBase >= bpsPerBlock) {
@@ -243,17 +244,27 @@ class SingleNamedElementAminoacids extends React.PureComponent<SingleNamedElemen
           // arrow are facing
           const path = this.genPath(bpCount, direction === 1 ? 1 : -1);
 
+          // normalize selection bounds into the sequence domain so SelectionHandler sees
+          // a wrapped range when a codon crosses the origin. This keeps length calc at 3.
+          const selectionStart = ((AAStart % seqLength) + seqLength) % seqLength;
+          const endRaw = selectionStart + bpPerBlockCount;
+          const selectionEnd = endRaw >= seqLength ? endRaw - seqLength : endRaw;
+
           return (
             <g
               key={aaId}
               ref={inputRef(aaId, {
-                end: AAEnd,
+                end: selectionEnd,
                 parent: { ...translation, type: "TRANSLATION" },
-                start: AAStart,
+                start: selectionStart,
                 type: "AMINOACID",
                 viewer: "LINEAR",
               })}
               id={aaId}
+              data-selection-end={selectionEnd}
+              data-selection-start={selectionStart}
+              data-selection-type="AMINOACID"
+              data-selection-viewer="LINEAR"
               transform={`translate(${x}, 0)`}
             >
               <path
@@ -378,8 +389,8 @@ const SingleNamedElementHandle = (props: {
           onFocus={() => {
             // do nothing
           }}
-          onMouseOut={() => hoverOtherTranshlationHandleRows(element.id, 0.7)}
-          onMouseOver={() => hoverOtherTranshlationHandleRows(element.id, 1.0)}
+          onMouseOut={() => hoverOtherTranslationHandleRows(element.id, 0.7)}
+          onMouseOver={() => hoverOtherTranslationHandleRows(element.id, 1.0)}
         />
         <text
           className="la-vz-handle-label"
@@ -397,8 +408,8 @@ const SingleNamedElementHandle = (props: {
           onFocus={() => {
             // do nothing
           }}
-          onMouseOut={() => hoverOtherTranshlationHandleRows(element.id, 0.7)}
-          onMouseOver={() => hoverOtherTranshlationHandleRows(element.id, 1.0)}
+          onMouseOut={() => hoverOtherTranslationHandleRows(element.id, 0.7)}
+          onMouseOver={() => hoverOtherTranslationHandleRows(element.id, 1.0)}
         >
           {displayName}
         </text>

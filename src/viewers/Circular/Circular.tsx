@@ -80,6 +80,11 @@ export default class Circular extends React.Component<CircularProps, CircularSta
   static context: React.ContextType<typeof CentralIndexContext>;
   declare context: React.ContextType<typeof CentralIndexContext>;
 
+  private svgRef = React.createRef<SVGSVGElement>();
+  private contentGroupRef = React.createRef<SVGGElement>();
+  private touchRotateSession: { pointerId: number; lastAngle: number } | null = null;
+  private touchRotateRemainder = 0;
+
   constructor(props: CircularProps) {
     super(props);
 
@@ -341,6 +346,86 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     this.context.setCentralIndex("CIRCULAR", newCentralIndex);
   };
 
+  private isTouchPointer = (e: React.PointerEvent<SVGSVGElement>) => e.pointerType === "touch" || e.pointerType === "pen";
+
+  private isSelectionTarget = (target: EventTarget | null) => {
+    if (!target) return false;
+    const el = target as Element;
+    return !!el.closest?.("[data-selection-type]");
+  };
+
+  private getPointerAngle = (clientX: number, clientY: number) => {
+    const svg = this.svgRef.current;
+    const group = this.contentGroupRef.current;
+    if (!svg || !group) return null;
+    const ctm = group.getScreenCTM();
+    if (!ctm) return null;
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const local = point.matrixTransform(ctm.inverse());
+    const { center } = this.props;
+    return Math.atan2(local.y - center.y, local.x - center.x);
+  };
+
+  private cancelTouchRotation = () => {
+    if (this.touchRotateSession && this.svgRef.current) {
+      try {
+        this.svgRef.current.releasePointerCapture?.(this.touchRotateSession.pointerId);
+      } catch (_err) {
+        // ignore release errors
+      }
+    }
+    this.touchRotateSession = null;
+    this.touchRotateRemainder = 0;
+  };
+
+  private handleTouchRotatePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!this.props.rotateOnScroll) return;
+    if (!this.isTouchPointer(e)) return;
+    if (!e.isPrimary || this.touchRotateSession) {
+      this.cancelTouchRotation();
+      return;
+    }
+    if (this.isSelectionTarget(e.target)) return;
+    const angle = this.getPointerAngle(e.clientX, e.clientY);
+    if (angle === null) return;
+    this.touchRotateSession = { pointerId: e.pointerId, lastAngle: angle };
+    this.touchRotateRemainder = 0;
+    this.svgRef.current?.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  private handleTouchRotatePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!this.touchRotateSession || e.pointerId !== this.touchRotateSession.pointerId) return;
+    const angle = this.getPointerAngle(e.clientX, e.clientY);
+    if (angle === null) return;
+    const { seqLength } = this.state;
+    if (!seqLength) {
+      this.touchRotateSession.lastAngle = angle;
+      return;
+    }
+    const angleDelta = this.touchRotateSession.lastAngle - angle;
+    const fractionalBases = (angleDelta / (Math.PI * 2)) * seqLength + this.touchRotateRemainder;
+    const deltaBases = fractionalBases >= 0 ? Math.floor(fractionalBases) : Math.ceil(fractionalBases);
+    this.touchRotateRemainder = fractionalBases - deltaBases;
+    this.touchRotateSession.lastAngle = angle;
+    if (!deltaBases) return;
+    const current = this.context.circular;
+    let next = current + deltaBases;
+    next = ((next % seqLength) + seqLength) % seqLength;
+    this.context.setCentralIndex("CIRCULAR", next);
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  private handleTouchRotatePointerEnd = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (this.touchRotateSession && e.pointerId === this.touchRotateSession.pointerId) {
+      this.cancelTouchRotation();
+    }
+  };
+
   render() {
     const {
       center,
@@ -379,9 +464,15 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     const plasmidId = `la-vz-${name}-viewer-circular`;
     if (!size.height) return null;
 
+    const selectionRef = inputRef(plasmidId, { type: "SEQ", viewer: "CIRCULAR" }) || undefined;
+    const setSvgRefs = (node: SVGSVGElement | null) => {
+      this.svgRef.current = node;
+      if (selectionRef) selectionRef(node);
+    };
+
     return (
       <svg
-        ref={inputRef(plasmidId, { type: "SEQ", viewer: "CIRCULAR" })}
+        ref={setSvgRefs}
         className="la-vz-viewer-circular"
         data-testid="la-vz-viewer-circular"
         height={size.height}
@@ -392,9 +483,17 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         onMouseDown={handleMouseEvent}
         onMouseMove={handleMouseEvent}
         onMouseUp={handleMouseEvent}
+        onPointerDown={this.handleTouchRotatePointerDown}
+        onPointerMove={this.handleTouchRotatePointerMove}
+        onPointerUp={this.handleTouchRotatePointerEnd}
+        onPointerCancel={this.handleTouchRotatePointerEnd}
+        onPointerLeave={this.handleTouchRotatePointerEnd}
         onWheel={this.handleScrollEvent}
       >
-        <g className="la-vz-circular-root" transform={`translate(0, ${yDiff})`}>
+        <g
+          ref={this.contentGroupRef}
+          className="la-vz-circular-root"
+        >
           <Selection {...props} seq={seq} totalRows={totalRows} />
           <Index
             {...props}
@@ -418,8 +517,18 @@ export default class Circular extends React.Component<CircularProps, CircularSta
             search={search}
             seqLength={props.seqLength}
           />
-          <Annotations {...props} annotations={annotationsInRows} inlinedAnnotations={inlinedLabels} rowsToSkip={0} />
-          <Labels {...props} labels={outerLabels} size={size} yDiff={yDiff} />
+          <Annotations
+            {...props}
+            annotations={annotationsInRows}
+            inlinedAnnotations={inlinedLabels}
+            rowsToSkip={0}
+          />
+          <Labels
+            {...props}
+            labels={outerLabels}
+            size={size}
+            yDiff={yDiff}
+          />
         </g>
       </svg>
     );

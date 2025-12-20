@@ -74,7 +74,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   shiftSelection = false;
 
   /* unix time of the last click (awful attempt at detecting double clicks) */
-  lastClick = Date.now();
+  lastClick = 0;
 
   /** a map between the id of child elements and their associated SelectRanges */
   idToRange = new Map<string, Selection>();
@@ -89,11 +89,15 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   componentDidMount = () => {
     if (!document) return;
     document.addEventListener("mouseup", this.stopDrag);
+    document.addEventListener("pointerup", this.stopDrag);
+    document.addEventListener("pointercancel", this.stopDrag);
   };
 
   componentWillUnmount = () => {
     if (!document) return;
     document.removeEventListener("mouseup", this.stopDrag);
+    document.removeEventListener("pointerup", this.stopDrag);
+    document.removeEventListener("pointercancel", this.stopDrag);
   };
 
   /** Stop the current drag event from happening */
@@ -101,6 +105,20 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     this.dragEvent = false;
     this.linearDragMeta = null;
     this.activeViewer = null;
+  };
+
+  private normalizeEventType = (type: string) => {
+    switch (type) {
+      case "pointerdown":
+        return "mousedown";
+      case "pointermove":
+        return "mousemove";
+      case "pointerup":
+      case "pointercancel":
+        return "mouseup";
+      default:
+        return type;
+    }
   };
 
   private findRangeForEvent = (e: SeqVizMouseEvent, preferCurrentTarget = false): Selection | null => {
@@ -275,13 +293,16 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     if (!seq || !seq.length) {
       return "";
     }
+    const len = seq.length;
+    const rawStart = typeof selection.start === "number" ? selection.start : selection.end ?? 0;
+    const rawEnd = typeof selection.end === "number" ? selection.end : rawStart;
 
-    const start = selection.start || 0;
-    const end = selection.end || start;
-
-    if (start === end) {
+    if (rawStart === rawEnd) {
       return "";
     }
+
+    const start = ((rawStart % len) + len) % len;
+    const end = ((rawEnd % len) + len) % len;
 
     if (start < end) {
       return seq.substring(start, end);
@@ -328,12 +349,13 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return;
     }
 
+    const eventType = this.normalizeEventType(e.type);
     const selection = this.context;
     const currBase = this.calculateBaseLinear(e, this.linearDragMeta.range, this.linearDragMeta.blockRect);
 
     const clockwiseDrag = selection.start !== null && currBase >= (selection.start || 0);
 
-    if (e.type === "mousedown" && currBase !== null) {
+    if (eventType === "mousedown" && currBase !== null) {
       this.setSelection({
         ...defaultSelection,
         clockwise: clockwiseDrag,
@@ -532,6 +554,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
   mouseEvent = (e: SeqVizMouseEvent) => {
     const { setCentralIndex } = this.props;
+    const eventType = this.normalizeEventType(e.type);
 
     const currentEl = e.currentTarget as HTMLElement | null;
     const targetEl = e.target as HTMLElement | null;
@@ -545,12 +568,12 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return;
     }
 
-    if ((e.type === "mousedown" || e.type === "mouseup") && typeof e.button === "number" && e.button !== 0) {
+    if ((eventType === "mousedown" || eventType === "mouseup") && typeof e.button === "number" && e.button !== 0) {
       return;
     }
 
     // should not be updating selection since it's not a drag event time
-    if ((e.type === "mousemove" || e.type === "mouseup") && !this.dragEvent) {
+    if ((eventType === "mousemove" || eventType === "mouseup") && !this.dragEvent) {
       return;
     }
 
@@ -558,7 +581,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const msSinceLastClick = Date.now() - this.lastClick;
     let knownRange = this.findRangeForEvent(e, this.dragEvent);
 
-    if (!knownRange && e.type === "mousedown") {
+    if (!knownRange && eventType === "mousedown") {
       knownRange = this.getRangeAtViewportPoint(e.clientX, e.clientY);
     }
 
@@ -666,6 +689,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     },
   ) => {
     const selection = this.context;
+    const eventType = this.normalizeEventType(e.type);
     const blockRect = this.getLinearBlockRect(knownRange.ref, e.currentTarget as HTMLElement | null);
     if (!blockRect) {
       return;
@@ -674,7 +698,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     this.storeLinearDragMeta(blockRect, knownRange);
     const clockwiseDrag = selection.start !== null && currBase >= (selection.start || 0);
 
-    if (e.type === "mousedown" && currBase !== null) {
+    if (eventType === "mousedown" && currBase !== null) {
       this.activeViewer = "LINEAR";
       if (knownRange.scrollLinearOnSelect) {
         this.props.setCentralIndex("LINEAR", currBase);
@@ -706,6 +730,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   handleCircularSeqEvent = (e: SeqVizMouseEvent) => {
     const { seq, setCentralIndex } = this.props;
     const selection = this.context;
+    const eventType = this.normalizeEventType(e.type);
 
     const { start } = selection;
     let { clockwise, end } = selection;
@@ -713,7 +738,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const currBase = this.calculateBaseCircular(e);
     const seqLength = seq.length;
 
-    if (e.type === "mousedown") {
+    if (eventType === "mousedown") {
       this.activeViewer = "CIRCULAR";
       const selStart = e.shiftKey ? start || 0 : currBase;
       const lookahead = e.shiftKey
@@ -732,7 +757,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         type: "SEQ",
       });
     } else if (
-      e.type === "mousemove" &&
+      eventType === "mousemove" &&
       this.dragEvent &&
       currBase &&
       this.previousBase &&

@@ -4,13 +4,31 @@ import CentralIndexContext from "./state/centralIndexContext";
 import debounce from "./utils/debounce";
 import { Selection } from "./state/selectionContext";
 
+type ViewerPanelType = "CIRCULAR" | "LINEAR" | "LINEAR_MAP";
+
+type PointerMeta = {
+  viewer: ViewerPanelType | null;
+  x: number;
+  y: number;
+};
+
+interface PinchSession {
+  baseZoom: number;
+  initialDistance: number;
+  lastScale: number;
+  pointerIds: [number, number];
+  viewer: ViewerPanelType;
+}
+
 export interface EventsHandlerProps {
   bpsPerBlock: number;
   children: React.ReactNode;
   copyEvent: (e: React.KeyboardEvent<HTMLElement>) => boolean;
+  getZoomLevel?: (viewer: "CIRCULAR" | "LINEAR" | "LINEAR_MAP") => number;
   handleMouseEvent: (e: any) => void;
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onPinchZoom?: (viewer: "CIRCULAR" | "LINEAR" | "LINEAR_MAP", nextZoom: number) => void;
   selectAllEvent: (e: React.KeyboardEvent<HTMLElement>) => boolean;
   selection: Selection;
   seq: string;
@@ -27,6 +45,14 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
 
   clickedOnce: EventTarget | null = null;
   clickedTwice: EventTarget | null = null;
+
+  private pointerPositions = new Map<number, PointerMeta>();
+  private pinchSession: PinchSession | null = null;
+  private lastTap = { time: 0, x: 0, y: 0, target: null as EventTarget | null };
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressPointerId: number | null = null;
+  private longPressMeta: { x: number; y: number; target: EventTarget | null } | null = null;
+  private longPressTriggered = false;
 
   /**
    * action handler for a keyboard keypresses.
@@ -214,6 +240,150 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
     this.clickedTwice = null;
   }, 250);
 
+  private normalizeEventType = (type: string) => {
+    switch (type) {
+      case "pointerdown":
+        return "mousedown";
+      case "pointermove":
+        return "mousemove";
+      case "pointerup":
+      case "pointercancel":
+        return "mouseup";
+      default:
+        return type;
+    }
+  };
+
+  private getViewerTypeFromTarget = (target: EventTarget | null): ViewerPanelType | null => {
+    let element = target as HTMLElement | null;
+    while (element) {
+      const viewerType = element.getAttribute?.("data-viewer-type");
+      if (viewerType === "CIRCULAR" || viewerType === "LINEAR" || viewerType === "LINEAR_MAP") {
+        return viewerType;
+      }
+      element = element.parentElement;
+    }
+    return null;
+  };
+
+  private storePointer = (e: React.PointerEvent<HTMLDivElement>) => {
+    this.pointerPositions.set(e.pointerId, {
+      viewer: this.getViewerTypeFromTarget(e.target),
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
+  private updatePointerPosition = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!this.pointerPositions.has(e.pointerId)) {
+      this.storePointer(e);
+      return;
+    }
+    const existing = this.pointerPositions.get(e.pointerId);
+    if (existing) {
+      existing.x = e.clientX;
+      existing.y = e.clientY;
+    }
+  };
+
+  private distanceBetween = (a: PointerMeta, b: PointerMeta) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  private tryStartPinch = () => {
+    if (this.pointerPositions.size < 2 || this.pinchSession) return;
+    const pointers = Array.from(this.pointerPositions.entries());
+    const first = pointers[pointers.length - 1];
+    const second = pointers[pointers.length - 2];
+    if (!first || !second) return;
+    const viewer = first[1].viewer && first[1].viewer === second[1].viewer ? first[1].viewer : null;
+    if (!viewer) return;
+    const distance = this.distanceBetween(first[1], second[1]);
+    if (distance < 20) return;
+    const baseZoom = this.props.getZoomLevel ? this.props.getZoomLevel(viewer) : undefined;
+    if (typeof baseZoom !== "number") return;
+    this.cancelLongPress();
+    this.pinchSession = {
+      baseZoom,
+      initialDistance: distance,
+      lastScale: 1,
+      pointerIds: [first[0], second[0]],
+      viewer,
+    };
+  };
+
+  private handlePinchMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!this.pinchSession) return;
+    const [firstId, secondId] = this.pinchSession.pointerIds;
+    const first = this.pointerPositions.get(firstId);
+    const second = this.pointerPositions.get(secondId);
+    if (!first || !second) return;
+    const distance = this.distanceBetween(first, second);
+    if (distance <= 0) return;
+    const scale = distance / this.pinchSession.initialDistance;
+    if (Math.abs(scale - this.pinchSession.lastScale) < 0.01) return;
+    const targetZoom = this.pinchSession.baseZoom + (scale - 1) * 100;
+    this.props.onPinchZoom?.(this.pinchSession.viewer, targetZoom);
+    this.pinchSession.lastScale = scale;
+    e.preventDefault();
+  };
+
+  private endPinch = () => {
+    this.pinchSession = null;
+  };
+
+  private startLongPress = (e: React.PointerEvent<HTMLDivElement>) => {
+    this.cancelLongPress();
+    this.longPressPointerId = e.pointerId;
+    this.longPressTriggered = false;
+    this.longPressMeta = { x: e.clientX, y: e.clientY, target: e.target };
+    this.longPressTimer = setTimeout(() => {
+      if (!this.longPressMeta) return;
+      this.longPressTriggered = true;
+      this.dispatchSyntheticDomEvent(this.longPressMeta.target, "contextmenu", this.longPressMeta.x, this.longPressMeta.y);
+      this.cancelLongPress();
+    }, 600);
+  };
+
+  private cancelLongPress = () => {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+    this.longPressPointerId = null;
+    this.longPressMeta = null;
+  };
+
+  private maybeCancelLongPress = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!this.longPressMeta || this.longPressPointerId !== e.pointerId) return;
+    const distance = Math.hypot(e.clientX - this.longPressMeta.x, e.clientY - this.longPressMeta.y);
+    if (distance > 12) {
+      this.cancelLongPress();
+    }
+  };
+
+  private handleDoubleTapDetection = (e: React.PointerEvent<HTMLDivElement>) => {
+    const now = Date.now();
+    const distance = Math.hypot(e.clientX - this.lastTap.x, e.clientY - this.lastTap.y);
+    if (this.lastTap.target === e.target && now - this.lastTap.time < 350 && distance < 20) {
+      this.dispatchSyntheticDomEvent(e.target, "dblclick", e.clientX, e.clientY);
+      this.lastTap = { time: 0, x: 0, y: 0, target: null };
+      return;
+    }
+    this.lastTap = { time: now, x: e.clientX, y: e.clientY, target: e.target };
+  };
+
+  private dispatchSyntheticDomEvent = (target: EventTarget | null, type: "contextmenu" | "dblclick", x: number, y: number) => {
+    const element = target as HTMLElement | null;
+    if (!element) return;
+    const synthetic = new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      clientX: x,
+      clientY: y,
+      button: 0,
+    });
+    element.dispatchEvent(synthetic);
+  };
+
   /**
    * if the contextMenu button is clicked, check whether it was clicked
    * over a noteworthy element, for which db mutations have been written.
@@ -223,10 +393,62 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
    *
    * if it is a regular click, pass on as normal
    */
+  handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch") {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      this.startLongPress(e);
+    }
+    this.storePointer(e);
+    if (e.pointerType === "touch") {
+      this.tryStartPinch();
+    }
+    this.handleMouseEvent(e);
+  };
+
+  handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    this.updatePointerPosition(e);
+    if (this.pinchSession && this.pinchSession.pointerIds.includes(e.pointerId)) {
+      this.handlePinchMove(e);
+      return;
+    }
+    if (e.pointerType === "touch") {
+      this.maybeCancelLongPress(e);
+    }
+    this.props.handleMouseEvent(e);
+  };
+
+  handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (this.pinchSession && this.pinchSession.pointerIds.includes(e.pointerId)) {
+      this.endPinch();
+    }
+    if (e.pointerType === "touch") {
+      const longPressTriggered = this.longPressTriggered;
+      if (!longPressTriggered) {
+        this.handleDoubleTapDetection(e);
+      }
+      this.cancelLongPress();
+      this.longPressTriggered = false;
+    }
+    this.pointerPositions.delete(e.pointerId);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    this.handleMouseEvent(e);
+  };
+
+  handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (this.pinchSession && this.pinchSession.pointerIds.includes(e.pointerId)) {
+      this.endPinch();
+    }
+    this.pointerPositions.delete(e.pointerId);
+    this.cancelLongPress();
+    this.longPressTriggered = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+
   handleMouseEvent = (e: React.MouseEvent<HTMLDivElement>) => {
     const { handleMouseEvent } = this.props;
+    const normalizedType = this.normalizeEventType(e.type);
 
-    if (e.type === "mouseup") {
+    if (normalizedType === "mouseup") {
       this.resetClicked();
       if (this.clickedOnce === e.target && this.clickedTwice === e.target) {
         this.handleTripleClick();
@@ -240,8 +462,8 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
         this.resetClicked();
       }
     }
-    const { button, ctrlKey, type } = e;
-    const ctxMenuClick = type === "mousedown" && button === 0 && ctrlKey;
+    const { button, ctrlKey } = e;
+    const ctxMenuClick = normalizedType === "mousedown" && button === 0 && ctrlKey;
 
     if (e.button === 0 && !ctxMenuClick) {
       // it's a mouse drag event or an element was clicked
@@ -260,13 +482,15 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
         height: "100%",
         outline: "none",
         position: "absolute",
+        touchAction: "manipulation",
         width: "100%",
       }}
       tabIndex={-1}
       onKeyDown={this.handleKeyPress}
-      onMouseDown={this.handleMouseEvent}
-      onMouseMove={this.props.handleMouseEvent}
-      onMouseUp={this.handleMouseEvent}
+      onPointerDown={this.handlePointerDown}
+      onPointerMove={this.handlePointerMove}
+      onPointerUp={this.handlePointerUp}
+      onPointerCancel={this.handlePointerCancel}
       onContextMenu={this.props.onContextMenu}
       onDoubleClick={this.props.onDoubleClick}
     >

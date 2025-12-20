@@ -65,3 +65,51 @@ describe("SelectionHandler dataset fallback", () => {
     expect(typeof lastCall?.end).toBe("number");
   });
 });
+
+describe("SelectionHandler amino acid selection", () => {
+  it("selects full codon when an amino acid is clicked", () => {
+    const setSelection = jest.fn();
+
+    render(
+      <SelectionContext.Provider value={defaultSelection as Selection}>
+        <SelectionHandler
+          center={{ x: 0, y: 0 }}
+          centralIndex={0}
+          seq={"A".repeat(200)}
+          setCentralIndex={() => {}}
+          setSelection={setSelection}
+          yDiff={0}
+        >
+          {(inputRef, handleMouseEvent) => (
+            <svg>
+              <g
+                data-testid="aa"
+                id="aa"
+                ref={node =>
+                  node &&
+                  inputRef("aa", {
+                    end: 33,
+                    parent: { end: 60, start: 30, type: "TRANSLATION", viewer: "LINEAR" },
+                    start: 30,
+                    type: "AMINOACID",
+                    viewer: "LINEAR",
+                  })
+                }
+                onMouseDown={handleMouseEvent as unknown as React.MouseEventHandler<SVGGElement>}
+                onMouseMove={handleMouseEvent as unknown as React.MouseEventHandler<SVGGElement>}
+                onMouseUp={handleMouseEvent as unknown as React.MouseEventHandler<SVGGElement>}
+              />
+            </svg>
+          )}
+        </SelectionHandler>
+      </SelectionContext.Provider>
+    );
+
+    const aa = screen.getByTestId("aa");
+    fireEvent.mouseDown(aa, { button: 0, clientX: 10, clientY: 10 });
+
+    expect(setSelection).toHaveBeenCalled();
+    const lastCall = setSelection.mock.calls[setSelection.mock.calls.length - 1]?.[0];
+    expect(lastCall).toMatchObject({ start: 30, end: 33, length: 3, type: "AMINOACID" });
+  });
+});
