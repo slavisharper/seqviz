@@ -77,6 +77,10 @@ export const Orfs = ({ genArc, getRotation, inputRef, lineHeight, orfs, radius, 
               type: "TRANSLATION",
               viewer: "CIRCULAR",
             })}
+            data-selection-end={orf.end}
+            data-selection-start={orf.start}
+            data-selection-type="TRANSLATION"
+            data-selection-viewer="CIRCULAR"
             className="la-vz-circular-orf"
             cursor="pointer"
             d={path}

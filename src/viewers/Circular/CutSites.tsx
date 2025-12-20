@@ -109,6 +109,10 @@ const SingleCutSite = (props: {
           type: "ENZYME",
           viewer: "CIRCULAR",
         })}
+        data-selection-end={end}
+        data-selection-start={start}
+        data-selection-type="ENZYME"
+        data-selection-viewer="CIRCULAR"
         className="la-vz-cut-site"
         cursor="pointer"
         d={genArc({

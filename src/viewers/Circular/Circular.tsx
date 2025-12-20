@@ -582,6 +582,10 @@ export const Arc = (props: {
         type: "FIND",
         viewer: "CIRCULAR",
       })}
+      data-selection-end={end}
+      data-selection-start={start}
+      data-selection-type="FIND"
+      data-selection-viewer="CIRCULAR"
       className={className}
       cursor="pointer"
       d={findPath}

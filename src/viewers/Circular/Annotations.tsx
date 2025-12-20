@@ -170,6 +170,10 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
           type: "ANNOTATION",
           viewer: "CIRCULAR",
         })}
+        data-selection-end={a.end}
+        data-selection-start={a.start}
+        data-selection-type="ANNOTATION"
+        data-selection-viewer="CIRCULAR"
         className={`${a.id} la-vz-annotation`}
         cursor="pointer"
         d={path}
@@ -191,6 +195,10 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
           dy={-0.4 * lineHeight}
           id={a.id}
           style={svgText}
+          data-selection-end={a.end}
+          data-selection-start={a.start}
+          data-selection-type="ANNOTATION"
+          data-selection-viewer="CIRCULAR"
           onBlur={() => {
             // do nothing
           }}
