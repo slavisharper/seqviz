@@ -87,7 +87,8 @@ describe("SeqViz rendering (React)", () => {
     );
     expect(getAllByTestId("la-vz-seqviz")).toBeTruthy();
     expect(getAllByTestId("la-vz-selection-block")).toBeTruthy();
-    expect(getAllByTestId("la-vz-selection-edge")).toHaveLength(1);
+    // Both selection edges should render for externally set selection
+    expect(getAllByTestId("la-vz-selection-edge")).toHaveLength(2);
   });
 
   // https://github.com/Lattice-Automation/seqviz/issues/203
