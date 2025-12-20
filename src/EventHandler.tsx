@@ -2,7 +2,7 @@ import * as React from "react";
 
 import CentralIndexContext from "./state/centralIndexContext";
 import debounce from "./utils/debounce";
-import { Selection } from "./state/selectionContext";
+import { Selection, SelectionEventMeta } from "./state/selectionContext";
 
 type ViewerPanelType = "CIRCULAR" | "LINEAR" | "LINEAR_MAP";
 
@@ -32,7 +32,7 @@ export interface EventsHandlerProps {
   selectAllEvent: (e: React.KeyboardEvent<HTMLElement>) => boolean;
   selection: Selection;
   seq: string;
-  setSelection: (selection: Selection) => void;
+  setSelection: (selection: Selection, meta?: SelectionEventMeta) => void;
 }
 
 /**

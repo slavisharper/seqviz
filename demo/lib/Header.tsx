@@ -2,16 +2,17 @@ import * as React from "react";
 
 interface HeaderProps {
   selection: any;
+  fragmentSelection?: any;
   sequenceUnitLabel: string;
   showSelectionMeta: boolean;
   toggleShowSelectionMeta: () => void;
   toggleSidebar: () => void;
 }
 
-const Header = ({ selection, sequenceUnitLabel, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
+const Header = ({ selection, fragmentSelection, sequenceUnitLabel, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
   <header className="header" id="app-header">
     <div id="header-primary">
-      <SelectionMetaRow selection={selection} sequenceUnitLabel={sequenceUnitLabel} />
+      <SelectionMetaRow selection={selection} fragmentSelection={fragmentSelection} sequenceUnitLabel={sequenceUnitLabel} />
       <a href="https://github.com/slavisharper/seqviz" id="github-link" rel="noopener noreferrer" target="_blank">
         GitHub
       </a>
@@ -27,7 +28,7 @@ const Header = ({ selection, sequenceUnitLabel, showSelectionMeta, toggleShowSel
 
 export default Header;
 
-const SelectionMetaRow = ({ selection, sequenceUnitLabel }) => {
+const SelectionMetaRow = ({ selection, fragmentSelection, sequenceUnitLabel }) => {
   const { end, name, type, length, start } = selection;
 
   return (
@@ -59,6 +60,22 @@ const SelectionMetaRow = ({ selection, sequenceUnitLabel }) => {
           <div className="meta-datum">
             <p id="field">Position</p>
             <p id="value">{(start ?? 0) + 1}</p>
+          </div>
+        )}
+        {fragmentSelection?.firstSelection && (
+          <div className="meta-datum">
+            <p id="field">First Selection</p>
+            <p id="value">
+              {fragmentSelection.firstSelection.start + 1} - {fragmentSelection.firstSelection.end + 1}
+            </p>
+          </div>
+        )}
+        {fragmentSelection?.secondSelection && (
+          <div className="meta-datum">
+            <p id="field">Second Selection</p>
+            <p id="value">
+              {fragmentSelection.secondSelection.start + 1} - {fragmentSelection.secondSelection.end + 1}
+            </p>
           </div>
         )}
       </div>

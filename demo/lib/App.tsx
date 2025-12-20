@@ -5,6 +5,7 @@ import SeqViz from "../../src/SeqViz";
 import { AnnotationProp, Primer } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
+import { FragmentSelection } from "../../src/state/selectionContext";
 import Header from "./Header";
 import CheckboxInput from "./components/CheckboxInput";
 import ContextInfoPanel, { type ContextInfo } from "./components/ContextInfoPanel";
@@ -43,6 +44,7 @@ const buildDefaultPresetState = () => ({
   search: { query: DEFAULT_SEARCH_QUERY },
   searchResults: {},
   selection: {},
+  fragmentSelection: null as FragmentSelection | null,
   showComplement: true,
   showIndex: true,
   showSelectionMeta: false,
@@ -66,6 +68,7 @@ interface AppState {
   search: { query: string };
   searchResults: any;
   selection: any;
+  fragmentSelection: FragmentSelection | null;
   seq: string;
   seqType: SupportedSeqType;
   showComplement: boolean;
@@ -133,10 +136,11 @@ export default class App extends React.Component<any, AppState> {
       return;
     }
 
-    const { name, selection, sequence, type } = contextEvent;
+    const { name, selection, fragmentSelection, sequence, type } = contextEvent;
     this.setState({
       contextInfo: {
         name: name || selection?.name || "Sequence selection",
+        fragmentSelection: fragmentSelection || null,
         selection,
         sequence,
         type: type || selection?.type,
@@ -197,6 +201,7 @@ export default class App extends React.Component<any, AppState> {
         exampleId,
         searchResults: {},
         selection: {},
+        fragmentSelection: null,
         showSelectionMeta: false,
         showSidebar: prevState.showSidebar,
       }));
@@ -212,6 +217,7 @@ export default class App extends React.Component<any, AppState> {
       exampleId,
       searchResults: {},
       selection: {},
+      fragmentSelection: null,
       showSelectionMeta: false,
       showSidebar: prevState.showSidebar,
     }));
@@ -284,6 +290,7 @@ export default class App extends React.Component<any, AppState> {
           <div id="seqviz-container">
             <Header
               selection={this.state.selection}
+              fragmentSelection={this.state.fragmentSelection}
               showSelectionMeta={this.state.showSelectionMeta}
               sequenceUnitLabel={sequenceUnitLabel}
               toggleShowSelectionMeta={this.toggleShowSelectionMeta}
@@ -311,8 +318,8 @@ export default class App extends React.Component<any, AppState> {
                   translations={this.state.showTranslations ? this.state.translations : undefined}
                   viewer={this.state.viewer}
                   zoom={{ linear: this.state.zoom }}
-                  onSelection={selection => {
-                    this.setState({ selection });
+                  onSelection={(selection, fragmentSelection) => {
+                    this.setState({ selection, fragmentSelection: fragmentSelection || null });
                   }}
                   onContextMenu={event => this.handleContextMenuEvent(event, "Context Menu")}
                   onDoubleClick={event => this.handleContextMenuEvent(event, "Double Click")}

@@ -1,6 +1,12 @@
 import * as React from "react";
 
-import SelectionContext, { Selection, defaultSelection } from "./state/selectionContext";
+import SelectionContext, {
+  FragmentSelection,
+  Selection,
+  SelectionEventDetail,
+  SelectionEventMeta,
+  defaultSelection,
+} from "./state/selectionContext";
 
 interface RefSelection extends Selection {
   linearOffset?: number;
@@ -21,6 +27,7 @@ export interface ViewerContextMenuEvent {
   selection: Selection;
   sequence: string;
   type?: Selection["type"];
+  fragmentSelection?: FragmentSelection;
 }
 
 export interface SelectionHandlerProps {
@@ -37,7 +44,7 @@ export interface SelectionHandlerProps {
   onDoubleClick?: (event: ViewerContextMenuEvent) => void;
   seq: string;
   setCentralIndex: (viewer: "LINEAR" | "CIRCULAR", index: number) => void;
-  setSelection: (selection: Selection) => void;
+  setSelection: (selection: Selection, meta?: SelectionEventMeta) => void;
   yDiff: number;
 }
 
@@ -75,6 +82,11 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
   /* unix time of the last click (awful attempt at detecting double clicks) */
   lastClick = 0;
+
+  /* last completed selection used for ctrl-extend */
+  private lastSelection: Selection | null = null;
+
+  private lastFragmentSelection: FragmentSelection | null = null;
 
   /** a map between the id of child elements and their associated SelectRanges */
   idToRange = new Map<string, Selection>();
@@ -206,6 +218,56 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const min = Math.min(start, end);
     const max = Math.max(start, end);
     return base >= min && base <= max;
+  };
+
+  private extendWithLastSelection = (selection: Selection): Selection => {
+    const base = this.lastSelection;
+    if (!base || typeof base.start !== "number" || typeof base.end !== "number") {
+      return selection;
+    }
+
+    const selStart = typeof selection.start === "number" ? selection.start : base.start;
+    const selEnd = typeof selection.end === "number" ? selection.end : base.end;
+
+    if (typeof selStart !== "number" || typeof selEnd !== "number") {
+      return selection;
+    }
+
+    const newStart = Math.min(base.start, base.end, selStart, selEnd);
+    const newEnd = Math.max(base.start, base.end, selStart, selEnd);
+
+    return {
+      ...defaultSelection,
+      clockwise: newStart <= newEnd,
+      end: newEnd,
+      ref: selection.ref || base.ref,
+      start: newStart,
+      type: "SEQ",
+      viewer: selection.viewer || base.viewer,
+    };
+  };
+
+  private toSelectionEventDetail = (selection?: Selection | null): SelectionEventDetail | null => {
+    if (!selection) {
+      return null;
+    }
+
+    const normalized = this.normalizeSelection(selection);
+
+    return {
+      direction:
+        typeof normalized.direction === "number"
+          ? normalized.direction
+          : typeof normalized.clockwise === "boolean"
+          ? normalized.clockwise
+            ? 1
+            : -1
+          : undefined,
+      end: normalized.end || 0,
+      name: normalized.name,
+      start: normalized.start || 0,
+      type: normalized.type,
+    };
   };
 
   private deriveSelectionFromContextTarget = (
@@ -527,10 +589,16 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const normalized = this.normalizeSelection(selectionForEvent);
     const sequence = this.getSequenceForSelection(normalized);
 
+    const fragmentSelection: FragmentSelection | undefined =
+      this.lastFragmentSelection?.firstSelection && this.lastFragmentSelection?.secondSelection
+        ? this.lastFragmentSelection
+        : undefined;
+
     return {
       event: rawEvent,
       name: normalized.name,
       selection: normalized,
+      fragmentSelection,
       sequence,
       type: normalized.type,
     };
@@ -600,6 +668,24 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const { direction, end, scrollLinearOnSelect, start, viewer } = knownRange as Selection & {
       scrollLinearOnSelect?: boolean;
     };
+
+    const isCtrlSelect = e.ctrlKey || e.metaKey;
+
+    if (isCtrlSelect && eventType === "mousedown") {
+      const derived = this.deriveSelectionFromContextTarget(knownRange, e, this.context);
+      if (derived) {
+        const extended = this.extendWithLastSelection(derived);
+        const fragmentSelection: FragmentSelection = {
+          firstSelection: this.toSelectionEventDetail(this.lastSelection || this.context),
+          secondSelection: this.toSelectionEventDetail(derived),
+        };
+        this.setSelection(extended, {
+          fragmentSelection,
+          skipLastSelectionUpdate: true,
+        });
+      }
+      return;
+    }
 
     switch (knownRange.type) {
       case "ANNOTATION":
@@ -904,7 +990,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
    * Update the selection in state. Only update the specified
    * properties of the selection that should be updated.
    */
-  setSelection = (newSelection: Selection) => {
+  setSelection = (newSelection: Selection, meta?: SelectionEventMeta) => {
     const selection = this.context;
     const { setSelection } = this.props;
 
@@ -923,8 +1009,9 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     };
 
     const length = this.calcSelectionLength(start, end, clockwise);
-
-    setSelection({
+    const mergedSelection = {
+      ...selection,
+      ...newSelection,
       clockwise,
       end,
       length,
@@ -932,7 +1019,20 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       ref,
       start,
       type,
-    });
+    } as Selection;
+
+    setSelection(mergedSelection, meta);
+
+    if (meta && Object.prototype.hasOwnProperty.call(meta, "fragmentSelection")) {
+      this.lastFragmentSelection = meta.fragmentSelection || null;
+    } else {
+      this.lastFragmentSelection = null;
+    }
+
+    if (!meta?.skipLastSelectionUpdate) {
+      const normalized = this.normalizeSelection(mergedSelection);
+      this.lastSelection = { ...normalized };
+    }
   };
 
   /**

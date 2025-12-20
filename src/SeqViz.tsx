@@ -18,7 +18,7 @@ import {
 } from "./core/elements";
 import { isEqual } from "./utils/isEqual";
 import search from "./utils/search";
-import { ExternalSelection, Selection } from "./state/selectionContext";
+import { ExternalSelection, FragmentSelection, Selection } from "./state/selectionContext";
 import { ViewerContextMenuEvent } from "./SelectionHandler";
 import { complement, directionality, guessType, randomID } from "./core/sequence";
 import { generateOrfs, generateTranslations } from "./core/translations";
@@ -105,7 +105,7 @@ export interface SeqVizProps {
   onSearch?: (search: Range[]) => void;
 
   /** a callback that's executed on each click of the sequence viewer. Selection includes meta about the selected element */
-  onSelection?: (selection: Selection) => void;
+  onSelection?: (selection: Selection, fragmentSelection?: FragmentSelection | null) => void;
 
   /** fired on right-clicks within the viewer with the associated selection metadata */
   onContextMenu?: (event: ViewerContextMenuEvent) => void;
@@ -201,7 +201,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     enzymesCustom: {},
     name: "",
     onSearch: (_: Range[]) => null,
-    onSelection: (_: Selection) => null,
+    onSelection: (_: Selection, __?: FragmentSelection | null) => null,
     onContextMenu: (_: ViewerContextMenuEvent) => null,
     onDoubleClick: (_: ViewerContextMenuEvent) => null,
     primers: [],

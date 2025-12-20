@@ -29,6 +29,24 @@ export interface Selection {
   viewer?: "LINEAR" | "CIRCULAR";
 }
 
+export interface SelectionEventDetail {
+  direction?: number;
+  end: number;
+  name?: string;
+  start: number;
+  type?: SelectionTypeEnum;
+}
+
+export interface SelectionEventMeta {
+  fragmentSelection?: FragmentSelection;
+  skipLastSelectionUpdate?: boolean;
+}
+
+export interface FragmentSelection {
+  firstSelection?: SelectionEventDetail | null;
+  secondSelection?: SelectionEventDetail | null;
+}
+
 export interface ExternalSelection {
   clockwise?: boolean;
   end: number;

@@ -1,10 +1,11 @@
 import * as React from "react";
 
-import type { Selection as SelectionType } from "../../../src/state/selectionContext";
+import type { FragmentSelection, Selection as SelectionType } from "../../../src/state/selectionContext";
 
 export interface ContextInfo {
   name?: string;
   selection: SelectionType;
+  fragmentSelection?: FragmentSelection | null;
   sequence: string;
   type?: SelectionType["type"];
   triggerLabel?: string;
@@ -22,7 +23,7 @@ const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }
     return null;
   }
 
-  const { selection, sequence } = info;
+  const { selection, fragmentSelection, sequence } = info;
   const start = selection?.start ?? 0;
   const end = selection?.end ?? start;
   const derivedLength =
@@ -75,6 +76,22 @@ const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }
             <dt>Clockwise</dt>
             <dd>{selection?.clockwise === false ? "No" : "Yes"}</dd>
           </div>
+          {fragmentSelection?.firstSelection && (
+            <div>
+              <dt>First Selection</dt>
+              <dd>
+                {fragmentSelection.firstSelection.start} – {fragmentSelection.firstSelection.end} ({fragmentSelection.firstSelection.type || "SEQ"})
+              </dd>
+            </div>
+          )}
+          {fragmentSelection?.secondSelection && (
+            <div>
+              <dt>Second Selection</dt>
+              <dd>
+                {fragmentSelection.secondSelection.start} – {fragmentSelection.secondSelection.end} ({fragmentSelection.secondSelection.type || "SEQ"})
+              </dd>
+            </div>
+          )}
         </dl>
         <pre className="context-info-seq">{truncatedSequence}</pre>
       </div>

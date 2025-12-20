@@ -8,7 +8,13 @@ import SelectionHandler, { InputRefFunc, ViewerContextMenuEvent } from "./Select
 import CentralIndexContext from "./state/centralIndexContext";
 import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size, TranslationProp } from "./core/elements";
 import { isEqual } from "./utils/isEqual";
-import SelectionContext, { ExternalSelection, Selection, defaultSelection } from "./state/selectionContext";
+import SelectionContext, {
+  ExternalSelection,
+  FragmentSelection,
+  Selection,
+  SelectionEventMeta,
+  defaultSelection,
+} from "./state/selectionContext";
 import { useResizeDetector } from "react-resize-detector";
 import {
   createCircularPropsBuilder,
@@ -65,7 +71,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   name: string;
   onContextMenu?: (event: ViewerContextMenuEvent) => void;
   onDoubleClick?: (event: ViewerContextMenuEvent) => void;
-  onSelection: (selection: Selection) => void;
+  onSelection: (selection: Selection, fragmentSelection?: FragmentSelection | null) => void;
   primers: Primer[];
   refs?: SeqVizChildRefs;
   rotateOnScroll: boolean;
@@ -161,11 +167,11 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   /**
    * Update selection in state. Should only be performed from handlers/selection.jsx
    */
-  setSelection = (selection: Selection) => {
+  setSelection = (selection: Selection, meta?: SelectionEventMeta) => {
     // If the user passed a selection, do not update our state here
     const { parent: _, ref: __, ...rest } = selection;
     if (!this.props.selection) this.setState({ selection });
-    if (this.props.onSelection) this.props.onSelection(rest);
+    if (this.props.onSelection) this.props.onSelection(rest, meta?.fragmentSelection ?? null);
   };
 
   /**
