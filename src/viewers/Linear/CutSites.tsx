@@ -71,6 +71,8 @@ export const CutSites = (props: {
                 id={domId}
                 data-selection-end={c.c.end}
                 data-selection-name={c.c.name}
+                data-selection-fcut={c.c.fcut}
+                data-selection-rcut={c.c.rcut}
                 data-selection-ref={domId}
                 data-selection-start={c.c.start}
                 data-selection-type="ENZYME"
@@ -94,8 +96,10 @@ export const CutSites = (props: {
                 ref={inputRef(domId, {
                   clockwise: true,
                   end: c.c.end,
+                  fcut: c.c.fcut,
                   name: c.c.name,
                   id: domId,
+                  rcut: c.c.rcut,
                   start: c.c.start,
                   type: "ENZYME",
                   viewer: "LINEAR",

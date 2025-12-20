@@ -22,6 +22,8 @@ export interface Selection {
   length?: number;
   name?: string;
   parent?: Selection;
+  fcut?: number;
+  rcut?: number;
   ref?: null | string;
   scrollLinearOnSelect?: boolean;
   start?: number;

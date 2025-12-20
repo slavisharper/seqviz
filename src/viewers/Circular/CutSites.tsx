@@ -105,11 +105,15 @@ const SingleCutSite = (props: {
           end: end,
           name: cutSite.name,
           ref: domId,
+          fcut: cutSite.fcut,
+          rcut: cutSite.rcut,
           start: start,
           type: "ENZYME",
           viewer: "CIRCULAR",
         })}
         data-selection-end={end}
+        data-selection-fcut={cutSite.fcut}
+        data-selection-rcut={cutSite.rcut}
         data-selection-start={start}
         data-selection-type="ENZYME"
         data-selection-viewer="CIRCULAR"

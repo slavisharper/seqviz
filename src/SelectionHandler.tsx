@@ -233,6 +233,32 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return selection;
     }
 
+    // Special handling for enzyme-to-enzyme fragment selection: span the cut positions
+    if (base.type === "ENZYME" && selection.type === "ENZYME") {
+      const cutStart =
+        typeof base.fcut === "number"
+          ? base.fcut
+          : typeof base.rcut === "number"
+          ? base.rcut
+          : base.start;
+      const cutEnd =
+        typeof selection.fcut === "number"
+          ? selection.fcut
+          : typeof selection.rcut === "number"
+          ? selection.rcut
+          : selEnd;
+
+      return {
+        ...defaultSelection,
+        clockwise: cutStart <= cutEnd,
+        end: cutEnd,
+        ref: selection.ref || base.ref,
+        start: cutStart,
+        type: "SEQ",
+        viewer: selection.viewer || base.viewer,
+      };
+    }
+
     const newStart = Math.min(base.start, base.end, selStart, selEnd);
     const newEnd = Math.max(base.start, base.end, selStart, selEnd);
 
@@ -498,7 +524,9 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     }
     const {
       selectionEnd,
+      selectionFcut,
       selectionName,
+      selectionRcut,
       selectionRef,
       selectionStart,
       selectionType,
@@ -511,6 +539,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     const start = Number(selectionStart);
     const end = Number(selectionEnd);
+    const fcut = typeof selectionFcut === "undefined" ? undefined : Number(selectionFcut);
+    const rcut = typeof selectionRcut === "undefined" ? undefined : Number(selectionRcut);
     if (!Number.isFinite(start) || !Number.isFinite(end)) {
       return null;
     }
@@ -520,7 +550,9 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     return {
       clockwise: true,
       end,
+      fcut: Number.isFinite(fcut) ? fcut : undefined,
       name: selectionName,
+      rcut: Number.isFinite(rcut) ? rcut : undefined,
       ref: selectionRef || datasetElement.id || `${viewer}-${start}-${end}`,
       scrollLinearOnSelect: shouldScrollLinear,
       start,
@@ -584,21 +616,21 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return null;
     }
 
+    const fragmentSelectionForEvent: FragmentSelection | undefined =
+      this.lastFragmentSelection?.firstSelection && this.lastFragmentSelection?.secondSelection
+        ? this.lastFragmentSelection
+        : undefined;
+
     this.setSelection(selectionForEvent);
 
     const normalized = this.normalizeSelection(selectionForEvent);
     const sequence = this.getSequenceForSelection(normalized);
 
-    const fragmentSelection: FragmentSelection | undefined =
-      this.lastFragmentSelection?.firstSelection && this.lastFragmentSelection?.secondSelection
-        ? this.lastFragmentSelection
-        : undefined;
-
     return {
       event: rawEvent,
       name: normalized.name,
       selection: normalized,
-      fragmentSelection,
+      fragmentSelection: fragmentSelectionForEvent,
       sequence,
       type: normalized.type,
     };
