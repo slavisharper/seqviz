@@ -135,16 +135,18 @@ export const createDefaultPrimers = (): Primer[] => [
   {
     color: chooseRandomColor(),
     direction: 1,
-    end: 653,
+    end: 659,
     id: "527923581",
+    isPhosphorylated: true,
     name: "pLtetO-1 fw primer",
     start: 633,
   },
   {
     color: chooseRandomColor(),
     direction: -1,
-    end: 706,
+    end: 710,
     id: "5279asdf582",
+    isPhosphorylated: true,
     name: "pLtetO-1 rev primer",
     start: 686,
   },
@@ -153,7 +155,7 @@ export const createDefaultPrimers = (): Primer[] => [
     direction: 1,
     end: 535,
     id: "5279fd582",
-    name: "pLtetO-1 fwd primer",
+    name: "LtetO-1 fwd primer",
     start: 512,
   },
   {
@@ -161,7 +163,7 @@ export const createDefaultPrimers = (): Primer[] => [
     direction: -1,
     end: 535,
     id: "527923dfd582",
-    name: "pLtetO-1 rev primer",
+    name: "LtetO-1 rev primer",
     start: 512,
   },
 ];

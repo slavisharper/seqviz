@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
 import { COLOR_BORDER_MAP, darkerColor } from "../../core/colors";
-import { NameRange } from "../../core/elements";
+import { Primer } from "../../core/elements";
 import { annotation, annotationLabel } from "../../style";
 import { FindXAndWidthElementType } from "./SeqBlock";
 
@@ -27,13 +27,13 @@ const PrimeRows = (props: {
   fullSeq: string;
   inputRef: InputRefFunc;
   lastBase: number;
-  primerRows: NameRange[][];
+  primerRows: Primer[][];
   seqBlockRef: unknown;
   width: number;
   yDiff: number;
 }) => (
   <g>
-    {props.primerRows.map((primers: NameRange[], i: number) => (
+    {props.primerRows.map((primers: Primer[], i: number) => (
       <PrimerRow
         key={`primer-linear-row-${primers[0].id}-${props.firstBase}-${props.lastBase}`}
         bpsPerBlock={props.bpsPerBlock}
@@ -68,7 +68,7 @@ const PrimerRow = (props: {
   height: number;
   inputRef: InputRefFunc;
   lastBase: number;
-  primers: NameRange[];
+  primers: Primer[];
   seqBlockRef: unknown;
   width: number;
   y: number;
@@ -100,8 +100,8 @@ const PrimerRow = (props: {
  * It does a bunch of stuff to avoid edge-cases from wrapping around the 0-index, edge of blocks, etc.
  */
 const SingleNamedElement = (props: {
-  element: NameRange;
-  elements: NameRange[];
+  element: Primer;
+  elements: Primer[];
   findXAndWidth: FindXAndWidthElementType;
   firstBase: number;
   height: number;
@@ -111,7 +111,7 @@ const SingleNamedElement = (props: {
 }) => {
   const { element, elements, findXAndWidth, firstBase, index, inputRef, lastBase } = props;
 
-  const { color, direction, end, name, start } = element;
+  const { color, direction, end, name, start, isPhosphorylated } = element;
   const forward = direction === 1;
   const reverse = direction === -1;
   const { overflowLeft, overflowRight, width, x: origX } = findXAndWidth(index, element, elements);
@@ -211,6 +211,10 @@ const SingleNamedElement = (props: {
     }
   }
 
+  const neonStroke = isPhosphorylated ? "#39ff14" : undefined;
+
+  const phosphoX = direction === 1 ? 8 : width - 8;
+
   return (
     <g id={element.id} transform={`translate(${x}, ${0.1 * height})`}>
       {/* <title> provides a hover tooltip on most browsers */}
@@ -229,7 +233,7 @@ const SingleNamedElement = (props: {
         d={linePath}
         fill={color}
         id={element.id}
-        stroke={color ? COLOR_BORDER_MAP[color] || darkerColor(color) : "gray"}
+        stroke={neonStroke || (color ? COLOR_BORDER_MAP[color] || darkerColor(color) : "gray")}
         style={annotation}
         onBlur={() => {
           // do nothing
@@ -261,6 +265,22 @@ const SingleNamedElement = (props: {
       >
         {displayName}
       </text>
+      {isPhosphorylated && (
+        <text
+          className="la-vz-primer-phospho"
+          cursor="pointer"
+          dominantBaseline="middle"
+          fontSize={fontSize + 2}
+          style={{ ...annotationLabel, fill: "#39ff14", stroke: "#111", strokeWidth: 0.75 }}
+          textAnchor={direction === 1 ? "start" : "end"}
+          x={phosphoX}
+          y={height / 2 + 1}
+          onMouseOut={() => hoverOtherPrimerRows(element.id, 0.7)}
+          onMouseOver={() => hoverOtherPrimerRows(element.id, 1.0)}
+        >
+          P
+        </text>
+      )}
     </g>
   );
 };

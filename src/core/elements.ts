@@ -47,6 +47,8 @@ export interface PrimerProp {
   direction: 1 | -1;
   end: number;
   id?: string;
+  /** mark primer as phosphorylated for display */
+  isPhosphorylated?: boolean;
   name: string;
   start: number;
 }
@@ -55,6 +57,8 @@ export interface PrimerProp {
 export interface Primer extends NameRange {
   color: string;
   direction: 1 | -1;
+  /** mark primer as phosphorylated for display */
+  isPhosphorylated?: boolean;
 }
 
 /** HighlightProp is a region of the plasmid and the desired highlight for that region. */

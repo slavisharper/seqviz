@@ -89,6 +89,8 @@ const PrimerFeature: React.FC<PrimerFeatureProps> = ({
   const midpoint = rangeMidpoint(feature.start, feature.end, scale.seqLength);
   const textX = scale.offsetX + midpoint * scale.pxPerBase;
   const strokeColor = feature.color ? COLOR_BORDER_MAP[feature.color] || darkerColor(feature.color) : "#555";
+  const neonStroke = feature.isPhosphorylated ? "#39ff14" : undefined;
+  const strokeWidth = feature.isPhosphorylated ? 2 : (annotationStyle.strokeWidth as number | undefined);
   const inline = inlinePrimerIds.has(feature.id);
   const interactive = hasLabel(feature.id) || inline;
   const hovered = isFeatureHovered(feature.id);
@@ -96,14 +98,16 @@ const PrimerFeature: React.FC<PrimerFeatureProps> = ({
     ...annotationStyle,
     cursor: interactive ? "pointer" : annotationStyle.cursor,
     fill: feature.color,
-    stroke: strokeColor,
+    stroke: neonStroke || strokeColor,
+    strokeWidth,
   } as React.CSSProperties;
   const hoverStyle = hovered ? { ...baseStyle, fillOpacity: 1 } : baseStyle;
   const arrowBaseStyle = {
     ...annotationStyle,
     cursor: interactive ? "pointer" : annotationStyle.cursor,
     fill: feature.color,
-    stroke: strokeColor,
+    stroke: neonStroke || strokeColor,
+    strokeWidth,
   } as React.CSSProperties;
   const arrowStyle = hovered ? { ...arrowBaseStyle, fillOpacity: 1 } : arrowBaseStyle;
   const textHoverStyle =

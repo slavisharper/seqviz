@@ -89,10 +89,13 @@ const PrimerArc = ({ primer, genArc, getRotation, inputRef, seqLength, innerRadi
   const primerId = `la-vz-${primer.id}-primer-circular`;
   const color = primer.color || "#2c7be5";
   const border = COLOR_BORDER_MAP[color] || darkerColor(color);
+  const neonStroke = primer.isPhosphorylated ? "#39ff14" : undefined;
+  const strokeWidth = primer.isPhosphorylated ? 2 : (annotation.strokeWidth as number | undefined);
 
   return (
     <g id={primerId} transform={rotation}>
       <path
+        id={primer.id}
         ref={inputRef(primer.id, {
           direction: primer.direction,
           end: primer.end,
@@ -103,6 +106,8 @@ const PrimerArc = ({ primer, genArc, getRotation, inputRef, seqLength, innerRadi
           viewer: "CIRCULAR",
         })}
         data-selection-end={primer.end}
+        data-selection-name={primer.name}
+        data-selection-ref={primer.id}
         data-selection-start={primer.start}
         data-selection-type="PRIMER"
         data-selection-viewer="CIRCULAR"
@@ -110,8 +115,8 @@ const PrimerArc = ({ primer, genArc, getRotation, inputRef, seqLength, innerRadi
         cursor="pointer"
         d={arcPath}
         fill={color}
-        stroke={border}
-        style={annotation}
+        stroke={neonStroke || border}
+        style={{ ...annotation, strokeWidth }}
       />
     </g>
   );
