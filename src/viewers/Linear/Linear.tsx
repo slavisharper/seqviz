@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size } from "../../core/elements";
+import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, SingleStrandAnnotation, Size } from "../../core/elements";
 import { createMultiRows, createSingleRows, stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { createTranslations } from "../../core/sequence";
@@ -23,6 +23,7 @@ export interface LinearProps {
   onUnmount: (id: string) => void;
   primers: Primer[];
   search: NameRange[];
+  singleStrandAnnotations: SingleStrandAnnotation[];
   seq: string;
   seqFontSize: number;
   seqType: SeqType;
@@ -72,6 +73,7 @@ export default class Linear extends React.Component<LinearProps> {
       onUnmount,
       primers,
       search,
+      singleStrandAnnotations,
       seq,
       seqType,
       showComplement,
@@ -131,6 +133,8 @@ export default class Linear extends React.Component<LinearProps> {
       search && search.length ? createSingleRows(search, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);
 
     const highlightRows = createSingleRows(highlights, bpsPerBlock, arrSize);
+
+    const singleStrandAnnotationRows = createSingleRows(singleStrandAnnotations, bpsPerBlock, arrSize);
 
     const translationRows = translations.length
       ? createMultiRows(stackElements(createTranslations(translations, seq, seqType), seq.length), bpsPerBlock, arrSize)
@@ -202,6 +206,7 @@ export default class Linear extends React.Component<LinearProps> {
           primerFwdRows={primerFwdRows[i]}
           primerRevRows={primerRevRows[i]}
           searchRows={searchRows[i]}
+          singleStrandAnnotations={singleStrandAnnotationRows[i]}
           seq={seqs[i]}
           seqFontSize={this.props.seqFontSize}
           seqType={seqType}

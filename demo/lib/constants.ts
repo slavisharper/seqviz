@@ -1,5 +1,5 @@
 import { chooseRandomColor } from "../../src/core/colors";
-import { AnnotationProp, Primer, SeqType } from "../../src/core/elements";
+import { AnnotationProp, Primer, SeqType, SingleStrandAnnotationProp } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 
 export type SupportedSeqType = Extract<SeqType, "dna" | "rna" | "aa">;
@@ -168,6 +168,23 @@ export const createDefaultPrimers = (): Primer[] => [
   },
 ];
 
+export const createDefaultSingleStrandAnnotations = (): SingleStrandAnnotationProp[] => [
+  {
+    color: "rgba(255, 193, 7, 0.35)",
+    end: 641,
+    name: "pLtetO-1 fw tail",
+    start: 633,
+    strand: 1,
+  },
+  {
+    color: "rgba(124, 58, 237, 0.35)",
+    end: 710,
+    name: "pLtetO-1 rev tail",
+    start: 700,
+    strand: -1,
+  },
+];
+
 export const createDefaultTranslations = (): TranslationSettings => ({
   frames: [],
   orf: {
@@ -185,6 +202,7 @@ export interface DemoExampleConfig {
   name: string;
   primers: Primer[];
   search: { query: string };
+  singleStrandAnnotations?: SingleStrandAnnotationProp[];
   seq: string;
   showComplement: boolean;
   showIndex: boolean;
@@ -230,6 +248,7 @@ export const AMINO_LINEAR_EXAMPLE: DemoExampleConfig = {
   name: "Linear Amino Demo",
   primers: [],
   search: { query: "" },
+  singleStrandAnnotations: [],
   seq: AMINO_LINEAR_SEQUENCE,
   seqType: "aa",
   showComplement: false,

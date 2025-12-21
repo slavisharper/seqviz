@@ -33,6 +33,7 @@ const defaultProps = {
   primerRevRows: [],
   primers: [],
   searchRows: [],
+  singleStrandAnnotations: [],
   selection: {},
   seqFontSize: 12,
   seqType: "dna" as SeqType,

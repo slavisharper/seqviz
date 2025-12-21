@@ -1,4 +1,14 @@
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size, TranslationProp } from "./core/elements";
+import {
+  Annotation,
+  CutSite,
+  Highlight,
+  NameRange,
+  Primer,
+  SeqType,
+  SingleStrandAnnotation,
+  Size,
+  TranslationProp,
+} from "./core/elements";
 import { CircularProps } from "./viewers/Circular/Circular";
 import { LinearProps } from "./viewers/Linear/Linear";
 import { LinearMapProps } from "./viewers/LinearMap/LinearMap";
@@ -42,6 +52,7 @@ export const createLinearPropsBuilder = () =>
       compSeq: string,
       cutSites: CutSite[],
       highlights: Highlight[],
+      singleStrandAnnotations: SingleStrandAnnotation[],
       primers: Primer[],
       search: NameRange[],
       seq: string,
@@ -91,6 +102,7 @@ export const createLinearPropsBuilder = () =>
         highlights,
         lineHeight,
         primers,
+        singleStrandAnnotations,
         search,
         seq,
         seqFontSize,

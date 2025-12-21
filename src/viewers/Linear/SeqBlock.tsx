@@ -1,12 +1,24 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import { Annotation, CutSite, Highlight, NameRange, Primer, Range, SeqType, Size, Translation } from "../../core/elements";
+import {
+  Annotation,
+  CutSite,
+  Highlight,
+  NameRange,
+  Primer,
+  Range,
+  SeqType,
+  SingleStrandAnnotation,
+  Size,
+  Translation,
+} from "../../core/elements";
 import { seqBlock, svgText } from "../../style";
 import AnnotationRows from "./Annotations";
 import { CutSites } from "./CutSites";
 import Find from "./Find";
 import { Highlights } from "./Highlights";
+import { SingleStrandHighlights } from "./SingleStrandHighlights";
 import IndexRow from "./Index";
 import PrimeRows from "./Primers";
 import Selection from "./Selection";
@@ -55,6 +67,7 @@ interface SeqBlockProps {
   primerFwdRows: Primer[][];
   primerRevRows: Primer[][];
   searchRows: Range[];
+  singleStrandAnnotations: SingleStrandAnnotation[];
   seq: string;
   seqFontSize: number;
   seqType: SeqType;
@@ -243,6 +256,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       primerFwdRows: primerFwdRows,
       primerRevRows: primerRevRows,
       searchRows,
+      singleStrandAnnotations,
       seq,
       seqFontSize,
       seqType,
@@ -281,6 +295,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
     // height and yDiff of the complement strand
     const compYDiff = indexYDiff + indexHeight;
     const compHeight = zoomed && showComplement ? lineHeight : 0;
+    const hasComplementRow = zoomed && showComplement && !!compSeq && seqType !== "aa";
 
     // height and yDiff of reverse primers
     const primerRevYDiff = compYDiff + compHeight;
@@ -396,6 +411,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           highlights={highlights}
           indexYDiff={indexYDiff - 3}
           inputRef={inputRef}
+          hasComplementRow={hasComplementRow}
           lastBase={lastBase}
           lineHeight={lineHeight}
           listenerOnly={false}
@@ -419,6 +435,19 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           lineHeight={lineHeight}
           listenerOnly={false}
           zoomed={zoomed}
+        />
+        <SingleStrandHighlights
+          compYDiff={compYDiff - 3}
+          findXAndWidth={this.findXAndWidthElement}
+          firstBase={firstBase}
+          hasComplementRow={hasComplementRow}
+          indexYDiff={indexYDiff - 3}
+          inputRef={inputRef}
+          lastBase={lastBase}
+          lineHeight={lineHeight}
+          listenerOnly={false}
+          seqBlockRef={this}
+          singleStrandAnnotations={singleStrandAnnotations}
         />
         {primerRevRows.length && (
           <PrimeRows
@@ -517,6 +546,19 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           lineHeight={lineHeight}
           listenerOnly={true}
           zoomed={zoomed}
+        />
+        <SingleStrandHighlights
+          compYDiff={compYDiff - 3}
+          findXAndWidth={this.findXAndWidthElement}
+          firstBase={firstBase}
+          hasComplementRow={hasComplementRow}
+          indexYDiff={indexYDiff - 3}
+          inputRef={inputRef}
+          lastBase={lastBase}
+          lineHeight={lineHeight}
+          listenerOnly={true}
+          seqBlockRef={this}
+          singleStrandAnnotations={singleStrandAnnotations}
         />
         <Highlights
           compYDiff={compYDiff - 3}

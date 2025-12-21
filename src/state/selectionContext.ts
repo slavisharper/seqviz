@@ -9,6 +9,7 @@ type SelectionTypeEnum =
   | "SEQ"
   | "AMINOACID"
   | "HIGHLIGHT"
+  | "SINGLE_STRAND_ANNOTATION"
   | "PRIMER"
   | "";
 

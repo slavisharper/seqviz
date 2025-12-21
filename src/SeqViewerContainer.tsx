@@ -6,7 +6,17 @@ import Linear, { LinearProps } from "./viewers/Linear/Linear";
 import LinearMap, { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 import SelectionHandler, { InputRefFunc, ViewerContextMenuEvent } from "./SelectionHandler";
 import CentralIndexContext from "./state/centralIndexContext";
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, Size, TranslationProp } from "./core/elements";
+import {
+  Annotation,
+  CutSite,
+  Highlight,
+  NameRange,
+  Primer,
+  SeqType,
+  SingleStrandAnnotation,
+  Size,
+  TranslationProp,
+} from "./core/elements";
 import { isEqual } from "./utils/isEqual";
 import SelectionContext, {
   ExternalSelection,
@@ -76,6 +86,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   refs?: SeqVizChildRefs;
   rotateOnScroll: boolean;
   search: NameRange[];
+  singleStrandAnnotations?: SingleStrandAnnotation[];
   selectAllEvent: (event: React.KeyboardEvent<HTMLElement>) => boolean;
   selection?: ExternalSelection;
   seq: string;
@@ -222,6 +233,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       compSeq,
       cutSites,
       highlights,
+      singleStrandAnnotations = [],
       primers,
       search,
       seq,
@@ -238,6 +250,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       compSeq,
       cutSites,
       highlights,
+      singleStrandAnnotations,
       primers,
       search,
       seq,

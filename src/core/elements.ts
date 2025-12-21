@@ -21,6 +21,11 @@ export interface AnnotationProp {
   start: number;
 }
 
+/** Single-strand annotation rendered over the sequence (similar to search highlights). */
+export interface SingleStrandAnnotationProp extends AnnotationProp {
+  strand: 1 | -1;
+}
+
 /** TranslationProp is an translation provided to SeqViz via the translation prop. */
 export interface TranslationProp {
   color?: string;
@@ -59,6 +64,11 @@ export interface Primer extends NameRange {
   direction: 1 | -1;
   /** mark primer as phosphorylated for display */
   isPhosphorylated?: boolean;
+}
+
+/** Processed single-strand annotation for rendering. */
+export interface SingleStrandAnnotation extends NameRange {
+  strand: 1 | -1;
 }
 
 /** HighlightProp is a region of the plasmid and the desired highlight for that region. */

@@ -2,7 +2,7 @@ import * as React from "react";
 import seqparse from "seqparse";
 
 import SeqViz from "../../src/SeqViz";
-import { AnnotationProp, Primer } from "../../src/core/elements";
+import { AnnotationProp, Primer, SingleStrandAnnotationProp } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
 import { FragmentSelection } from "../../src/state/selectionContext";
@@ -26,6 +26,7 @@ import {
   VIEWER_TYPE_OPTIONS,
   type ViewerOption,
   createDefaultPrimers,
+  createDefaultSingleStrandAnnotations,
   createDefaultTranslations,
 } from "./constants";
 import file from "./file";
@@ -49,6 +50,7 @@ const buildDefaultPresetState = () => ({
   showIndex: true,
   showSelectionMeta: false,
   seqType: "dna" as SupportedSeqType,
+  singleStrandAnnotations: createDefaultSingleStrandAnnotations(),
   showTranslations: true,
   translations: createDefaultTranslations(),
   viewer: "both" as ViewerOption,
@@ -76,6 +78,7 @@ interface AppState {
   showSelectionMeta: boolean;
   showSidebar: boolean;
   showTranslations: boolean;
+  singleStrandAnnotations: SingleStrandAnnotationProp[];
   translations?: TranslationSettings;
   viewer: ViewerOption;
   zoom: number;
@@ -94,8 +97,8 @@ export default class App extends React.Component<any, AppState> {
   circularRef: React.RefObject<HTMLDivElement> = React.createRef();
   private defaultSequenceData: Pick<AppState, "annotations" | "name" | "seq"> | null = null;
   private presetStateFromConfig = (config: DemoExampleConfig): Omit<DemoExampleConfig, "description"> => {
-    const { description: _description, ...stateProjection } = config;
-    return stateProjection;
+    const { description: _description, singleStrandAnnotations = [], ...stateProjection } = config;
+    return { ...stateProjection, singleStrandAnnotations };
   };
 
   componentDidMount = async () => {
@@ -197,6 +200,7 @@ export default class App extends React.Component<any, AppState> {
       this.setState(prevState => ({
         ...buildDefaultPresetState(),
         ...this.defaultSequenceData!,
+        singleStrandAnnotations: createDefaultSingleStrandAnnotations(),
         contextInfo: null,
         exampleId,
         searchResults: {},
@@ -212,6 +216,7 @@ export default class App extends React.Component<any, AppState> {
 
     this.setState(prevState => ({
       ...presetState,
+      singleStrandAnnotations: presetState.singleStrandAnnotations || [],
       showTranslations: typeof presetState.showTranslations === "boolean" ? presetState.showTranslations : true,
       contextInfo: null,
       exampleId,
@@ -311,6 +316,7 @@ export default class App extends React.Component<any, AppState> {
                   primers={this.state.primers}
                   refs={{ circular: this.circularRef, linear: this.linearRef }}
                   search={this.state.search}
+                  singleStrandAnnotations={this.state.singleStrandAnnotations}
                   selection={this.state.selection}
                   seq={this.state.seq}
                   showComplement={this.state.showComplement}

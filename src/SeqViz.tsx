@@ -14,6 +14,8 @@ import {
   PrimerProp,
   Range,
   SeqType,
+  SingleStrandAnnotation,
+  SingleStrandAnnotationProp,
   TranslationProp,
 } from "./core/elements";
 import { isEqual } from "./utils/isEqual";
@@ -97,6 +99,9 @@ export interface SeqVizProps {
 
   /** ranges of sequence to highlight on the viewer */
   highlights?: HighlightProp[];
+
+  /** strand-aware overlays rendered over the sequence similar to search highlights */
+  singleStrandAnnotations?: SingleStrandAnnotationProp[];
 
   /** the name of the sequence to show in the middle of the circular viewer */
   name?: string;
@@ -205,6 +210,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     onContextMenu: (_: ViewerContextMenuEvent) => null,
     onDoubleClick: (_: ViewerContextMenuEvent) => null,
     primers: [],
+    singleStrandAnnotations: [],
     rotateOnScroll: true,
     search: { mismatch: 0, query: "" },
     selectAllEvent: e => e.key === "a" && (e.metaKey || e.ctrlKey),
@@ -424,7 +430,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     }));
 
   render() {
-    const { highlights, primers, showComplement, showIndex, style, zoom } = this.props;
+    const { highlights, primers, showComplement, showIndex, singleStrandAnnotations, style, zoom } = this.props;
     const { compSeq, seq, seqType } = this.state;
     const translations = generateTranslations(seq, seqType, this.props.translations);
     const orfs = generateOrfs(seq, seqType, this.props.translations);
@@ -446,6 +452,18 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           id: `highlight-${i}-${h.start}-${h.end}`,
           name: "",
           start: h.start % (seq.length + 1),
+        })
+      ),
+      singleStrandAnnotations: (singleStrandAnnotations || []).map(
+        (annotation, i): SingleStrandAnnotation => ({
+          ...annotation,
+          color: annotation.color || colorByIndex(i, COLORS),
+          direction: annotation.strand === -1 ? -1 : 1,
+          end: annotation.end % (seq.length + 1),
+          id: `single-strand-${i}-${annotation.start}-${annotation.end}`,
+          name: annotation.name,
+          start: annotation.start % (seq.length + 1),
+          strand: annotation.strand === -1 ? -1 : 1,
         })
       ),
       onSelection:
