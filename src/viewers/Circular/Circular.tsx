@@ -3,7 +3,7 @@ import * as React from "react";
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import CentralIndexContext from "../../state/centralIndexContext";
-import { Annotation, Coor, CutSite, Highlight, Range, Size, TranslationProp } from "../../core/elements";
+import { Annotation, Coor, CutSite, Highlight, Primer, Range, Size, TranslationProp } from "../../core/elements";
 import type { Selection as SelectionRange } from "../../state/selectionContext";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
@@ -14,6 +14,7 @@ import { Index } from "./Index";
 import { Labels } from "./Labels";
 import { Selection } from "./Selection";
 import { Orfs, getOrfRingDimensions } from "./Orfs";
+import { Primers } from "./Primers";
 
 /** Sequence length cutoff below which the circular viewer's sequence won't be rendered. */
 export const RENDER_SEQ_LENGTH_CUTOFF = 250;
@@ -55,6 +56,7 @@ export interface CircularProps {
   inputRef: InputRefFunc;
   name: string;
   orfs: TranslationProp[];
+  primers: Primer[];
   onUnmount: (id: string) => void;
   radius: number;
   rotateOnScroll: boolean;
@@ -71,6 +73,7 @@ interface CircularState {
   inlinedLabels: string[];
   lineHeight: number;
   outerLabels: ILabel[];
+  primerRows: Primer[][];
   seqLength: number;
 }
 
@@ -93,6 +96,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       inlinedLabels: [],
       lineHeight: 0,
       outerLabels: [],
+      primerRows: [],
       seqLength: 0,
     };
   }
@@ -100,6 +104,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
   static getDerivedStateFromProps = (nextProps: CircularProps): CircularState => {
     const lineHeight = 14;
     const annotationsInRows = stackElements(nextProps.annotations, nextProps.seq.length);
+    const primerRows = stackElements(nextProps.primers || [], nextProps.seq.length);
 
     /**
      * find the element labels that need to be rendered outside the plasmid. This is done for
@@ -176,6 +181,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       inlinedLabels: inlinedLabels,
       lineHeight: lineHeight,
       outerLabels: outerLabels,
+      primerRows,
       seqLength: nextProps.seq.length,
     };
   };
@@ -442,7 +448,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       size,
       yDiff,
     } = this.props;
-    const { annotationsInRows, inlinedLabels, lineHeight, outerLabels, seqLength } = this.state;
+    const { annotationsInRows, inlinedLabels, lineHeight, outerLabels, primerRows, seqLength } = this.state;
 
     const { findCoor, genArc, getRotation, rotateCoor } = this;
 
@@ -459,8 +465,8 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       seqLength,
     };
 
-    // calculate the selection row height based on number of annotation
-    const totalRows = 4 + annotationsInRows.length;
+    // calculate the selection row height based on number of annotation + primer rows
+    const totalRows = 4 + annotationsInRows.length + primerRows.length;
     const plasmidId = `la-vz-${name}-viewer-circular`;
     if (!size.height) return null;
 
@@ -522,6 +528,11 @@ export default class Circular extends React.Component<CircularProps, CircularSta
             annotations={annotationsInRows}
             inlinedAnnotations={inlinedLabels}
             rowsToSkip={0}
+          />
+          <Primers
+            {...props}
+            primers={primerRows}
+            rowsToSkip={annotationsInRows.length}
           />
           <Labels
             {...props}
