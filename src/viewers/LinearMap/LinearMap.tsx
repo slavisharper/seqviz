@@ -4,17 +4,20 @@ import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import CentralIndexContext from "../../state/centralIndexContext";
-import { COLOR_BORDER_MAP, colorByIndex, darkerColor } from "../../core/colors";
 import { Annotation, CutSite, Highlight, NameRange, Primer, Range, Size, TranslationProp } from "../../core/elements";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { Selection as SelectionState } from "../../state/selectionContext";
-import { annotationLabel, annotation as annotationStyle, circularLabelLine, viewerCircular } from "../../style";
+import { circularLabelLine, viewerCircular } from "../../style";
 import { Find } from "./Find";
 import { Index } from "./Index";
 import { Labels, LinearLabelDatum, LinearLabelItem } from "./Labels";
 import { Selection } from "./Selection";
-import { LinearMapScale, clamp, createSegments, normalizeBase, rangeLength, rangeMidpoint } from "./utils";
+import { OrfTrack } from "./components/OrfTrack";
+import { AnnotationTrack } from "./components/AnnotationTrack";
+import { PrimerTrack } from "./components/PrimerTrack";
+import { LinearOrf } from "./types";
+import { LinearMapScale, clamp, normalizeBase, rangeLength, rangeMidpoint } from "./utils";
 
 const LINE_HEIGHT = 14;
 const TRACK_GAP = 12;
@@ -30,6 +33,10 @@ const ORF_HEIGHT_RATIO = 0.55;
 const SELECTION_HEIGHT_RATIO = 0.85;
 const ORF_INDEX_GAP = 15;
 const ORF_FEATURE_GAP = 2;
+const ENZYME_LABEL_MIN_WIDTH = 50;
+const ENZYME_GROUP_THRESHOLD_PX = 25;
+const ENZYME_MAX_VISIBLE_PER_GROUP = 5;
+const ENZYME_UNIFIED_LINE_THRESHOLD_PX = 5;
 
 type RawLabelItem = LinearLabelItem;
 
@@ -43,8 +50,6 @@ interface RawLabel {
   start: number;
   type: "annotation" | "primer" | "enzyme";
 }
-
-type LinearOrf = TranslationProp & { __colorIndex: number; __id: string };
 
 function isDefined<T>(value: T | undefined | null): value is T {
   return value !== undefined && value !== null;
@@ -236,6 +241,10 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const findHeight = selectionHeight * 0.55;
     const annotationRowHeight = LINE_HEIGHT + ROW_GAP;
     const primerRowHeight = LINE_HEIGHT + ROW_GAP;
+    const orfRowHeight = LINE_HEIGHT + ROW_GAP;
+    const orfFeatureHeight = LINE_HEIGHT * ORF_HEIGHT_RATIO;
+    const annotationFeatureHeight = LINE_HEIGHT * ANNOTATION_HEIGHT_RATIO;
+    const primerFeatureHeight = LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
 
     const { enzymeLabels, featureLabels, inlineAnnotationIds, inlinePrimerIds } = this.computeLabelLayout(
       annotations,
@@ -256,7 +265,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
 
     const indexY = showIndex ? currentY : 0;
     const mapBottom = showIndex ? indexY + LINE_HEIGHT / 2 : currentY;
-    const orfRowHeight = LINE_HEIGHT + ROW_GAP;
     const orfAreaHeight = orfRows.length ? orfRows.length * orfRowHeight - ROW_GAP : 0;
     if (showIndex) {
       currentY += LINE_HEIGHT;
@@ -379,10 +387,54 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         onWheel={this.handleScrollEvent}
       >
         <Selection height={selectionHighlightHeight} scale={scale} showEdges={false} y={selectionHighlightTop} />
-        {this.renderOrfRows(orfRows, scale, orfStartY)}
-        {this.renderAnnotationRows(annotationRows, scale, annotationStartY, inlineAnnotationIds)}
-        {this.renderPrimerRows(primerForwardRows, scale, primerForwardY, inlinePrimerIds)}
-        {this.renderPrimerRows(primerReverseRows, scale, primerReverseY, inlinePrimerIds)}
+        <OrfTrack
+          featureHeight={orfFeatureHeight}
+          getFeatureId={this.getOrfId}
+          inputRef={inputRef}
+          isFeatureHovered={this.isFeatureHovered}
+          onFeatureHover={this.handleFeatureHover}
+          rowSpacing={orfRowHeight}
+          rows={orfRows}
+          scale={scale}
+          startY={orfStartY}
+          stripOrfMeta={this.stripOrfMeta}
+        />
+        <AnnotationTrack
+          featureHeight={annotationFeatureHeight}
+          hasLabel={id => this.labelLookup.has(id)}
+          inlineAnnotationIds={inlineAnnotationIds}
+          inputRef={inputRef}
+          isFeatureHovered={this.isFeatureHovered}
+          onFeatureHover={this.handleFeatureHover}
+          rowSpacing={annotationRowHeight}
+          rows={annotationRows}
+          scale={scale}
+          startY={annotationStartY}
+        />
+        <PrimerTrack
+          featureHeight={primerFeatureHeight}
+          hasLabel={id => this.labelLookup.has(id)}
+          inlinePrimerIds={inlinePrimerIds}
+          inputRef={inputRef}
+          isFeatureHovered={this.isFeatureHovered}
+          onFeatureHover={this.handleFeatureHover}
+          rowSpacing={primerRowHeight}
+          rows={primerForwardRows}
+          scale={scale}
+          startY={primerForwardY}
+        />
+        <PrimerTrack
+          featureHeight={primerFeatureHeight}
+          hasLabel={id => this.labelLookup.has(id)}
+          inlinePrimerIds={inlinePrimerIds}
+          inputRef={inputRef}
+          isFeatureHovered={this.isFeatureHovered}
+          onFeatureHover={this.handleFeatureHover}
+          rowSpacing={primerRowHeight}
+          rows={primerReverseRows}
+          scale={scale}
+          startY={primerReverseY}
+        />
         <Find
           height={findHeight}
           highlights={highlights}
@@ -410,6 +462,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
             hoveredFeatures={mergedHoveredFeatures}
             labels={enzymeLabelsWithSource}
             lineHeight={LINE_HEIGHT}
+            scale={scale}
             selectedFeatures={selectedFeaturesMap}
             startY={enzymeLabelsStartY}
             onHoverFeatures={this.handleLabelHoverFeatures}
@@ -421,6 +474,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
             hoveredFeatures={mergedHoveredFeatures}
             labels={featureLabelsWithSource}
             lineHeight={LINE_HEIGHT}
+            scale={scale}
             selectedFeatures={selectedFeaturesMap}
             startY={featureLabelsStartY}
             onHoverFeatures={this.handleLabelHoverFeatures}
@@ -515,109 +569,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     return null;
   }
 
-  private renderOrfRows(rows: LinearOrf[][], scale: LinearMapScale, startY: number) {
-    if (!rows.length) return null;
-    const height = LINE_HEIGHT * ORF_HEIGHT_RATIO;
-
-    return (
-      <g className="la-vz-linear-map-orfs">
-        {rows.map((row, rowIndex) => {
-          const rowY = startY + rowIndex * (LINE_HEIGHT + ROW_GAP);
-          return (
-            <g key={`orf-row-${rowIndex}`} transform={`translate(0, ${rowY})`}>
-              {row.map(orf => this.renderOrf(orf, scale, height))}
-            </g>
-          );
-        })}
-      </g>
-    );
-  }
-
-  private renderOrf(orf: LinearOrf, scale: LinearMapScale, height: number) {
-    const segments = createSegments(orf.start, orf.end, scale.seqLength);
-    if (!segments.length) return null;
-
-    const featureId = this.getOrfId(orf);
-    const color = orf.color || colorByIndex(orf.__colorIndex);
-    const strokeColor = COLOR_BORDER_MAP[color] || darkerColor(color);
-    const isHovered = this.isFeatureHovered(featureId);
-    const baseStyle = {
-      ...annotationStyle,
-      cursor: "pointer",
-      fill: color,
-      fillOpacity: isHovered ? 0.95 : 0.75,
-      stroke: strokeColor,
-    } as React.CSSProperties;
-    const direction: -1 | 0 | 1 = orf.direction === -1 ? -1 : orf.direction === 1 ? 1 : 0;
-    const strippedOrf = this.stripOrfMeta(orf);
-
-    return (
-      <g key={`orf-${featureId}`} className="la-vz-linear-map-orf">
-        {segments.map((segment, index) => {
-          const width = (segment.end - segment.start) * scale.pxPerBase;
-          if (width <= 0) return null;
-          const x = scale.offsetX + segment.start * scale.pxPerBase;
-          const hasArrow = direction !== 0;
-          const arrowWidth = hasArrow ? Math.min(Math.max(height * 0.9, 6), width) : 0;
-          const bodyWidth = hasArrow ? Math.max(width - arrowWidth, 0) : width;
-          const isForward = direction !== -1;
-          const bodyX = isForward ? x : x + arrowWidth;
-          const rectStart = bodyX;
-          const rectEnd = bodyX + bodyWidth;
-          const polygonPoints = isForward
-            ? `${rectStart},0 ${rectEnd},0 ${x + width},${height / 2} ${rectEnd},${height} ${rectStart},${height}`
-            : `${x + width},0 ${x + width},${height} ${rectStart},${height} ${x},${height / 2} ${rectStart},0`;
-          const refCallback =
-            index === 0
-              ? this.props.inputRef(featureId, {
-                  direction,
-                  end: strippedOrf.end,
-                  name: strippedOrf.name,
-                  parent: { ...strippedOrf, type: "TRANSLATION" },
-                  scrollLinearOnSelect: true,
-                  start: strippedOrf.start,
-                  type: "TRANSLATION",
-                  viewer: "LINEAR",
-                })
-              : undefined;
-          const handleEnter = () => this.handleFeatureHover(featureId, true);
-          const handleLeave = () => this.handleFeatureHover(featureId, false);
-
-          if (!hasArrow) {
-            return (
-              <rect
-                key={`${featureId}-segment-${segment.start}-${segment.end}`}
-                ref={refCallback}
-                className={`${featureId} la-vz-orf`}
-                height={height}
-                id={featureId}
-                style={baseStyle}
-                width={bodyWidth}
-                x={bodyX}
-                y={0}
-                onMouseEnter={handleEnter}
-                onMouseLeave={handleLeave}
-              />
-            );
-          }
-
-          return (
-            <polygon
-              key={`${featureId}-segment-${segment.start}-${segment.end}`}
-              ref={refCallback}
-              className={`${featureId} la-vz-orf-arrow`}
-              id={featureId}
-              points={polygonPoints}
-              style={baseStyle}
-              onMouseEnter={handleEnter}
-              onMouseLeave={handleLeave}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
   private getOrfId(orf: LinearOrf) {
     return orf.__id;
   }
@@ -634,268 +585,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const normEnd = normalizeBase(orf.end, safeLength);
     const namePart = (orf.name || "orf").replace(/[^a-zA-Z0-9_-]+/g, "").toLowerCase() || "orf";
     return `linear-orf-${namePart}-${dirLabel}-${normStart}-${normEnd}-${colorIndex}`;
-  }
-
-  private renderAnnotationRows(
-    rows: Annotation[][],
-    scale: LinearMapScale,
-    startY: number,
-    inlineAnnotationIds: Set<string>
-  ) {
-    if (!rows.length) return null;
-    const height = LINE_HEIGHT * ANNOTATION_HEIGHT_RATIO;
-
-    return (
-      <g className="la-vz-linear-map-annotations">
-        {rows.map((row, rowIndex) => {
-          const rowY = startY + rowIndex * (LINE_HEIGHT + ROW_GAP);
-          return (
-            <g key={`annotation-row-${rowIndex}`} transform={`translate(0, ${rowY})`}>
-              {row.map(annotation => this.renderAnnotation(annotation, scale, height, inlineAnnotationIds))}
-            </g>
-          );
-        })}
-      </g>
-    );
-  }
-
-  private renderAnnotation(
-    annotation: Annotation,
-    scale: LinearMapScale,
-    height: number,
-    inlineAnnotationIds: Set<string>
-  ) {
-    const segments = createSegments(annotation.start, annotation.end, scale.seqLength);
-    const midpoint = rangeMidpoint(annotation.start, annotation.end, scale.seqLength);
-    const textX = scale.offsetX + midpoint * scale.pxPerBase;
-    const strokeColor = annotation.color ? COLOR_BORDER_MAP[annotation.color] || darkerColor(annotation.color) : "gray";
-    const hasLabel = this.labelLookup.has(annotation.id);
-    const inline = inlineAnnotationIds.has(annotation.id);
-    const isInteractive = hasLabel || inline;
-    const isHovered = this.isFeatureHovered(annotation.id);
-    const baseStyle = {
-      ...annotationStyle,
-      cursor: isInteractive ? "pointer" : annotationStyle.cursor,
-      fill: annotation.color,
-      stroke: strokeColor,
-    } as React.CSSProperties;
-    const hoverStyle = isHovered ? { ...baseStyle, fillOpacity: 1 } : baseStyle;
-    const textHoverStyle =
-      inline && annotation.name
-        ? {
-            ...annotationLabel,
-            textDecoration: isHovered ? "underline" : "none",
-          }
-        : annotationLabel;
-
-    return (
-      <g key={`annotation-${annotation.id}`} className="la-vz-linear-map-annotation">
-        {segments.map((segment, index) => {
-          const width = (segment.end - segment.start) * scale.pxPerBase;
-          if (width <= 0) return null;
-          const x = scale.offsetX + segment.start * scale.pxPerBase;
-          const direction = annotation.direction === -1 ? -1 : annotation.direction === 1 ? 1 : 0;
-          const hasArrow = direction !== 0;
-          const arrowWidth = hasArrow ? Math.min(height, width / 2) : 0;
-          const bodyWidth = hasArrow ? Math.max(width - arrowWidth, 0) : width;
-          const bodyX = direction === -1 ? x + arrowWidth : x;
-          const rectStart = bodyX;
-          const rectEnd = bodyX + bodyWidth;
-          const polygonPoints = direction === -1
-            ? `${x + width},0 ${x + width},${height} ${rectStart},${height} ${x},${height / 2} ${rectStart},0`
-            : `${rectStart},0 ${rectEnd},0 ${x + width},${height / 2} ${rectEnd},${height} ${rectStart},${height}`;
-          const refCallback =
-            index === 0
-              ? this.props.inputRef(annotation.id, {
-                  direction: annotation.direction,
-                  end: annotation.end,
-                  name: annotation.name,
-                  ref: annotation.id,
-                  scrollLinearOnSelect: true,
-                  start: annotation.start,
-                  type: "ANNOTATION",
-                  viewer: "LINEAR",
-                })
-              : undefined;
-          const enter = isInteractive ? () => this.handleFeatureHover(annotation.id, true) : undefined;
-          const leave = isInteractive ? () => this.handleFeatureHover(annotation.id, false) : undefined;
-
-          if (!hasArrow) {
-            return (
-              <rect
-                key={`annotation-${annotation.id}-segment-${segment.start}-${segment.end}`}
-                ref={refCallback}
-                className={`${annotation.id} la-vz-annotation`}
-                height={height}
-                id={annotation.id}
-                style={hoverStyle}
-                width={bodyWidth}
-                x={bodyX}
-                y={0}
-                onMouseEnter={enter}
-                onMouseLeave={leave}
-              />
-            );
-          }
-
-          return (
-            <polygon
-              key={`annotation-${annotation.id}-segment-${segment.start}-${segment.end}`}
-              ref={refCallback}
-              className={`${annotation.id} la-vz-annotation-arrow`}
-              id={annotation.id}
-              points={polygonPoints}
-              style={hoverStyle}
-              onMouseEnter={enter}
-              onMouseLeave={leave}
-            />
-          );
-        })}
-        {inline && annotation.name && (
-          <text
-            className="la-vz-annotation-label"
-            dominantBaseline="middle"
-            style={textHoverStyle}
-            textAnchor="middle"
-            x={textX}
-            y={height / 2}
-            onMouseEnter={() => this.handleFeatureHover(annotation.id, true)}
-            onMouseLeave={() => this.handleFeatureHover(annotation.id, false)}
-          >
-            {annotation.name}
-          </text>
-        )}
-      </g>
-    );
-  }
-
-  private renderPrimerRows(rows: Primer[][], scale: LinearMapScale, startY: number, inlinePrimerIds: Set<string>) {
-    if (!rows.length) return null;
-    const height = LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
-
-    return (
-      <g className="la-vz-linear-map-primers">
-        {rows.map((row, rowIndex) => {
-          const rowY = startY + rowIndex * (LINE_HEIGHT + ROW_GAP);
-          return (
-            <g key={`primer-row-${rowIndex}`} transform={`translate(0, ${rowY})`}>
-              {row.map(primer => this.renderPrimer(primer, scale, height, inlinePrimerIds))}
-            </g>
-          );
-        })}
-      </g>
-    );
-  }
-
-  private renderPrimer(primer: Primer, scale: LinearMapScale, height: number, inlinePrimerIds: Set<string>) {
-    const segments = createSegments(primer.start, primer.end, scale.seqLength);
-    const midpoint = rangeMidpoint(primer.start, primer.end, scale.seqLength);
-    const textX = scale.offsetX + midpoint * scale.pxPerBase;
-    const strokeColor = primer.color ? COLOR_BORDER_MAP[primer.color] || darkerColor(primer.color) : "#555";
-    const hasLabel = this.labelLookup.has(primer.id);
-    const inline = inlinePrimerIds.has(primer.id);
-    const isInteractive = hasLabel || inline;
-    const isHovered = this.isFeatureHovered(primer.id);
-    const baseStyle = {
-      ...annotationStyle,
-      cursor: isInteractive ? "pointer" : annotationStyle.cursor,
-      fill: primer.color,
-      stroke: strokeColor,
-    } as React.CSSProperties;
-    const hoverStyle = isHovered ? { ...baseStyle, fillOpacity: 1 } : baseStyle;
-    const arrowBaseStyle = {
-      ...annotationStyle,
-      cursor: isInteractive ? "pointer" : annotationStyle.cursor,
-      fill: primer.color,
-      stroke: strokeColor,
-    } as React.CSSProperties;
-    const arrowStyle = isHovered ? { ...arrowBaseStyle, fillOpacity: 1 } : arrowBaseStyle;
-    const textHoverStyle =
-      inline && primer.name
-        ? {
-            ...annotationLabel,
-            textDecoration: isHovered ? "underline" : "none",
-          }
-        : annotationLabel;
-
-    return (
-      <g key={`primer-${primer.id}`} className="la-vz-linear-map-primer">
-        {segments.map((segment, index) => {
-          const width = (segment.end - segment.start) * scale.pxPerBase;
-          if (width <= 0) return null;
-          const x = scale.offsetX + segment.start * scale.pxPerBase;
-          const arrowWidth = Math.min(width / 2, 10);
-          const bodyWidth = Math.max(width - arrowWidth, 0);
-          const isForward = primer.direction === 1;
-          const bodyX = isForward ? x : x + arrowWidth;
-          const rectStart = bodyX;
-          const rectEnd = bodyX + bodyWidth;
-          const polygonPoints = isForward
-            ? `${rectStart},0 ${rectEnd},0 ${x + width},${height / 2} ${rectEnd},${height} ${rectStart},${height}`
-            : `${x + width},0 ${x + width},${height} ${rectStart},${height} ${x},${height / 2} ${rectStart},0`;
-          const refCallback =
-            index === 0
-              ? this.props.inputRef(primer.id, {
-                  direction: primer.direction,
-                  end: primer.end,
-                  name: primer.name,
-                  ref: primer.id,
-                  scrollLinearOnSelect: true,
-                  start: primer.start,
-                  type: "PRIMER",
-                  viewer: "LINEAR",
-                })
-              : undefined;
-          const enter = isInteractive ? () => this.handleFeatureHover(primer.id, true) : undefined;
-          const leave = isInteractive ? () => this.handleFeatureHover(primer.id, false) : undefined;
-
-          if (arrowWidth === 0) {
-            return (
-              <rect
-                key={`primer-${primer.id}-segment-${segment.start}-${segment.end}`}
-                ref={refCallback}
-                className={`${primer.id} la-vz-primer`}
-                height={height}
-                id={primer.id}
-                style={hoverStyle}
-                width={width}
-                x={x}
-                y={0}
-                onMouseEnter={enter}
-                onMouseLeave={leave}
-              />
-            );
-          }
-
-          return (
-            <polygon
-              key={`primer-${primer.id}-segment-${segment.start}-${segment.end}`}
-              ref={refCallback}
-              className={`${primer.id} la-vz-primer`}
-              id={primer.id}
-              points={polygonPoints}
-              style={arrowStyle}
-              onMouseEnter={enter}
-              onMouseLeave={leave}
-            />
-          );
-        })}
-        {inline && primer.name && (
-          <text
-            className="la-vz-primer-label"
-            dominantBaseline="middle"
-            style={textHoverStyle}
-            textAnchor="middle"
-            x={textX}
-            y={height / 2}
-            onMouseEnter={() => this.handleFeatureHover(primer.id, true)}
-            onMouseLeave={() => this.handleFeatureHover(primer.id, false)}
-          >
-            {primer.name}
-          </text>
-        )}
-      </g>
-    );
   }
 
   private isFeatureHovered = (id: string): boolean => {
@@ -938,11 +627,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       }
     }
     setHoveredLabelUnderline(label.groupId, nextUnderline);
-    label.labels.forEach(item => {
-      if (item.id !== label.groupId) {
-        setHoveredLabelUnderline(item.id, nextUnderline);
-      }
-    });
   }
 
   private updateLabelUnderlineForFeatureId(featureId: string, underline: boolean, force = false) {
@@ -1083,7 +767,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     });
 
     const arrangedFeatures = this.layoutLabels(featureLabels, scale);
-    const arrangedEnzymes = this.layoutLabels(enzymeLabels, scale);
+    const arrangedEnzymes = this.layoutEnzymeLabels(enzymeLabels, scale);
 
     return {
       enzymeLabels: arrangedEnzymes,
@@ -1168,6 +852,152 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       }
       rows[rowIndex].push(label);
     });
+
+    return rows.flat();
+  }
+
+  private layoutEnzymeLabels(rawLabels: RawLabel[], scale: LinearMapScale): LinearLabelDatum[] {
+    if (!rawLabels.length) return [];
+
+    const positioned = rawLabels
+      .filter(label => label.name && label.name.trim().length)
+      .map(label => {
+        const cutBase = typeof label.cutPosition === "number" ? label.cutPosition - 1 : label.start;
+        const cutBp = normalizeBase(cutBase, scale.seqLength);
+        const anchorX = clamp(scale.offsetX + cutBp * scale.pxPerBase, scale.offsetX, scale.offsetX + scale.width);
+        const labelItems =
+          label.items && label.items.length
+            ? label.items
+            : [
+                createLabelItemWithSelection(
+                  {
+                    direction: label.direction,
+                    end: label.end,
+                    id: label.id,
+                    name: label.name,
+                    start: label.start,
+                    type: label.type,
+                  },
+                  getSelectionTypeForLabel(label.type),
+                  { scrollLinearOnSelect: label.type === "enzyme" }
+                ),
+              ];
+        const uniqueNames = Array.from(
+          new Set(
+            labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0)
+          )
+        );
+        const baseName = uniqueNames.length ? uniqueNames.join("+") : label.name;
+        const displayName =
+          label.type === "enzyme" && typeof label.cutPosition === "number"
+            ? `${baseName}(${label.cutPosition})`
+            : baseName;
+        const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, ENZYME_LABEL_MIN_WIDTH);
+        const maxLeft = scale.offsetX + scale.width - textWidth;
+        let left = anchorX - textWidth / 2;
+        left = clamp(left, scale.offsetX, maxLeft);
+        const right = left + textWidth;
+
+        return {
+          anchorX,
+          displayName,
+          groupId: label.id,
+          groupType: label.type,
+          grouped: false,
+          labels: labelItems.map(item => ({ ...item })),
+          left,
+          right,
+          row: 0,
+          textAnchor: "middle" as const,
+          textWidth,
+          textX: left + textWidth / 2,
+        };
+      })
+      .sort((a, b) => a.anchorX - b.anchorX);
+
+    const groups: { originX: number; labels: LinearLabelDatum[] }[] = [];
+    positioned.forEach(label => {
+      const lastGroup = groups[groups.length - 1];
+      if (!lastGroup || label.anchorX - lastGroup.originX > ENZYME_GROUP_THRESHOLD_PX) {
+        groups.push({ originX: label.anchorX, labels: [label] });
+        return;
+      }
+      lastGroup.labels.push(label);
+    });
+
+    const alignLabelToGroup = (label: LinearLabelDatum, anchorX: number): LinearLabelDatum => {
+      const textWidth = Math.max(label.textWidth, ENZYME_LABEL_MIN_WIDTH);
+      const maxLeft = scale.offsetX + scale.width - textWidth;
+      let left = anchorX - textWidth / 2;
+      left = clamp(left, scale.offsetX, maxLeft);
+      const right = left + textWidth;
+      return {
+        ...label,
+        anchorX,
+        left,
+        right,
+        textWidth,
+        textX: left + textWidth / 2,
+      };
+    };
+
+    const flattened: LinearLabelDatum[] = [];
+
+    groups.forEach((group, groupIndex) => {
+      const sortedGroupLabels = [...group.labels].sort((a, b) => a.anchorX - b.anchorX);
+      const visible = sortedGroupLabels.slice(0, ENZYME_MAX_VISIBLE_PER_GROUP);
+      const hidden = sortedGroupLabels.slice(ENZYME_MAX_VISIBLE_PER_GROUP);
+
+      if (hidden.length) {
+        const displayName = `+${hidden.length}`;
+        const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, ENZYME_LABEL_MIN_WIDTH);
+        const maxLeft = scale.offsetX + scale.width - textWidth;
+        let left = group.originX - textWidth / 2;
+        left = clamp(left, scale.offsetX, maxLeft);
+        const right = left + textWidth;
+        flattened.push({
+          anchorX: group.originX,
+          displayName,
+          groupId: `enzyme-group-${groupIndex}-more`,
+          groupType: "enzyme",
+          grouped: true,
+          labels: hidden.flatMap(label => label.labels.map(item => ({ ...item }))),
+          left,
+          right,
+          row: 0,
+          textAnchor: "middle",
+          textWidth,
+          textX: left + textWidth / 2,
+        });
+      }
+
+      let clusterAnchor = visible.length ? visible[0].anchorX : group.originX;
+      visible.forEach((label, index) => {
+        if (index === 0) {
+          flattened.push(alignLabelToGroup(label, clusterAnchor));
+          return;
+        }
+        const sharedAnchor = Math.abs(label.anchorX - clusterAnchor) <= ENZYME_UNIFIED_LINE_THRESHOLD_PX;
+        const anchorX = sharedAnchor ? clusterAnchor : label.anchorX;
+        clusterAnchor = anchorX;
+        flattened.push(alignLabelToGroup(label, anchorX));
+      });
+    });
+
+    const rows: LinearLabelDatum[][] = [];
+    flattened
+      .sort((a, b) => a.anchorX - b.anchorX)
+      .forEach(label => {
+        let rowIndex = 0;
+        while (rows[rowIndex] && rows[rowIndex][rows[rowIndex].length - 1].right + LABEL_GAP > label.left) {
+          rowIndex += 1;
+        }
+        label.row = rowIndex;
+        if (!rows[rowIndex]) {
+          rows[rowIndex] = [];
+        }
+        rows[rowIndex].push(label);
+      });
 
     return rows.flat();
   }

@@ -3,11 +3,12 @@ import * as React from "react";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { circularLabelLine, svgText } from "../../style";
-import { LinearLabelDatum } from "./Labels";
+import { LinearLabelDatum, LinearLabelItem } from "./Labels";
 import { LinearMapScale, clamp } from "./utils";
 
 interface LinearGroupLabelOverlayProps {
   group: LinearLabelDatum & { textY: number };
+  getSelectionAttributes: (label: LinearLabelItem) => Record<string, string | number>;
   hoveredFeatures?: Record<string, boolean>;
   lineHeight: number;
   onGroupLeave?: (featureIds: string[]) => void;
@@ -17,6 +18,7 @@ interface LinearGroupLabelOverlayProps {
 
 export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = ({
   group,
+  getSelectionAttributes,
   hoveredFeatures,
   lineHeight,
   onGroupLeave,
@@ -64,6 +66,7 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
             key={`${group.groupId}-${label.id}-${index}`}
             dominantBaseline="middle"
             id={label.id}
+            {...getSelectionAttributes(label)}
             style={{ cursor: "pointer", textDecoration: hoveredFeatures?.[label.id] ? "underline" : "none" }}
             x={textStartX}
             y={textStartY + index * lineHeight}

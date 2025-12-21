@@ -1,6 +1,8 @@
 import * as React from "react";
 
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
+import { LinearGroupLabelOverlay } from "./GroupLabelOverlay";
+import { LinearMapScale } from "./utils";
 import { Selection as SelectionRange } from "../../state/selectionContext";
 import { circularLabel, circularLabelLine, circularLabelLineHover } from "../../style";
 
@@ -44,12 +46,14 @@ interface LinearLabelsProps {
   lineHeight: number;
   onHoverFeatures?: (featureIds: string[], hover: boolean) => void;
   selectedFeatures?: Record<string, boolean>;
+  scale: LinearMapScale;
   startY: number;
 }
 
 export class Labels extends React.PureComponent<LinearLabelsProps> {
   private currentLabel: LinearLabelDatum | null = null;
   private currentHoveredFeatureIds: string[] = [];
+  state = { overlayGroupId: "" };
 
   private getSelectionAttributes = (label?: LinearLabelItem): Record<string, string | number> => {
     if (
@@ -81,6 +85,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
   };
 
   handleLabelEnter = (label: LinearLabelDatum) => {
+    const { overlayGroupId } = this.state;
     if (this.currentLabel && this.currentLabel.groupId !== label.groupId) {
       this.toggleUnderline(this.currentLabel, false);
       if (this.currentHoveredFeatureIds.length) {
@@ -88,11 +93,24 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
       }
     }
     this.currentLabel = label;
+
+    if (label.grouped) {
+      this.currentHoveredFeatureIds = [];
+      this.toggleUnderline(label, true);
+      if (overlayGroupId !== label.groupId) {
+        this.setState({ overlayGroupId: label.groupId });
+      }
+      return;
+    }
+
     this.currentHoveredFeatureIds = label.labels.map(item => item.id);
     if (this.currentHoveredFeatureIds.length) {
       this.props.onHoverFeatures?.(this.currentHoveredFeatureIds, true);
     }
     this.toggleUnderline(label, true);
+    if (overlayGroupId) {
+      this.setState({ overlayGroupId: "" });
+    }
   };
 
   handleMouseLeave = () => {
@@ -104,6 +122,9 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
     }
     this.currentLabel = null;
     this.currentHoveredFeatureIds = [];
+    if (this.state.overlayGroupId) {
+      this.setState({ overlayGroupId: "" });
+    }
   };
 
   toggleUnderline = (label: LinearLabelDatum, underline: boolean) => {
@@ -111,16 +132,14 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
     const shouldKeep = !underline && label.labels.some(item => selectedFeatures?.[item.id]);
     const nextUnderline = underline || shouldKeep;
     setHoveredLabelUnderline(label.groupId, nextUnderline);
-    label.labels.forEach(item => {
-      if (item.id !== label.groupId) {
-        setHoveredLabelUnderline(item.id, nextUnderline);
-      }
-    });
   };
 
   render() {
-    const { connectorY, hoveredFeatures, labels, lineHeight, selectedFeatures, startY } = this.props;
+    const { connectorY, hoveredFeatures, labels, lineHeight, scale, selectedFeatures, startY } = this.props;
+    const { overlayGroupId } = this.state;
     if (!labels.length) return null;
+
+    const overlayGroup = overlayGroupId ? labels.find(l => l.groupId === overlayGroupId) : undefined;
 
     return (
       <g className="la-vz-linear-map-labels" onMouseLeave={this.handleMouseLeave}>
@@ -188,6 +207,22 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
             </g>
           );
         })}
+        {overlayGroup && overlayGroup.grouped && overlayGroup.labels.length > 0 && (
+          <LinearGroupLabelOverlay
+            group={{ ...overlayGroup, textY: startY + overlayGroup.row * lineHeight }}
+            getSelectionAttributes={this.getSelectionAttributes}
+            hoveredFeatures={hoveredFeatures}
+            lineHeight={lineHeight}
+            scale={scale}
+            onGroupLeave={featureIds => {
+              this.setState({ overlayGroupId: "" });
+              this.props.onHoverFeatures?.(featureIds, false);
+            }}
+            onHoverFeature={(featureId, hover) => {
+              this.props.onHoverFeatures?.([featureId], hover);
+            }}
+          />
+        )}
       </g>
     );
   }
