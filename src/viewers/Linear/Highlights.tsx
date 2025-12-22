@@ -12,6 +12,7 @@ export const Highlights = (props: {
   compYDiff: number;
   findXAndWidth: FindXAndWidthElementType;
   firstBase: number;
+  hasComplementRow?: boolean;
   highlights: NameRange[];
   indexYDiff: number;
   inputRef: InputRefFunc;
@@ -33,6 +34,7 @@ const SingleHighlight = (props: {
   compYDiff: number;
   findXAndWidth: FindXAndWidthElementType;
   firstBase: number;
+  hasComplementRow?: boolean;
   highlight: NameRange;
   highlights: NameRange[];
   index: number;
