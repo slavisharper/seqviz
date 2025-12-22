@@ -56,6 +56,9 @@ const buildDefaultPresetState = () => ({
   viewer: "both" as ViewerOption,
   zoom: DEFAULT_ZOOM,
   circularZoom: 0,
+  linearMapZoom: 0,
+  zoomPopoverOpen: false,
+  translationPopoverOpen: true,
 });
 
 interface AppState {
@@ -84,6 +87,9 @@ interface AppState {
   viewer: ViewerOption;
   zoom: number;
   circularZoom: number;
+  linearMapZoom: number;
+  zoomPopoverOpen: boolean;
+  translationPopoverOpen: boolean;
 }
 
 export default class App extends React.Component<any, AppState> {
@@ -97,6 +103,7 @@ export default class App extends React.Component<any, AppState> {
   };
   linearRef: React.RefObject<HTMLDivElement> = React.createRef();
   circularRef: React.RefObject<HTMLDivElement> = React.createRef();
+  seqViewerRef: React.RefObject<HTMLDivElement> = React.createRef();
   private defaultSequenceData: Pick<AppState, "annotations" | "name" | "seq"> | null = null;
   private presetStateFromConfig = (config: DemoExampleConfig): Omit<DemoExampleConfig, "description"> => {
     const { description: _description, singleStrandAnnotations = [], ...stateProjection } = config;
@@ -115,6 +122,24 @@ export default class App extends React.Component<any, AppState> {
   toggleSidebar = () => {
     const { showSidebar } = this.state;
     this.setState({ showSidebar: !showSidebar });
+  };
+
+  toggleZoomPopover = () => {
+    this.setState(prev => ({ zoomPopoverOpen: !prev.zoomPopoverOpen }));
+  };
+
+  toggleTranslationPopover = () => {
+    this.setState(prev => ({ translationPopoverOpen: !prev.translationPopoverOpen }));
+  };
+
+  private clampZoom = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+
+  private handleZoomChange = (zoom: { circular: number; linear: number; linearMap?: number }) => {
+    this.setState({
+      zoom: this.clampZoom(zoom.linear),
+      circularZoom: this.clampZoom(zoom.circular),
+      linearMapZoom: this.clampZoom(zoom.linearMap ?? zoom.circular),
+    });
   };
 
   toggleShowSelectionMeta = () => {
@@ -245,6 +270,40 @@ export default class App extends React.Component<any, AppState> {
           className={`options-panel ${this.state.showSidebar ? "open" : "closed"}`}
           id="options-sidebar"
         >
+          <style>{`
+            .zoom-popover .popover,
+            .translation-popover .popover {
+              border: 1px solid rgba(0,0,0,0.1);
+              border-radius: 6px;
+              margin-top: 8px;
+              padding: 8px 10px;
+              background: #fff;
+              box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+            }
+            .toggle-button {
+              align-items: center;
+              border: 1px solid rgba(0,0,0,0.15);
+              border-radius: 4px;
+              cursor: pointer;
+              display: inline-flex;
+              gap: 8px;
+              padding: 6px 10px;
+              background: #f7f7f7;
+            }
+            .toggle-button.active {
+              background: #e8f0ff;
+              border-color: #5b8def;
+            }
+            .toggle-button::after {
+              content: "▾";
+              font-size: 0.8rem;
+              opacity: 0.7;
+            }
+            .toggle-button.active::after {
+              content: "▴";
+              opacity: 1;
+            }
+          `}</style>
           <SidebarHeader toggleSidebar={this.toggleSidebar} />
           <div className="options-scroll">
             <ExampleSelect value={this.state.exampleId} onChange={this.handleExampleChange} />
@@ -253,8 +312,6 @@ export default class App extends React.Component<any, AppState> {
               value={this.state.viewer}
               setType={(viewer: ViewerOption) => this.setState({ viewer })}
             />
-            <CircularZoomInput value={this.state.circularZoom} setZoom={zoom => this.setState({ circularZoom: zoom })} />
-            <LinearZoomInput value={this.state.zoom} setZoom={zoom => this.setState({ zoom })} />
             <SearchQueryInput
               value={this.state.search.query}
               setQuery={query => this.setState({ search: { query } })}
@@ -284,13 +341,58 @@ export default class App extends React.Component<any, AppState> {
               label="Disable linear sequence"
               set={(disableLinearSequence: boolean) => this.setState({ disableLinearSequence })}
             />
-            <TranslationSettingsInput
-              enabled={this.state.showTranslations}
-              seqType={this.state.seqType}
-              value={this.state.translations}
-              onToggle={this.handleTranslationsToggle}
-              onChange={this.handleTranslationsChange}
-            />
+            <div className="option zoom-popover">
+              <button
+                className={`toggle-button ${this.state.zoomPopoverOpen ? "active" : ""}`}
+                type="button"
+                onClick={this.toggleZoomPopover}
+              >
+                Zoom settings
+              </button>
+              {this.state.zoomPopoverOpen && (
+                <div className="popover">
+                  <CircularZoomInput
+                    value={this.state.circularZoom}
+                    setZoom={zoom => this.setState({ circularZoom: zoom })}
+                  />
+                  <LinearZoomInput value={this.state.zoom} setZoom={zoom => this.setState({ zoom })} />
+                  <label className="option" id="linear-map-zoom">
+                    <span>Linear map zoom</span>
+                    <div className="slider-input">
+                      <input
+                        className="slider"
+                        max={100}
+                        min={0}
+                        type="range"
+                        value={this.state.linearMapZoom}
+                        onChange={e => this.setState({ linearMapZoom: parseInt(e.target.value, 10) })}
+                      />
+                      <span className="slider-value">{this.state.linearMapZoom}</span>
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
+            <div className="option translation-popover">
+              <button
+                className={`toggle-button ${this.state.translationPopoverOpen ? "active" : ""}`}
+                type="button"
+                onClick={this.toggleTranslationPopover}
+              >
+                Translation settings
+              </button>
+              {this.state.translationPopoverOpen && (
+                <div className="popover">
+                  <TranslationSettingsInput
+                    enabled={this.state.showTranslations}
+                    seqType={this.state.seqType}
+                    value={this.state.translations}
+                    onToggle={this.handleTranslationsToggle}
+                    onChange={this.handleTranslationsChange}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <SidebarFooter />
         </aside>
@@ -304,7 +406,7 @@ export default class App extends React.Component<any, AppState> {
               toggleShowSelectionMeta={this.toggleShowSelectionMeta}
               toggleSidebar={this.toggleSidebar}
             />
-            <div id="seqviewer">
+            <div id="seqviewer" ref={this.seqViewerRef}>
               {this.state.seq && (
                 <SeqViz
                   seqType={this.state.seqType}
@@ -326,14 +428,18 @@ export default class App extends React.Component<any, AppState> {
                   showIndex={this.state.showIndex}
                   translations={this.state.showTranslations ? this.state.translations : undefined}
                   viewer={this.state.viewer}
-                  zoom={{ linear: this.state.zoom, circular: this.state.circularZoom }}
+                  zoom={{
+                    linear: this.state.zoom,
+                    circular: this.state.circularZoom,
+                    linearMap: this.state.linearMapZoom,
+                  }}
+                  onZoomChange={this.handleZoomChange}
                   onSelection={(selection, fragmentSelection) => {
                     this.setState({ selection, fragmentSelection: fragmentSelection || null });
                   }}
                   onContextMenu={event => this.handleContextMenuEvent(event, "Context Menu")}
                   onDoubleClick={event => this.handleContextMenuEvent(event, "Double Click")}
-                >
-                </SeqViz>
+                ></SeqViz>
               )}
             </div>
             <ContextInfoPanel

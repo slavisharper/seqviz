@@ -133,6 +133,11 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     }
   };
 
+  private isTouchLike = (e: React.PointerEvent | React.MouseEvent) => {
+    const anyE = e as any;
+    return anyE.pointerType === "touch" || anyE.pointerType === "pen";
+  };
+
   private findRangeForEvent = (e: SeqVizMouseEvent, preferCurrentTarget = false): Selection | null => {
     const target = e.target as HTMLElement | null;
     const currentTarget = e.currentTarget as HTMLElement | null;
@@ -655,6 +660,13 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   mouseEvent = (e: SeqVizMouseEvent) => {
     const { setCentralIndex } = this.props;
     const eventType = this.normalizeEventType(e.type);
+
+    // Ignore touch/pen interactions to allow native scroll/drag/rotate without creating selections.
+    if (this.isTouchLike(e)) {
+      this.dragEvent = false;
+      this.activeViewer = null;
+      return;
+    }
 
     const currentEl = e.currentTarget as HTMLElement | null;
     const targetEl = e.target as HTMLElement | null;

@@ -50,10 +50,28 @@ interface LinearLabelsProps {
   startY: number;
 }
 
-export class Labels extends React.PureComponent<LinearLabelsProps> {
+interface LinearLabelsState {
+  overlayGroupId: string;
+  overlayPinned: boolean;
+}
+
+export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsState> {
   private currentLabel: LinearLabelDatum | null = null;
   private currentHoveredFeatureIds: string[] = [];
-  state = { overlayGroupId: "" };
+  private lastPointerType: string = "mouse";
+  state: LinearLabelsState = { overlayGroupId: "", overlayPinned: false };
+
+  private closeOverlay = () => {
+    if (!this.state.overlayPinned || !this.state.overlayGroupId) return;
+    const prevGroup = this.props.labels.find(l => l.groupId === this.state.overlayGroupId);
+    if (prevGroup) {
+      this.toggleUnderline(prevGroup, false);
+      this.props.onHoverFeatures?.(prevGroup.labels.map(item => item.id), false);
+    }
+    this.currentLabel = null;
+    this.currentHoveredFeatureIds = [];
+    this.setState({ overlayGroupId: "", overlayPinned: false });
+  };
 
   private getSelectionAttributes = (label?: LinearLabelItem): Record<string, string | number> => {
     if (
@@ -85,6 +103,8 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
   };
 
   handleLabelEnter = (label: LinearLabelDatum) => {
+    if (this.state.overlayPinned) return;
+
     const { overlayGroupId } = this.state;
     if (this.currentLabel && this.currentLabel.groupId !== label.groupId) {
       this.toggleUnderline(this.currentLabel, false);
@@ -113,7 +133,37 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
     }
   };
 
+  handleLabelClick = (label: LinearLabelDatum) => {
+    if (!label.grouped) return;
+    this.setState(prev => {
+      const prevGroup = prev.overlayGroupId ? this.props.labels.find(l => l.groupId === prev.overlayGroupId) : undefined;
+
+      // If any group is currently pinned, close it on the next tap/click.
+      if (prev.overlayPinned && prev.overlayGroupId) {
+        if (prevGroup) {
+          this.toggleUnderline(prevGroup, false);
+          this.props.onHoverFeatures?.(prevGroup.labels.map(item => item.id), false);
+        }
+        this.currentLabel = null;
+        this.currentHoveredFeatureIds = [];
+        return { overlayGroupId: "", overlayPinned: false };
+      }
+
+      // Otherwise open the tapped group and pin it.
+      if (prevGroup && prevGroup.groupId !== label.groupId) {
+        this.toggleUnderline(prevGroup, false);
+        this.props.onHoverFeatures?.(prevGroup.labels.map(item => item.id), false);
+      }
+
+      this.currentLabel = label;
+      this.currentHoveredFeatureIds = [];
+      this.toggleUnderline(label, true);
+      return { overlayGroupId: label.groupId, overlayPinned: true };
+    });
+  };
+
   handleMouseLeave = () => {
+    if (this.state.overlayPinned) return;
     if (this.currentLabel) {
       this.toggleUnderline(this.currentLabel, false);
     }
@@ -167,7 +217,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
           };
           const connectorStyle = labelHovered ? circularLabelLineHover : circularLabelLine;
           const stemStyle = connectorStyle;
-          const selectionAttrs = this.getSelectionAttributes(label.labels[0]);
+          const selectionAttrs = label.grouped ? {} : this.getSelectionAttributes(label.labels[0]);
 
           return (
             <g key={`linear-label-${label.groupId}`}>
@@ -200,7 +250,21 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
                 x={label.textX}
                 y={textY}
                 {...selectionAttrs}
+                onPointerDown={e => {
+                  // remember the last pointer type (mouse vs touch) to gate click behavior
+                  // pointerType is supported on PointerEvents; default to mouse when absent
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore PointerEvent on nativeEvent when dispatched from pointer
+                  this.lastPointerType = (e.nativeEvent && (e.nativeEvent as any).pointerType) || "mouse";
+                }}
                 onMouseEnter={() => this.handleLabelEnter(label)}
+                onClick={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const pointerType = (e.nativeEvent as any)?.pointerType || this.lastPointerType;
+                  if (pointerType !== "touch") return; // only toggle on touch to avoid mouse flicker
+                  this.handleLabelClick(label);
+                }}
               >
                 {label.displayName}
               </text>
@@ -214,8 +278,9 @@ export class Labels extends React.PureComponent<LinearLabelsProps> {
             hoveredFeatures={hoveredFeatures}
             lineHeight={lineHeight}
             scale={scale}
+            onRequestClose={this.closeOverlay}
             onGroupLeave={featureIds => {
-              this.setState({ overlayGroupId: "" });
+              this.closeOverlay();
               this.props.onHoverFeatures?.(featureIds, false);
             }}
             onHoverFeature={(featureId, hover) => {

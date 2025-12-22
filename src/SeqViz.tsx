@@ -118,6 +118,12 @@ export interface SeqVizProps {
   /** fired on double-clicks within the viewer with the associated selection metadata */
   onDoubleClick?: (event: ViewerContextMenuEvent) => void;
 
+  /** enable ctrl+scroll / pinch zoom interactions inside SeqViz. Defaults to true */
+  enableInteractiveZoom?: boolean;
+
+  /** notify consumers when interactive zoom changes occur */
+  onZoomChange?: (zoom: { circular: number; linear: number; linearMap?: number }) => void;
+
   /** a list of primers to render above or below the sequences. At the time of writing, only the Linear viewer is supported. */
   primers: PrimerProp[];
 
@@ -173,6 +179,9 @@ export interface SeqVizProps {
 
     /** how zoomed to make the linear viewer. default: 50 */
     linear?: number;
+
+    /** how zoomed to make the linear map overview. default: 0 */
+    linearMap?: number;
   };
 }
 
@@ -209,6 +218,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     onSelection: (_: Selection, __?: FragmentSelection | null) => null,
     onContextMenu: (_: ViewerContextMenuEvent) => null,
     onDoubleClick: (_: ViewerContextMenuEvent) => null,
+    enableInteractiveZoom: true,
     primers: [],
     singleStrandAnnotations: [],
     rotateOnScroll: true,
@@ -219,7 +229,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     showIndex: true,
     style: {},
     viewer: "both",
-    zoom: { circular: 0, linear: 50 },
+    zoom: { circular: 0, linear: 50, linearMap: 0 },
   };
 
   constructor(props: SeqVizProps) {
@@ -490,6 +500,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       zoom: {
         circular: typeof zoom?.circular == "number" ? Math.min(Math.max(zoom.circular, 0), 100) : 0,
         linear: typeof zoom?.linear == "number" ? Math.min(Math.max(zoom.linear, 20), 100) : 50,
+        linearMap: typeof zoom?.linearMap == "number" ? Math.min(Math.max(zoom.linearMap, 0), 100) : 0,
       },
     };
 

@@ -10,6 +10,7 @@ interface WrappedGroupLabelProps {
   group: GroupedLabelsWithCoors;
   lineHeight: number;
   setHoveredGroup: (hoveredGroup: string) => void;
+  onRequestClose?: () => void;
   size: {
     height: number;
     width: number;
@@ -31,6 +32,7 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
     group,
     lineHeight,
     setHoveredGroup,
+    onRequestClose,
     size: { height, width },
   } = props;
 
@@ -103,7 +105,18 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
   const key = `${group.labels[0].id}_overlay`;
 
   return (
-    <g key={key} onMouseLeave={() => setHoveredGroup("")}>
+    <g
+      key={key}
+      onMouseLeave={() => setHoveredGroup("")}
+      onClick={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const pointerType = (e.nativeEvent as any)?.pointerType || "mouse";
+        if (pointerType === "touch") {
+          onRequestClose?.();
+        }
+      }}
+    >
       <path className="la-vz-label-line" d={linePath} />
       <rect fill="white" height={rectHeight} stroke="none" width={rectWidth} {...rectCoor} />
       <text {...groupCoor} style={svgText}>

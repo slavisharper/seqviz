@@ -41,6 +41,7 @@ interface LabelsProps {
 
 interface LabelsState {
   hoveredGroup: string;
+  hoverPinned: boolean;
   labelGroups: GroupedLabelsWithCoors[];
 }
 
@@ -72,7 +73,7 @@ const getSelectionAttributes = (label: ILabel): Record<string, string | number> 
   return attrs;
 };
 
-const getLabelFontMetrics = (zoom: number) => {
+const getLabelFontMetrics = () => {
   const fontSize = 12; // keep labels legible and stable across zooms
   const charWidth = CHAR_WIDTH;
   return { fontSize, charWidth };
@@ -93,6 +94,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
 
     this.state = {
       hoveredGroup: "",
+      hoverPinned: false,
       labelGroups: [],
     };
   }
@@ -104,6 +106,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
     // on every hover event
     return {
       hoveredGroup: prevState.hoveredGroup,
+      hoverPinned: prevState.hoverPinned,
       labelGroups: Labels.groupOverlappingLabels(nextProps),
     };
   };
@@ -121,7 +124,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
   static groupOverlappingLabels = (props: LabelsProps) => {
     const { center, findCoor, labels, lineHeight, radius, seqLength, size, yDiff, zoom } = props;
     const zoomNorm = Math.max(0, Math.min(zoom, 100)) / 100;
-    const { charWidth, fontSize } = getLabelFontMetrics(zoom);
+    const { charWidth, fontSize } = getLabelFontMetrics();
 
     // create a radius outside the plasmid map for placing the names
     const textRadiusAdjustBase = seqLength > RENDER_SEQ_LENGTH_CUTOFF ? lineHeight * 2 : lineHeight * 3.5;
@@ -319,24 +322,35 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
 
   // set the currently hovered group
   setHoveredGroup = (hoveredGroup: string) => {
+    if (this.state.hoverPinned) return;
     if (hoveredGroup !== this.state.hoveredGroup) {
       this.setState({ hoveredGroup });
     }
   };
 
+  toggleGroupExpansion = (groupId: string) => {
+    this.setState(prev => {
+      // If any group is pinned, close it on the next tap/click.
+      if (prev.hoverPinned && prev.hoveredGroup) {
+        return { hoveredGroup: "", hoverPinned: false };
+      }
+      return { hoveredGroup: groupId, hoverPinned: true };
+    });
+  };
+
   render() {
     const { hoveredGroup, labelGroups } = this.state;
-    const { lineHeight, size, zoom } = this.props;
-    const { fontSize } = getLabelFontMetrics(zoom);
+    const { lineHeight, size } = this.props;
+    const { fontSize } = getLabelFontMetrics();
 
     // find the currently hovered group
     const hovered = labelGroups.find((g: GroupedLabelsWithCoors) => g.labels[0].id === hoveredGroup);
 
     return (
-      <g className="la-vz-circular-labels" onMouseLeave={() => this.setHoveredGroup("")}>
+      <g className="la-vz-circular-labels" onMouseLeave={() => (!this.state.hoverPinned ? this.setHoveredGroup("") : null)}>
         {labelGroups.map(g => {
           const [first] = g.labels;
-          const selectionAttrs = getSelectionAttributes(first);
+          const selectionAttrs = g.grouped ? {} : getSelectionAttributes(first);
           // generate the line between the name and plasmid surface
           const fC = g.forkCoor || g.textCoor;
           const labelLines = (
@@ -392,6 +406,13 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                 style={{ ...circularLabel, fontSize }}
                 textAnchor={g.textAnchor}
                 onMouseEnter={() => this.setHoveredGroup(first.id || "")}
+                onClick={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const pointerType = (e.nativeEvent as any)?.pointerType || "mouse";
+                  if (pointerType !== "touch") return;
+                  this.toggleGroupExpansion(first.id || "");
+                }}
                 {...g.textCoor}
               >
                 {g.name}
@@ -405,6 +426,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
             group={hovered}
             lineHeight={lineHeight}
             setHoveredGroup={this.setHoveredGroup}
+            onRequestClose={() => this.setState({ hoveredGroup: "", hoverPinned: false })}
             size={size}
           />
         )}

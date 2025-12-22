@@ -205,7 +205,8 @@ export const createLinearMapPropsBuilder = () =>
       seq: string,
       showIndex: boolean,
       sizeWidth: number,
-      sizeHeight: number
+      sizeHeight: number,
+      zoomLinearMap: number
     ): Omit<LinearMapProps, "handleMouseEvent" | "inputRef"> => ({
       annotations,
       cutSites,
@@ -219,5 +220,6 @@ export const createLinearMapPropsBuilder = () =>
       seq,
       showIndex,
       size: { height: sizeHeight, width: sizeWidth },
+      zoom: zoomLinearMap,
     })
   );

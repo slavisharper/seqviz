@@ -108,6 +108,7 @@ export interface LinearMapProps {
   seq: string;
   showIndex: boolean;
   size: Size;
+  zoom: number;
 }
 
 interface LinearMapState {
@@ -146,6 +147,10 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const { rotateOnScroll, seq } = this.props;
     if (!rotateOnScroll || !seq.length) return;
 
+    // Prevent this wheel event from affecting the linear sequence container so only the map scrolls/rotates.
+    e.preventDefault();
+    e.stopPropagation();
+
     const current = this.context?.linear || 0;
     let delta = seq.length * (e.deltaY / 5000);
     delta = Math.round(delta);
@@ -172,6 +177,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       seq,
       showIndex,
       size,
+      zoom,
     } = this.props;
 
     const seqLength = Math.max(seq.length, 1);
@@ -228,7 +234,10 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     });
 
     const baseWidth = size.width || 0;
-    const mapWidth = Math.max(baseWidth - 2 * PADDING_X, MIN_MAP_WIDTH);
+    const mapWidthBase = Math.max(baseWidth - 2 * PADDING_X, MIN_MAP_WIDTH);
+    const zoomNorm = Math.max(0, Math.min(zoom || 0, 100)) / 100;
+    const zoomFactor = 1 + zoomNorm * 7; // up to 8x width
+    const mapWidth = mapWidthBase * zoomFactor;
     const pxPerBase = mapWidth / seqLength;
     const scale: LinearMapScale = {
       offsetX: PADDING_X,
@@ -357,7 +366,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     }
 
     const totalHeight = Math.max(size.height || 0, Math.max(currentY, mapBottom) + PADDING_BOTTOM);
-    const totalWidth = baseWidth > 0 ? baseWidth : mapWidth + 2 * PADDING_X;
+    const totalWidth = Math.max(baseWidth || 0, mapWidth + 2 * PADDING_X);
 
     const mapSlug = name ? name.replace(/[^a-zA-Z0-9_-]+/g, "-") : "map";
     const mapId = `la-vz-${mapSlug}-viewer-linear-map`;
@@ -378,7 +387,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         data-testid="la-vz-viewer-linear-map"
         height={totalHeight}
         id={mapId}
-        overflow="visible"
+        overflow="hidden"
         style={viewerCircular}
         width={totalWidth}
         onMouseDown={handleMouseEvent}
@@ -777,6 +786,84 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     };
   }
 
+  private buildGroupedDisplayName(labels: LinearLabelItem[], fallback: string) {
+    const firstName = labels[0]?.name?.trim() || fallback || "";
+    const rest = Math.max(0, labels.length - 1);
+    return rest > 0 ? `${firstName},+${rest}` : firstName;
+  }
+
+  private groupLinearLabels(positioned: LinearLabelDatum[], scale: LinearMapScale): LinearLabelDatum[] {
+    if (!positioned.length) return [];
+
+    const sorted = [...positioned].sort((a, b) => a.left - b.left);
+    const grouped: LinearLabelDatum[] = [];
+
+    const groupKey = (label: LinearLabelDatum) => {
+      const primary = label.labels[0];
+      if (label.groupType === "primer") {
+        const dir = primary?.direction === -1 ? "rev" : primary?.direction === 1 ? "fwd" : "any";
+        return `${label.groupType}-${dir}`;
+      }
+      return label.groupType;
+    };
+
+    sorted.forEach(label => {
+      const last = grouped[grouped.length - 1];
+      const overlapAllowed = last && groupKey(last) === groupKey(label) && label.left <= last.right + LABEL_GAP;
+      if (!overlapAllowed || !last) {
+        grouped.push(label);
+        return;
+      }
+
+      const mergedLabels = [...last.labels, ...label.labels];
+      const displayName = this.buildGroupedDisplayName(mergedLabels, last.displayName);
+      const anchorX = clamp(
+        (last.anchorX * last.labels.length + label.anchorX * label.labels.length) / mergedLabels.length,
+        scale.offsetX,
+        scale.offsetX + scale.width
+      );
+      const minWidth = label.groupType === "enzyme" ? ENZYME_LABEL_MIN_WIDTH : CHAR_WIDTH * 3;
+      const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, minWidth);
+      const maxLeft = scale.offsetX + scale.width - textWidth;
+      const left = clamp(anchorX - textWidth / 2, scale.offsetX, maxLeft);
+      const right = left + textWidth;
+
+      grouped[grouped.length - 1] = {
+        ...last,
+        anchorX,
+        displayName,
+        grouped: true,
+        labels: mergedLabels,
+        left,
+        right,
+        textWidth,
+        textX: left + textWidth / 2,
+      };
+    });
+
+    return grouped;
+  }
+
+  private assignLabelRows(labels: LinearLabelDatum[]): LinearLabelDatum[] {
+    if (!labels.length) return [];
+    const rows: LinearLabelDatum[][] = [];
+    const sorted = [...labels].sort((a, b) => a.left - b.left);
+
+    sorted.forEach(label => {
+      let rowIndex = 0;
+      while (rows[rowIndex] && rows[rowIndex][rows[rowIndex].length - 1].right + LABEL_GAP > label.left) {
+        rowIndex += 1;
+      }
+      label.row = rowIndex;
+      if (!rows[rowIndex]) {
+        rows[rowIndex] = [];
+      }
+      rows[rowIndex].push(label);
+    });
+
+    return rows.flat();
+  }
+
   private layoutLabels(rawLabels: RawLabel[], scale: LinearMapScale): LinearLabelDatum[] {
     if (!rawLabels.length) return [];
 
@@ -840,20 +927,8 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       };
     });
 
-    const rows: LinearLabelDatum[][] = [];
-    positioned.forEach(label => {
-      let rowIndex = 0;
-      while (rows[rowIndex] && rows[rowIndex][rows[rowIndex].length - 1].right + LABEL_GAP > label.left) {
-        rowIndex += 1;
-      }
-      label.row = rowIndex;
-      if (!rows[rowIndex]) {
-        rows[rowIndex] = [];
-      }
-      rows[rowIndex].push(label);
-    });
-
-    return rows.flat();
+    const grouped = this.groupLinearLabels(positioned, scale);
+    return this.assignLabelRows(grouped);
   }
 
   private layoutEnzymeLabels(rawLabels: RawLabel[], scale: LinearMapScale): LinearLabelDatum[] {
@@ -984,21 +1059,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       });
     });
 
-    const rows: LinearLabelDatum[][] = [];
-    flattened
-      .sort((a, b) => a.anchorX - b.anchorX)
-      .forEach(label => {
-        let rowIndex = 0;
-        while (rows[rowIndex] && rows[rowIndex][rows[rowIndex].length - 1].right + LABEL_GAP > label.left) {
-          rowIndex += 1;
-        }
-        label.row = rowIndex;
-        if (!rows[rowIndex]) {
-          rows[rowIndex] = [];
-        }
-        rows[rowIndex].push(label);
-      });
-
-    return rows.flat();
+    const sorted = [...flattened].sort((a, b) => a.anchorX - b.anchorX);
+    return this.assignLabelRows(sorted);
   }
 }

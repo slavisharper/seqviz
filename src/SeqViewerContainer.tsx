@@ -98,7 +98,9 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   testSize?: { height: number; width: number };
   translations: NameRange[];
   viewer: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear";
-  zoom: { circular: number; linear: number };
+  zoom: { circular: number; linear: number; linearMap?: number };
+  enableInteractiveZoom?: boolean;
+  onZoomChange?: (zoom: { circular: number; linear: number; linearMap?: number }) => void;
 }
 
 type SeqViewerContainerPublicProps = Omit<SeqViewerContainerProps, keyof ResizeInjectedProps>;
@@ -110,6 +112,7 @@ export interface SeqViewerContainerState {
     setCentralIndex: (type: "LINEAR" | "CIRCULAR", value: number) => void;
   };
   selection: Selection;
+  managedZoom: { circular: number; linear: number; linearMap: number };
 }
 
 /**
@@ -123,8 +126,16 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
   private buildLinearMapProps = createLinearMapPropsBuilder();
 
+  private containerEl: HTMLDivElement | null = null;
+  private pinchTouches = new Map<number, { x: number; y: number }>();
+  private pinchBaseDist: number | null = null;
+  private pinchStartViewer: "linear" | "circular" | "linearMap" | null = null;
+  private interactiveZoomListenersAttached = false;
+
   constructor(props: SeqViewerContainerProps) {
     super(props);
+
+    const clamp = (viewer: "linear" | "circular" | "linearMap", value: number) => this.clampZoomValue(viewer, value);
 
     this.state = {
       centralIndex: {
@@ -133,6 +144,11 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
         setCentralIndex: this.setCentralIndex,
       },
       selection: this.getSelection(defaultSelection, props.selection),
+      managedZoom: {
+        circular: clamp("circular", props.zoom?.circular ?? 0),
+        linear: clamp("linear", props.zoom?.linear ?? 50),
+        linearMap: clamp("linearMap", props.zoom?.linearMap ?? props.zoom?.circular ?? 0),
+      },
     };
   }
 
@@ -140,6 +156,14 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     // If the selection was done programatically, it has not type
     if (selection) return !selection.type;
     return false;
+  }
+
+  componentDidMount() {
+    if (!this.props.selection && this.state.selection !== defaultSelection) {
+      this.setSelection(defaultSelection);
+    }
+
+    this.attachInteractiveListeners(this.containerEl);
   }
 
   // If the selection prop updates, also scroll the linear view to the new selection
@@ -154,7 +178,35 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
         this.setCentralIndex("LINEAR", this.props.selection?.start || 0);
       }
     }
+
+    if (!isEqual(prevProps.zoom, this.props.zoom)) {
+      this.setState(prev => ({
+        ...prev,
+        managedZoom: {
+          circular: this.clampZoomValue("circular", this.props.zoom?.circular ?? prev.managedZoom.circular),
+          linear: this.clampZoomValue("linear", this.props.zoom?.linear ?? prev.managedZoom.linear),
+          linearMap: this.clampZoomValue(
+            "linearMap",
+            this.props.zoom?.linearMap ?? this.props.zoom?.circular ?? prev.managedZoom.linearMap
+          ),
+        },
+      }));
+    }
+
+    const prevInteractive = prevProps.enableInteractiveZoom ?? true;
+    const nextInteractive = this.props.enableInteractiveZoom ?? true;
+    if (prevInteractive !== nextInteractive) {
+      if (nextInteractive) {
+        this.attachInteractiveListeners(this.containerEl);
+      } else {
+        this.detachInteractiveListeners(this.containerEl);
+      }
+    }
   };
+
+  componentWillUnmount() {
+    this.detachInteractiveListeners(this.containerEl);
+  }
 
   /** this is here because the size listener is returning a new "size" prop every time */
   shouldComponentUpdate = (nextProps: SeqViewerContainerProps, nextState: any) =>
@@ -193,6 +245,144 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       return { ...prop, clockwise: typeof prop.clockwise === "undefined" || !!prop.clockwise, type: "" };
     }
     return state;
+  };
+
+  private clampZoomValue(viewer: "linear" | "circular" | "linearMap", value: number) {
+    const min = viewer === "linear" ? 20 : 0;
+    const max = 100;
+    return Math.max(min, Math.min(max, Math.round(value)));
+  }
+
+  private bumpZoom = (viewer: "linear" | "circular" | "linearMap" | null, delta: number) => {
+    if (!viewer) return;
+
+    let updatedZoom: { circular: number; linear: number; linearMap: number } | null = null;
+
+    this.setState(prev => {
+      const nextValue = this.clampZoomValue(viewer, prev.managedZoom[viewer] + delta);
+      if (nextValue === prev.managedZoom[viewer]) return null;
+      const nextZoom = { ...prev.managedZoom, [viewer]: nextValue } as SeqViewerContainerState["managedZoom"];
+      updatedZoom = nextZoom;
+      return { ...prev, managedZoom: nextZoom };
+    }, () => {
+      if (updatedZoom && this.props.onZoomChange) {
+        this.props.onZoomChange(updatedZoom);
+      }
+    });
+  };
+
+  private viewerFromTarget = (el: HTMLElement | null): "linear" | "circular" | "linearMap" | null => {
+    let node: HTMLElement | null = el;
+    while (node) {
+      if (node.classList?.contains("la-vz-viewer-panel-linear-map")) return "linearMap";
+      if (node.classList?.contains("la-vz-viewer-panel-linear")) return "linear";
+      if (node.classList?.contains("la-vz-viewer-panel-circular")) return "circular";
+      node = node.parentElement;
+    }
+    return null;
+  };
+
+  private handleZoomWheel = (e: WheelEvent) => {
+    if (!(this.props.enableInteractiveZoom ?? true)) return;
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const viewer = this.viewerFromTarget(e.target as HTMLElement | null);
+    const delta = e.deltaY > 0 ? -5 : 5;
+    this.bumpZoom(viewer, delta);
+  };
+
+  private handlePointerDown = (e: PointerEvent) => {
+    if (!(this.props.enableInteractiveZoom ?? true)) return;
+    if (e.pointerType !== "touch") return;
+    this.pinchTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.pinchTouches.size === 2) {
+      this.pinchBaseDist = this.calcPinchDistance();
+      this.pinchStartViewer = this.viewerFromTarget(e.target as HTMLElement | null);
+    }
+  };
+
+  private handlePointerMove = (e: PointerEvent) => {
+    if (!(this.props.enableInteractiveZoom ?? true)) return;
+    if (e.pointerType !== "touch") return;
+    if (!this.pinchTouches.has(e.pointerId)) return;
+    this.pinchTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.pinchTouches.size === 2 && this.pinchBaseDist && this.pinchStartViewer) {
+      const dist = this.calcPinchDistance();
+      if (!dist) return;
+      const scale = dist / this.pinchBaseDist;
+      const delta = (scale - 1) * 40;
+      if (delta !== 0) {
+        this.bumpZoom(this.pinchStartViewer, delta);
+        this.pinchBaseDist = dist;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+  };
+
+  private handlePointerUpOrCancel = (e: PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    this.pinchTouches.delete(e.pointerId);
+    if (this.pinchTouches.size < 2) {
+      this.pinchBaseDist = null;
+      this.pinchStartViewer = null;
+    }
+  };
+
+  private calcPinchDistance(): number {
+    const touches = Array.from(this.pinchTouches.values());
+    if (touches.length !== 2) return 0;
+    const [a, b] = touches;
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.hypot(dx, dy);
+  }
+
+  private attachInteractiveListeners = (el: HTMLDivElement | null) => {
+    if (!el) return;
+    if (!(this.props.enableInteractiveZoom ?? true)) return;
+    if (this.interactiveZoomListenersAttached) return;
+
+    el.addEventListener("wheel", this.handleZoomWheel, { passive: false });
+    el.addEventListener("pointerdown", this.handlePointerDown, { passive: true });
+    el.addEventListener("pointermove", this.handlePointerMove, { passive: false });
+    el.addEventListener("pointerup", this.handlePointerUpOrCancel, { passive: true });
+    el.addEventListener("pointercancel", this.handlePointerUpOrCancel, { passive: true });
+    this.interactiveZoomListenersAttached = true;
+  };
+
+  private detachInteractiveListeners = (el: HTMLDivElement | null) => {
+    if (!el) return;
+    if (!this.interactiveZoomListenersAttached) return;
+
+    el.removeEventListener("wheel", this.handleZoomWheel as any);
+    el.removeEventListener("pointerdown", this.handlePointerDown as any);
+    el.removeEventListener("pointermove", this.handlePointerMove as any);
+    el.removeEventListener("pointerup", this.handlePointerUpOrCancel as any);
+    el.removeEventListener("pointercancel", this.handlePointerUpOrCancel as any);
+    this.interactiveZoomListenersAttached = false;
+    this.pinchTouches.clear();
+    this.pinchBaseDist = null;
+    this.pinchStartViewer = null;
+  };
+
+  private setContainerRef = (el: HTMLDivElement | null) => {
+    if (this.containerEl && this.containerEl !== el) {
+      this.detachInteractiveListeners(this.containerEl);
+    }
+
+    this.containerEl = el;
+
+    if (typeof this.props.targetRef === "function") {
+      this.props.targetRef(el);
+    } else if (this.props.targetRef && "current" in (this.props.targetRef as any)) {
+      (this.props.targetRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    }
+
+    if (el) {
+      this.attachInteractiveListeners(el);
+    }
   };
 
   private getViewerSize = (): Size => {
@@ -241,8 +431,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       showComplement,
       showIndex,
       translations,
-      zoom,
     } = this.props;
+    const managedZoom = this.state.managedZoom;
 
     return this.buildLinearProps(
       annotations,
@@ -260,7 +450,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       viewerSize.width,
       viewerSize.height,
       translations,
-      zoom.linear
+      managedZoom.linear
     );
   };
 
@@ -278,8 +468,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       seq,
       showComplement,
       showIndex,
-      zoom,
     } = this.props;
+    const managedZoom = this.state.managedZoom;
     const size = this.getCircularViewerSize();
 
     return this.buildCircularProps(
@@ -297,12 +487,14 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       showIndex,
       size.width,
       size.height,
-      zoom.circular
+      managedZoom.circular
     );
   };
 
   private getLinearMapProps = (viewerSize: Size, selection: Selection) => {
     const { annotations, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } = this.props;
+    const managedZoom = this.state.managedZoom;
+    const zoomLinearMap = managedZoom.linearMap;
 
     return this.buildLinearMapProps(
       annotations,
@@ -317,7 +509,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       seq,
       showIndex,
       viewerSize.width,
-      viewerSize.height
+      viewerSize.height,
+      zoomLinearMap
     );
   };
 
@@ -351,7 +544,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
     return (
       <div
-        ref={this.props.targetRef}
+        ref={this.setContainerRef}
         className="la-vz-viewer-container"
         data-testid="la-vz-viewer-container"
         style={{
@@ -360,6 +553,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
           width: "100%",
         }}
       >
+        <style>{`.la-vz-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
         <CentralIndexContext.Provider value={centralIndex}>
           <SelectionContext.Provider value={mergedSelection}>
             <SelectionHandler
@@ -473,7 +667,9 @@ const renderViewerPanels = ({
     boxShadow: isLinearMapLinear ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
     flex: isLinearMapLinear ? "0 0 auto" : isLinearMapOnly ? "1 1 auto" : undefined,
     overflowY: isLinearMapLinear || isLinearMapOnly ? "auto" : undefined,
-    overflowX: isLinearMapLinear || isLinearMapOnly ? "hidden" : undefined,
+    overflowX: isLinearMapLinear || isLinearMapOnly ? "auto" : undefined,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
     maxHeight: isLinearMapLinear ? "50%" : undefined,
     minHeight: isLinearMapLinear ? "14rem" : undefined,
     height: isLinearMapOnly ? "100%" : undefined,
@@ -496,7 +692,7 @@ const renderViewerPanels = ({
         </div>
       )}
       {showLinearMap && (
-        <div className="la-vz-viewer-panel la-vz-viewer-panel-linear-map" style={linearMapStyle}>
+        <div className="la-vz-viewer-panel la-vz-viewer-panel-linear-map la-vz-hide-scrollbar" style={linearMapStyle}>
           <LinearMap {...mapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
         </div>
       )}

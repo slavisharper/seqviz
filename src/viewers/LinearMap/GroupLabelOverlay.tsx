@@ -13,6 +13,7 @@ interface LinearGroupLabelOverlayProps {
   lineHeight: number;
   onGroupLeave?: (featureIds: string[]) => void;
   onHoverFeature?: (featureId: string, hover: boolean) => void;
+  onRequestClose?: () => void;
   scale: LinearMapScale;
 }
 
@@ -23,6 +24,7 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   lineHeight,
   onGroupLeave,
   onHoverFeature,
+  onRequestClose,
   scale,
 }) => {
   const paddingX = CHAR_WIDTH;
@@ -53,7 +55,18 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   };
 
   return (
-    <g className="la-vz-linear-map-label-overlay" onMouseLeave={handleMouseLeave}>
+    <g
+      className="la-vz-linear-map-label-overlay"
+      onMouseLeave={handleMouseLeave}
+      onClick={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const pointerType = (e.nativeEvent as any)?.pointerType || "mouse";
+        if (pointerType === "touch") {
+          onRequestClose?.();
+        }
+      }}
+    >
       <path
         className="la-vz-label-line"
         d={`M${connectorStartX} ${connectorStartY} L${connectorEndX} ${connectorEndY}`}
