@@ -498,7 +498,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           />
         )}
 
-        {zoomed && seqType !== "aa" ? (
+        {seqType !== "aa" && zoom.linear > 0 ? (
           <text
             {...textProps}
             className="la-vz-seq"
@@ -510,7 +510,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             {seq.split("").map(this.seqTextSpan)}
           </text>
         ) : null}
-        {compSeq && zoomed && showComplement && seqType !== "aa" ? (
+        {compSeq && showComplement && seqType !== "aa" && zoom.linear > 0 ? (
           <text
             {...textProps}
             className="la-vz-comp-seq"

@@ -66,21 +66,30 @@ export const createLinearPropsBuilder = () =>
     ): Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount"> => {
       const seqLength = seq.length;
       const size: Size = { height: sizeHeight, width: sizeWidth };
-      const seqFontSize = Math.min(Math.round(zoomLinear * 0.1 + 9.5), 18);
 
-      let bpsPerBlock = Math.round(((size.width || 0) / seqFontSize) * 1.4) || 1;
+      // Smooth font anchors: zoom 1 -> 10px, zoom 50 -> 16px (1rem), zoom 100 -> 24px (1.5rem).
+      const clampedZoom = Math.max(0, Math.min(zoomLinear, 100));
+      const effectiveZoom = Math.max(1, clampedZoom); // keep math stable below 1
+      let seqFontSize = 16;
+      if (effectiveZoom <= 50) {
+        const t = (effectiveZoom - 1) / 49; // 0 at zoom 1, 1 at zoom 50
+        seqFontSize = 10 + t * (16 - 10);
+      } else {
+        const t = (effectiveZoom - 50) / 50; // 0 at zoom 50, 1 at zoom 100
+        seqFontSize = 16 + t * (24 - 16);
+      }
+
+      const baseBpsPerBlock = Math.max(1, ((size.width || 0) / seqFontSize) * 1.4);
+      // More zoom => fewer bases per block; keep range tame so mid-scale is readable.
+      const normalizedZoom = (clampedZoom <= 0 ? 0 : (clampedZoom - 1) / 99); // 0..1 using min visible zoom as baseline
+      const densityScale = 1.8 - 0.8 * normalizedZoom; // 1.8 near min, ~1.4 mid, 1.0 max
+
+      let bpsPerBlock = Math.round(baseBpsPerBlock * densityScale);
+
+      // Keep amino-acid view aligned: treat aa width as 1/3 of bp width.
       if (seqType === "aa") {
-        bpsPerBlock = Math.round(bpsPerBlock / 3);
+        bpsPerBlock = Math.max(1, Math.round(bpsPerBlock / 3));
       }
-
-      if (zoomLinear <= 5) {
-        bpsPerBlock *= 3;
-      } else if (zoomLinear <= 10) {
-        bpsPerBlock *= 2;
-      } else if (zoomLinear > 70) {
-        bpsPerBlock = Math.round(bpsPerBlock * (70 / zoomLinear));
-      }
-      bpsPerBlock = Math.max(1, bpsPerBlock);
 
       if (size.width && bpsPerBlock < seqLength) {
         size.width -= 28;
