@@ -57,7 +57,7 @@ export const TranslationRows = ({
       }
       return (
         <TranslationRow
-          key={`i-${firstBase}`}
+          key={`translation-row-${firstBase}-${i}`}
           bpsPerBlock={bpsPerBlock}
           charWidth={charWidth}
           elementHeight={elementHeight}
