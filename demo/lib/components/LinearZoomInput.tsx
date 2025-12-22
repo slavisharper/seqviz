@@ -12,7 +12,7 @@ const LinearZoomInput = ({ setZoom, value }: LinearZoomInputProps) => (
       <input
         className="slider"
         max={100}
-        min={0}
+        min={20}
         type="range"
         value={value}
         onChange={e => {

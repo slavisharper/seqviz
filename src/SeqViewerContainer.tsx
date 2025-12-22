@@ -278,6 +278,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       seq,
       showComplement,
       showIndex,
+      zoom,
     } = this.props;
     const size = this.getCircularViewerSize();
 
@@ -295,7 +296,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       showComplement,
       showIndex,
       size.width,
-      size.height
+      size.height,
+      zoom.circular
     );
   };
 

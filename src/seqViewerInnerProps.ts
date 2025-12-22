@@ -67,29 +67,21 @@ export const createLinearPropsBuilder = () =>
       const seqLength = seq.length;
       const size: Size = { height: sizeHeight, width: sizeWidth };
 
-      // Smooth font anchors: zoom 1 -> 10px, zoom 50 -> 16px (1rem), zoom 100 -> 24px (1.5rem).
-      const clampedZoom = Math.max(0, Math.min(zoomLinear, 100));
-      const effectiveZoom = Math.max(1, clampedZoom); // keep math stable below 1
-      let seqFontSize = 16;
-      if (effectiveZoom <= 50) {
-        const t = (effectiveZoom - 1) / 49; // 0 at zoom 1, 1 at zoom 50
-        seqFontSize = 10 + t * (16 - 10);
-      } else {
-        const t = (effectiveZoom - 50) / 50; // 0 at zoom 50, 1 at zoom 100
-        seqFontSize = 16 + t * (24 - 16);
-      }
+      const seqFontSize = Math.min(Math.round(zoomLinear * 0.1 + 9.5), 18);
 
-      const baseBpsPerBlock = Math.max(1, ((size.width || 0) / seqFontSize) * 1.4);
-      // More zoom => fewer bases per block; keep range tame so mid-scale is readable.
-      const normalizedZoom = (clampedZoom <= 0 ? 0 : (clampedZoom - 1) / 99); // 0..1 using min visible zoom as baseline
-      const densityScale = 1.8 - 0.8 * normalizedZoom; // 1.8 near min, ~1.4 mid, 1.0 max
-
-      let bpsPerBlock = Math.round(baseBpsPerBlock * densityScale);
-
-      // Keep amino-acid view aligned: treat aa width as 1/3 of bp width.
+      let bpsPerBlock = Math.round(((size.width || 0) / seqFontSize) * 1.4) || 1;
       if (seqType === "aa") {
-        bpsPerBlock = Math.max(1, Math.round(bpsPerBlock / 3));
+        bpsPerBlock = Math.round(bpsPerBlock / 3);
       }
+
+      if (zoomLinear <= 5) {
+        bpsPerBlock *= 3;
+      } else if (zoomLinear <= 10) {
+        bpsPerBlock *= 2;
+      } else if (zoomLinear > 70) {
+        bpsPerBlock = Math.round(bpsPerBlock * (70 / zoomLinear));
+      }
+      bpsPerBlock = Math.max(1, bpsPerBlock);
 
       if (size.width && bpsPerBlock < seqLength) {
         size.width -= 28;
@@ -141,16 +133,40 @@ export const createCircularPropsBuilder = () =>
       showComplement: boolean,
       showIndex: boolean,
       sizeWidth: number,
-      sizeHeight: number
+      sizeHeight: number,
+      zoomCircular: number
     ): Omit<CircularProps, "handleMouseEvent" | "inputRef" | "onUnmount"> => {
       const size: Size = { height: sizeHeight, width: sizeWidth };
-      const center = {
+      const zoomNorm = Math.max(0, Math.min(zoomCircular || 0, 100)) / 100;
+
+      // Smoothly blend from centered, clamped default to overflow-friendly zoomed layout.
+      const limitingDim = Math.min(size.height, size.width);
+      const baseCenter = { x: size.width / 2, y: size.height / 2 };
+      const baseRadiusScale = 0.34;
+      const baseRadiusCandidate = limitingDim * baseRadiusScale;
+      const baseRadiusLimitX = Math.max(12, Math.min(baseCenter.x, size.width - baseCenter.x) - 6);
+      const baseRadiusLimitY = Math.max(12, Math.min(baseCenter.y, size.height - baseCenter.y) - 6);
+      const baseRadiusMax = Math.max(12, Math.min(baseRadiusLimitX, baseRadiusLimitY));
+      const baseRadius = Math.max(1, Math.min(baseRadiusCandidate, baseRadiusMax));
+
+      const targetRadiusScale = 0.45 + 0.55 * zoomNorm; // overflow-friendly
+      const targetRadius = Math.max(1, limitingDim * targetRadiusScale);
+      const targetTop = size.height * 0.5; // keep top near visible center
+      const extraDown = zoomNorm > 0.55 ? size.height * 0.1 * ((zoomNorm - 0.55) / 0.45) : 0;
+      const targetCenter = {
         x: size.width / 2,
-        y: size.height / 2,
+        // Keep top fixed; move center down with radius growth and add aggressive downward bias after mid-zoom.
+        y: targetTop + targetRadius + extraDown,
       };
 
-      const limitingDim = Math.min(size.height, size.width);
-      const radius = limitingDim * 0.34;
+      // Smoothstep easing gives zero slope at both ends to avoid visual jumps.
+      const ease = zoomNorm * zoomNorm * (3 - 2 * zoomNorm);
+
+      const center = {
+        x: baseCenter.x * (1 - ease) + targetCenter.x * ease,
+        y: baseCenter.y * (1 - ease) + targetCenter.y * ease,
+      };
+      const radius = baseRadius * (1 - ease) + targetRadius * ease;
 
       return {
         annotations,
@@ -168,6 +184,7 @@ export const createCircularPropsBuilder = () =>
         showComplement,
         showIndex,
         size,
+        zoom: zoomCircular || 0,
         yDiff: 0,
       };
     }

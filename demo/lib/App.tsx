@@ -55,6 +55,7 @@ const buildDefaultPresetState = () => ({
   translations: createDefaultTranslations(),
   viewer: "both" as ViewerOption,
   zoom: DEFAULT_ZOOM,
+  circularZoom: 0,
 });
 
 interface AppState {
@@ -82,6 +83,7 @@ interface AppState {
   translations?: TranslationSettings;
   viewer: ViewerOption;
   zoom: number;
+  circularZoom: number;
 }
 
 export default class App extends React.Component<any, AppState> {
@@ -251,6 +253,7 @@ export default class App extends React.Component<any, AppState> {
               value={this.state.viewer}
               setType={(viewer: ViewerOption) => this.setState({ viewer })}
             />
+            <CircularZoomInput value={this.state.circularZoom} setZoom={zoom => this.setState({ circularZoom: zoom })} />
             <LinearZoomInput value={this.state.zoom} setZoom={zoom => this.setState({ zoom })} />
             <SearchQueryInput
               value={this.state.search.query}
@@ -323,7 +326,7 @@ export default class App extends React.Component<any, AppState> {
                   showIndex={this.state.showIndex}
                   translations={this.state.showTranslations ? this.state.translations : undefined}
                   viewer={this.state.viewer}
-                  zoom={{ linear: this.state.zoom }}
+                  zoom={{ linear: this.state.zoom, circular: this.state.circularZoom }}
                   onSelection={(selection, fragmentSelection) => {
                     this.setState({ selection, fragmentSelection: fragmentSelection || null });
                   }}

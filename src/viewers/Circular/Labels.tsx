@@ -35,6 +35,7 @@ interface LabelsProps {
   rotateCoor: (coor: Coor, degrees: number) => Coor;
   seqLength: number;
   size: Size;
+  zoom: number;
   yDiff: number;
 }
 
@@ -69,6 +70,12 @@ const getSelectionAttributes = (label: ILabel): Record<string, string | number> 
   }
 
   return attrs;
+};
+
+const getLabelFontMetrics = (zoom: number) => {
+  const fontSize = 12; // keep labels legible and stable across zooms
+  const charWidth = CHAR_WIDTH;
+  return { fontSize, charWidth };
 };
 
 /**
@@ -112,10 +119,13 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
    * name by itself or in a grouping
    */
   static groupOverlappingLabels = (props: LabelsProps) => {
-    const { center, findCoor, labels, lineHeight, radius, seqLength, size, yDiff } = props;
+    const { center, findCoor, labels, lineHeight, radius, seqLength, size, yDiff, zoom } = props;
+    const zoomNorm = Math.max(0, Math.min(zoom, 100)) / 100;
+    const { charWidth, fontSize } = getLabelFontMetrics(zoom);
 
     // create a radius outside the plasmid map for placing the names
-    const textRadiusAdjust = seqLength > RENDER_SEQ_LENGTH_CUTOFF ? lineHeight * 2 : lineHeight * 3.5;
+    const textRadiusAdjustBase = seqLength > RENDER_SEQ_LENGTH_CUTOFF ? lineHeight * 2 : lineHeight * 3.5;
+    const textRadiusAdjust = textRadiusAdjustBase; // keep stable spacing so labels remain visible when zoomed
     const textRadius = radius + textRadiusAdjust;
 
     /**
@@ -125,7 +135,6 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
      * - textAnchor: alignment
      */
     const labelsWithCoordinates: LabelWithCoors[] = labels
-      .reduce((acc: ILabel[], labelRow) => acc.concat(labelRow), [])
       .map(a => {
         // find the mid-point, vertically, for the label, correcting for elements
         // that cross the zero-index
@@ -149,14 +158,21 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
         const textCoor = findCoor(annCenter, textRadius, true);
 
         // find the textAnchor, based on which side of plasmid it's on
-        const textAnchor = textCoor.x <= center.x ? "end" : "start";
+        const textAnchor: "start" | "end" = textCoor.x <= center.x ? "end" : "start";
         const label = a;
         return { label, lineCoor, textAnchor, textCoor };
-      });
+      })
+      .filter(
+        l =>
+          l.textCoor.y + yDiff >= -fontSize &&
+          l.textCoor.y + yDiff <= size.height + fontSize &&
+          l.textCoor.x >= -fontSize &&
+          l.textCoor.x <= size.width + fontSize
+      );
 
     // a utility function for checking whether a label and textCoor will overflow
     const groupOverflows = (label: ILabel, textCoor: Coor) => {
-      const nameLength = (label.name.length + 4) * CHAR_WIDTH; // +4 for ",+#" and padding
+      const nameLength = (label.name.length + 4) * charWidth; // +4 for ",+#" and padding
       let overflow = false;
 
       const heightYPos = textCoor.y + yDiff;
@@ -175,11 +191,10 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
      */
     let labelsGrouped = labelsWithCoordinates.reduce((acc: GroupedLabelsWithCoors[], n) => {
       // search through the other names and check whether any would overlap
+      const overlapThreshold = Math.max(8, 15 - 6 * zoomNorm);
       const overlapIndex = acc.findIndex(g => {
-        // first check whether the two labels are on the same side of the plasmid
         if (g.textAnchor === n.textAnchor) {
-          // characters are 13px high, this is creating 2px of padding
-          return Math.abs(g.textCoor.y - n.textCoor.y) < 15;
+          return Math.abs(g.textCoor.y - n.textCoor.y) < overlapThreshold;
         }
         return false;
       });
@@ -236,7 +251,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
       // try and split/shift labels horizontally
       const newLabels = g.labels.map((l, i2) => {
         // if on right side of the viewer, shfit rightward
-        let xDelta = i2 * (3 * CHAR_WIDTH);
+        let xDelta = i2 * (3 * charWidth);
         if (g.textAnchor === "end") xDelta = -xDelta; // otherwise shift leftward
 
         let yDelta = (g.labels.length - i2) * -15; // start off by shifting upwards 15px if on top half
@@ -259,8 +274,9 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
       });
 
       // check whether any of these attempted new labels overlaps with the neighbors
+      const overlapThreshold = Math.max(8, 15 - 6 * zoomNorm);
       const overlapWithNeighbors = newLabels.some(l =>
-        [leftNeighbor, rightNeighbor].some(n => n && Math.abs(n.textCoor.y - l.textCoor.y) < 15)
+        [leftNeighbor, rightNeighbor].some(n => n && Math.abs(n.textCoor.y - l.textCoor.y) < overlapThreshold)
       );
       if (overlapWithNeighbors) return acc.concat(g); // just bail and return the original grouping
       return acc.concat(...newLabels); // add the newly created labels
@@ -293,10 +309,10 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
     return labelsGrouped.map(g => {
       let { x, y } = g.textCoor;
       // prevent the text label from overflowing the sides (w/ one char padding)
-      x = Math.max(CHAR_WIDTH * (g.name.length + 1), x);
-      x = Math.min(size.width - (g.name.length + 1) * CHAR_WIDTH, x);
-      y = Math.max(CHAR_WIDTH, y);
-      y = Math.min(size.height - CHAR_WIDTH - 12, y); // assuming 12px font-size w/ padding
+      x = Math.max(charWidth * (g.name.length + 1), x);
+      x = Math.min(size.width - (g.name.length + 1) * charWidth, x);
+      y = Math.max(charWidth, y);
+      y = Math.min(size.height - charWidth - fontSize, y);
       return { ...g, textCoor: { x, y } };
     });
   };
@@ -310,7 +326,8 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
 
   render() {
     const { hoveredGroup, labelGroups } = this.state;
-    const { lineHeight, size } = this.props;
+    const { lineHeight, size, zoom } = this.props;
+    const { fontSize } = getLabelFontMetrics(zoom);
 
     // find the currently hovered group
     const hovered = labelGroups.find((g: GroupedLabelsWithCoors) => g.labels[0].id === hoveredGroup);
@@ -350,7 +367,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                   {...selectionAttrs}
                   {...g.textCoor}
                   dominantBaseline="middle"
-                  style={circularLabel}
+                  style={{ ...circularLabel, fontSize }}
                   textAnchor={g.textAnchor}
                   onMouseEnter={() => setHoveredLabelUnderline(first.id || "", true)}
                   onMouseLeave={() => setHoveredLabelUnderline(first.id || "", false)}
@@ -372,7 +389,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                 dominantBaseline="middle"
                 id={first.id}
                 {...selectionAttrs}
-                style={circularLabel}
+                style={{ ...circularLabel, fontSize }}
                 textAnchor={g.textAnchor}
                 onMouseEnter={() => this.setHoveredGroup(first.id || "")}
                 {...g.textCoor}

@@ -62,6 +62,7 @@ export interface CircularProps {
   rotateOnScroll: boolean;
   search: Range[];
   seq: string;
+  zoom: number;
   showComplement: boolean;
   showIndex: boolean;
   size: Size;
@@ -446,6 +447,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       showComplement,
       showIndex,
       size,
+      zoom,
       yDiff,
     } = this.props;
     const { annotationsInRows, inlinedLabels, lineHeight, outerLabels, primerRows, seqLength } = this.state;
@@ -534,12 +536,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
             primers={primerRows}
             rowsToSkip={annotationsInRows.length}
           />
-          <Labels
-            {...props}
-            labels={outerLabels}
-            size={size}
-            yDiff={yDiff}
-          />
+          <Labels {...props} labels={outerLabels} size={size} yDiff={yDiff} zoom={zoom} />
         </g>
       </svg>
     );

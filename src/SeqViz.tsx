@@ -489,7 +489,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       viewer: this.props.viewer || "both",
       zoom: {
         circular: typeof zoom?.circular == "number" ? Math.min(Math.max(zoom.circular, 0), 100) : 0,
-        linear: typeof zoom?.linear == "number" ? Math.min(Math.max(zoom.linear, 0), 100) : 50,
+        linear: typeof zoom?.linear == "number" ? Math.min(Math.max(zoom.linear, 20), 100) : 50,
       },
     };
 

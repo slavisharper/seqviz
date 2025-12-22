@@ -67,7 +67,10 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
       topR = radius;
     }
 
-    // find start and stop coordinates to created edges
+    const startOffset = (start + 0.5 + seqLength) % seqLength;
+    const endOffset = (end + 0.5 + seqLength) % seqLength;
+
+    // find start and stop coordinates to create edges, anchored between letters
     const lineTop = findCoor(0, topR);
     const lineBottom = findCoor(0, bottomR);
     const edgePath = `M ${lineBottom.x} ${lineBottom.y}
@@ -98,7 +101,7 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
             shapeRendering="auto"
             stroke="none"
             style={color ? { ...selection, fill: color } : selection}
-            transform={getRotation(start)}
+            transform={getRotation(startOffset)}
           />
         )}
         <path
@@ -106,10 +109,10 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
           d={edgePath}
           strokeWidth={1}
           style={selectionEdge}
-          transform={getRotation(start)}
+          transform={getRotation(startOffset)}
         />
         {selLength && (
-          <path className="la-vz-selection-edge" d={edgePath} style={selectionEdge} transform={getRotation(end)} />
+          <path className="la-vz-selection-edge" d={edgePath} style={selectionEdge} transform={getRotation(endOffset)} />
         )}
       </g>
     );
