@@ -666,22 +666,24 @@ const renderViewerPanels = ({
   const circularStyle: React.CSSProperties = {
     flex: isDual ? "1 1 50%" : undefined,
     order: viewer === "both_flip" ? 2 : undefined,
+    minWidth: 0,
   };
 
   const isLinearMapLinear = viewer === "linear_map_linear";
   const isLinearMapOnly = viewer === "linear_map";
+
+  const mapZoom = (viewer === "linear_map_linear" ? combinedLinearMapProps : linearMapProps).zoom ?? 0;
 
   const linearMapStyle: React.CSSProperties = {
     borderBottom: isLinearMapLinear ? "1px solid rgba(0, 0, 0, 0.15)" : undefined,
     boxShadow: isLinearMapLinear ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
     flex: isLinearMapLinear ? "0 0 auto" : isLinearMapOnly ? "1 1 auto" : undefined,
     overflowY: isLinearMapLinear || isLinearMapOnly ? "auto" : undefined,
-    overflowX: isLinearMapLinear || isLinearMapOnly ? "auto" : undefined,
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
+    overflowX: mapZoom > 0 ? (isLinearMapLinear || isLinearMapOnly ? "auto" : undefined) : "hidden",
     maxHeight: isLinearMapLinear ? "50%" : undefined,
     minHeight: isLinearMapLinear ? "14rem" : undefined,
     height: isLinearMapOnly ? "100%" : undefined,
+    minWidth: 0,
   };
 
   const linearStyle: React.CSSProperties = {
@@ -689,6 +691,7 @@ const renderViewerPanels = ({
     minHeight: isLinearMapLinear || !isDual ? 0 : undefined,
     overflow: isLinearMapLinear ? "hidden" : undefined,
     order: viewer === "both" ? 2 : viewer === "both_flip" ? 1 : undefined,
+    minWidth: 0,
   };
 
   const mapProps = viewer === "linear_map_linear" ? combinedLinearMapProps : linearMapProps;
@@ -701,7 +704,7 @@ const renderViewerPanels = ({
         </div>
       )}
       {showLinearMap && (
-        <div className="la-vz-viewer-panel la-vz-viewer-panel-linear-map la-vz-hide-scrollbar" style={linearMapStyle}>
+        <div className="la-vz-viewer-panel la-vz-viewer-panel-linear-map" style={linearMapStyle}>
           <LinearMap {...mapProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} />
         </div>
       )}

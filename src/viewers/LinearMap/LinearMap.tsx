@@ -102,23 +102,11 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
   }
 
   handleScrollEvent = (e: React.WheelEvent<SVGSVGElement>) => {
-    const { rotateOnScroll, seq } = this.props;
-    if (!rotateOnScroll || !seq.length) return;
+    const { rotateOnScroll } = this.props;
+    if (!rotateOnScroll) return;
 
-    // Prevent this wheel event from affecting the linear sequence container so only the map scrolls/rotates.
-    e.preventDefault();
+    // Stop the wheel event from bubbling into other viewers but let the map's own scroll bar handle it.
     e.stopPropagation();
-
-    const current = this.context?.linear || 0;
-    let delta = seq.length * (e.deltaY / 5000);
-    delta = Math.round(delta);
-    if (delta === 0) {
-      delta = e.deltaY > 0 ? 1 : -1;
-    }
-
-    const seqLength = seq.length;
-    const next = (current + delta + seqLength) % seqLength;
-    this.context?.setCentralIndex?.("LINEAR", next);
   };
 
   render() {
