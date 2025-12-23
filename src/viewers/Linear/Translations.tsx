@@ -169,7 +169,7 @@ class SingleNamedElementAminoacids extends React.PureComponent<SingleNamedElemen
       y,
     } = this.props;
 
-    const { AAseq, direction, end, id, start } = translation;
+    const { AAseq, direction, start } = translation;
 
     // if rendering an amino-acid sequence directly, each amino acid block is 1:1 with a "base pair".
     // otherwise, each amino-acid covers three bases.
