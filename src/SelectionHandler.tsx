@@ -780,11 +780,24 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         let selectionStart = clockwise ? start : end;
         let selectionEnd = clockwise ? end : start;
 
-        // only promote to full translation on an actual double-click on the amino acid
+        // On double-click, immediately select the full translation once and exit to avoid flicker
         if (clickCount >= 2 && knownRange.parent) {
-          knownRange = { ...knownRange.parent, end: knownRange.parent.end || 0, start: knownRange.parent.start || 0 };
-          selectionStart = clockwise ? knownRange.start : knownRange.end;
-          selectionEnd = clockwise ? knownRange.end : knownRange.start;
+          const parent = { ...knownRange.parent, end: knownRange.parent.end || 0, start: knownRange.parent.start || 0 };
+          const parentClockwise = parent.direction ? parent.direction === 1 : clockwise;
+          const parentStart = parentClockwise ? parent.start : parent.end;
+          const parentEnd = parentClockwise ? parent.end : parent.start;
+
+          this.setSelection({
+            ...parent,
+            clockwise: parentClockwise,
+            end: parentEnd,
+            start: parentStart,
+          });
+
+          this.dragEvent = false;
+          this.lastClick = Date.now();
+          e.stopPropagation();
+          break;
         }
 
         this.setSelection({
