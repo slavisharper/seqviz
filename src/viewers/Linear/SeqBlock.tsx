@@ -279,6 +279,8 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
     };
 
     const lastBase = firstBase + seq.length;
+    // use the rendered character width to represent the clickable width of this block
+    const selectionWidth = seq.length < bpsPerBlock ? charWidth * seq.length : size.width;
 
     // height and yDiff of forward primers
     const primerFwdYDiff = 0;
@@ -343,6 +345,8 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       <svg
         ref={inputRef(id, {
           end: lastBase,
+          linearOffset: 0,
+          linearWidth: selectionWidth,
           ref: id,
           start: firstBase,
           type: "SEQ",
@@ -351,6 +355,8 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
         className="la-vz-seqblock"
         cursor="text"
         data-testid="la-vz-seqblock"
+        data-selection-linear-offset={0}
+        data-selection-linear-width={selectionWidth}
         data-selection-end={lastBase}
         data-selection-ref={id}
         data-selection-start={firstBase}

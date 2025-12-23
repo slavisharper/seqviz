@@ -539,6 +539,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       selectionStart,
       selectionType,
       selectionViewer,
+      selectionLinearWidth,
+      selectionLinearOffset,
       scrollLinearOnSelect,
     } = dataset;
     if (!selectionType || typeof selectionStart === "undefined" || typeof selectionEnd === "undefined") {
@@ -555,6 +557,9 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     const viewer = selectionViewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
     const shouldScrollLinear = typeof scrollLinearOnSelect === "string" ? scrollLinearOnSelect === "true" : undefined;
+    const linearWidth = typeof selectionLinearWidth === "undefined" ? undefined : Number(selectionLinearWidth);
+    const linearOffset = typeof selectionLinearOffset === "undefined" ? undefined : Number(selectionLinearOffset);
+
     return {
       clockwise: true,
       end,
@@ -564,6 +569,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       ref: selectionRef || datasetElement.id || `${viewer}-${start}-${end}`,
       scrollLinearOnSelect: shouldScrollLinear,
       start,
+      linearWidth: Number.isFinite(linearWidth) ? linearWidth : undefined,
+      linearOffset: Number.isFinite(linearOffset) ? linearOffset : undefined,
       type: selectionType as Selection["type"],
       viewer,
     };
