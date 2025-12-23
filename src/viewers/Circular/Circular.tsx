@@ -5,7 +5,7 @@ import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { Annotation, Coor, CutSite, Highlight, Primer, Range, Size, TranslationProp } from "../../core/elements";
 import CentralIndexContext from "../../state/centralIndexContext";
 import type { Selection as SelectionRange } from "../../state/selectionContext";
-import { viewerCircular } from "../../style";
+import { viewerCircularTouchRotate } from "../../style";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { Annotations } from "./Annotations";
@@ -487,7 +487,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         height={size.height}
         id={plasmidId}
         overflow="visible"
-        style={viewerCircular}
+        style={viewerCircularTouchRotate}
         width={size.width >= 0 ? size.width : 0}
         onMouseDown={handleMouseEvent}
         onMouseMove={handleMouseEvent}

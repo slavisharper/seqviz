@@ -133,7 +133,11 @@ export const viewerCircular: CSS.Properties = {
   fontSize: "12",
   fontWeight: 300,
   margin: "auto",
-  // allow custom touch gestures like rotate without the browser cancelling the pointer stream
+};
+
+// Enable rotation gestures on the circular viewer without blocking scroll elsewhere.
+export const viewerCircularTouchRotate: CSS.Properties = {
+  ...viewerCircular,
   touchAction: "none",
 };
 
