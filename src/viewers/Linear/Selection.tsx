@@ -140,7 +140,7 @@ class Block extends React.PureComponent<BlockProps> {
 
   render() {
     const { findXAndWidth, firstBase, fullSeq, lastBase, selectHeight } = this.props;
-    const { clockwise, ref, color } = this.context;
+    const { clockwise, ref } = this.context;
     let { end, start } = this.context;
 
     if (typeof start === "undefined" || typeof end === "undefined") {
@@ -159,7 +159,8 @@ class Block extends React.PureComponent<BlockProps> {
     const blockProps = {
       "data-testid": "la-vz-selection-block",
       height: selectHeight,
-      style: color ? { ...selection, fill: color } : selection,
+      // keep selection fill consistent regardless of element color
+      style: selection,
       y: -5,
     };
 

@@ -692,8 +692,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return;
     }
 
-    // storing this to figure out if it was a double click
-    const msSinceLastClick = Date.now() - this.lastClick;
+    // react provides click counts via e.detail; use that instead of custom timing
+    const clickCount = e.detail || 1;
     let knownRange = this.findRangeForEvent(e, this.dragEvent);
 
     if (!knownRange && eventType === "mousedown") {
@@ -773,9 +773,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         let selectionStart = clockwise ? start : end;
         let selectionEnd = clockwise ? end : start;
 
-        // if they double clicked, select the whole translation
-        // https://en.wikipedia.org/wiki/Double-click#Speed_and_timing
-        if (msSinceLastClick < 300 && knownRange.parent) {
+        // only promote to full translation on an actual double-click on the amino acid
+        if (clickCount >= 2 && knownRange.parent) {
           knownRange = { ...knownRange.parent, end: knownRange.parent.end || 0, start: knownRange.parent.start || 0 };
           selectionStart = clockwise ? knownRange.start : knownRange.end;
           selectionEnd = clockwise ? knownRange.end : knownRange.start;

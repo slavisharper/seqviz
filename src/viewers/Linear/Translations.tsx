@@ -179,20 +179,7 @@ class SingleNamedElementAminoacids extends React.PureComponent<SingleNamedElemen
     // particular sequence block
     const AAs = AAseq.split("");
     return (
-      <g
-        ref={inputRef(id, {
-          end,
-          name: "translation",
-          parent: { ...translation, type: "TRANSLATION" },
-          start,
-          type: "AMINOACID",
-          viewer: "LINEAR",
-        })}
-        className="la-vz-linear-aa-translation"
-        data-testid="la-vz-linear-aa-translation"
-        id={id}
-        transform={`translate(0, ${y})`}
-      >
+      <g className="la-vz-linear-aa-translation" data-testid="la-vz-linear-aa-translation" transform={`translate(0, ${y})`}>
         {AAs.map((a, i) => {
           // generate and store an id reference (that's used for selection)
           const aaId = randomID();

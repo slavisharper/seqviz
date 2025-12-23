@@ -31,7 +31,7 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
 
   render() {
     const { findCoor, genArc, getRotation, lineHeight, radius, seq, seqLength, totalRows } = this.props;
-    const { clockwise, end, ref, start, color } = this.context;
+    const { clockwise, end, ref, start } = this.context;
 
     if (typeof start === "undefined" || typeof end === "undefined") {
       return;
@@ -100,7 +100,8 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
             })}
             shapeRendering="auto"
             stroke="none"
-            style={color ? { ...selection, fill: color } : selection}
+            // keep selection fill consistent regardless of element color
+            style={selection}
             transform={getRotation(startOffset)}
           />
         )}
