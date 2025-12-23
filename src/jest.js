@@ -1,6 +1,4 @@
-import { jest } from "@jest/globals";
-
-import { TextEncoder } from "util";
+const { TextEncoder } = require("util");
 
 globalThis.TextEncoder = TextEncoder;
 
@@ -19,5 +17,3 @@ jest.mock("react-resize-detector", () => ({
     width: 800,
   }),
 }));
-
-export {};
