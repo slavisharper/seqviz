@@ -4,9 +4,9 @@ import { InputRefFunc } from "../../../SelectionHandler";
 import { COLOR_BORDER_MAP, colorByIndex, darkerColor } from "../../../core/colors";
 import { TranslationProp } from "../../../core/elements";
 import { annotation as annotationStyle } from "../../../style";
+import { LinearOrf } from "../types";
 import { createSegments } from "../utils";
 import { LinearMapScale } from "../utils";
-import { LinearOrf } from "../types";
 
 type HoverHandler = (featureId: string, hover: boolean) => void;
 type HoverCheck = (featureId: string) => boolean;

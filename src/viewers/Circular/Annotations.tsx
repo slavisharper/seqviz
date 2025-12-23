@@ -1,9 +1,9 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import CentralIndexContext from "../../state/centralIndexContext";
 import { COLOR_BORDER_MAP, darkerColor } from "../../core/colors";
 import { Annotation } from "../../core/elements";
+import CentralIndexContext from "../../state/centralIndexContext";
 import { annotation, annotationLabel, svgText } from "../../style";
 import { GenArcFunc } from "./Circular";
 
@@ -75,7 +75,7 @@ export class Annotations extends React.PureComponent<AnnotationsProps> {
                     lineHeight={lineHeight}
                     seqLength={this.props.seqLength}
                   />
-                ))
+                )),
               );
             }, [])}
           </g>

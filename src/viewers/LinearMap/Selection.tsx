@@ -92,7 +92,7 @@ const positionToX = (scale: LinearMapScale, value: number) => {
 
 const resolveSegments = (
   selection: { clockwise: boolean | null | undefined; end: number; ref?: string | null; start: number },
-  seqLength: number
+  seqLength: number,
 ) => {
   const { clockwise, end, ref, start } = selection;
   if (ref === "ALL") {

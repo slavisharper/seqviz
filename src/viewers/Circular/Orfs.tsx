@@ -1,8 +1,8 @@
 import * as React from "react";
 
+import { InputRefFunc } from "../../SelectionHandler";
 import { colorByIndex } from "../../core/colors";
 import { TranslationProp } from "../../core/elements";
-import { InputRefFunc } from "../../SelectionHandler";
 import { GenArcFunc } from "./Circular";
 
 interface OrfsProps {

@@ -112,7 +112,12 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
           transform={getRotation(startOffset)}
         />
         {selLength && (
-          <path className="la-vz-selection-edge" d={edgePath} style={selectionEdge} transform={getRotation(endOffset)} />
+          <path
+            className="la-vz-selection-edge"
+            d={edgePath}
+            style={selectionEdge}
+            transform={getRotation(endOffset)}
+          />
         )}
       </g>
     );

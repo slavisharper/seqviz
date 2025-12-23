@@ -1,7 +1,7 @@
 import * as React from "react";
 
-import SelectionContext from "../../state/selectionContext";
 import { randomID } from "../../core/sequence";
+import SelectionContext from "../../state/selectionContext";
 import { selection, selectionEdge } from "../../style";
 import { FindXAndWidthType } from "./SeqBlock";
 
@@ -185,7 +185,7 @@ class Block extends React.PureComponent<BlockProps> {
         } else {
           ({ width, x } = findXAndWidth(
             start > lastBase ? firstBase : Math.max(firstBase, start),
-            end < firstBase ? lastBase : Math.min(lastBase, end)
+            end < firstBase ? lastBase : Math.min(lastBase, end),
           ));
         }
       }

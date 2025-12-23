@@ -46,11 +46,7 @@ interface LabelsState {
 }
 
 const getSelectionAttributes = (label: ILabel): Record<string, string | number> => {
-  if (
-    typeof label.selectionStart !== "number" ||
-    typeof label.selectionEnd !== "number" ||
-    !label.selectionType
-  ) {
+  if (typeof label.selectionStart !== "number" || typeof label.selectionEnd !== "number" || !label.selectionType) {
     return {};
   }
 
@@ -170,7 +166,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
           l.textCoor.y + yDiff >= -fontSize &&
           l.textCoor.y + yDiff <= size.height + fontSize &&
           l.textCoor.x >= -fontSize &&
-          l.textCoor.x <= size.width + fontSize
+          l.textCoor.x <= size.width + fontSize,
       );
 
     // a utility function for checking whether a label and textCoor will overflow
@@ -279,7 +275,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
       // check whether any of these attempted new labels overlaps with the neighbors
       const overlapThreshold = Math.max(8, 15 - 6 * zoomNorm);
       const overlapWithNeighbors = newLabels.some(l =>
-        [leftNeighbor, rightNeighbor].some(n => n && Math.abs(n.textCoor.y - l.textCoor.y) < overlapThreshold)
+        [leftNeighbor, rightNeighbor].some(n => n && Math.abs(n.textCoor.y - l.textCoor.y) < overlapThreshold),
       );
       if (overlapWithNeighbors) return acc.concat(g); // just bail and return the original grouping
       return acc.concat(...newLabels); // add the newly created labels
@@ -347,7 +343,10 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
     const hovered = labelGroups.find((g: GroupedLabelsWithCoors) => g.labels[0].id === hoveredGroup);
 
     return (
-      <g className="la-vz-circular-labels" onMouseLeave={() => (!this.state.hoverPinned ? this.setHoveredGroup("") : null)}>
+      <g
+        className="la-vz-circular-labels"
+        onMouseLeave={() => (!this.state.hoverPinned ? this.setHoveredGroup("") : null)}
+      >
         {labelGroups.map(g => {
           const [first] = g.labels;
           const selectionAttrs = g.grouped ? {} : getSelectionAttributes(first);

@@ -1,11 +1,8 @@
 import * as React from "react";
+import { useResizeDetector } from "react-resize-detector";
 
-import Circular, { CircularProps } from "./viewers/Circular/Circular";
 import { EventHandler } from "./EventHandler";
-import Linear, { LinearProps } from "./viewers/Linear/Linear";
-import LinearMap, { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 import SelectionHandler, { InputRefFunc, ViewerContextMenuEvent } from "./SelectionHandler";
-import CentralIndexContext from "./state/centralIndexContext";
 import {
   Annotation,
   CutSite,
@@ -17,7 +14,12 @@ import {
   Size,
   TranslationProp,
 } from "./core/elements";
-import { isEqual } from "./utils/isEqual";
+import {
+  createCircularPropsBuilder,
+  createLinearMapPropsBuilder,
+  createLinearPropsBuilder,
+} from "./seqViewerInnerProps";
+import CentralIndexContext from "./state/centralIndexContext";
 import SelectionContext, {
   ExternalSelection,
   FragmentSelection,
@@ -25,12 +27,10 @@ import SelectionContext, {
   SelectionEventMeta,
   defaultSelection,
 } from "./state/selectionContext";
-import { useResizeDetector } from "react-resize-detector";
-import {
-  createCircularPropsBuilder,
-  createLinearMapPropsBuilder,
-  createLinearPropsBuilder,
-} from "./seqViewerInnerProps";
+import { isEqual } from "./utils/isEqual";
+import Circular, { CircularProps } from "./viewers/Circular/Circular";
+import Linear, { LinearProps } from "./viewers/Linear/Linear";
+import LinearMap, { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
 /**
  * This is the width in pixels of a character that's 12px
@@ -187,7 +187,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
           linear: this.clampZoomValue("linear", this.props.zoom?.linear ?? prev.managedZoom.linear),
           linearMap: this.clampZoomValue(
             "linearMap",
-            this.props.zoom?.linearMap ?? this.props.zoom?.circular ?? prev.managedZoom.linearMap
+            this.props.zoom?.linearMap ?? this.props.zoom?.circular ?? prev.managedZoom.linearMap,
           ),
         },
       }));
@@ -232,7 +232,9 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
    */
   setSelection = (selection: Selection, meta?: SelectionEventMeta) => {
     // If the user passed a selection, do not update our state here
-    const { parent: _, ref: __, ...rest } = selection;
+    const { parent: _parent, ref: _ref, ...rest } = selection;
+    void _parent;
+    void _ref;
     if (!this.props.selection) this.setState({ selection });
     if (this.props.onSelection) this.props.onSelection(rest, meta?.fragmentSelection ?? null);
   };
@@ -258,17 +260,20 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
     let updatedZoom: { circular: number; linear: number; linearMap: number } | null = null;
 
-    this.setState(prev => {
-      const nextValue = this.clampZoomValue(viewer, prev.managedZoom[viewer] + delta);
-      if (nextValue === prev.managedZoom[viewer]) return null;
-      const nextZoom = { ...prev.managedZoom, [viewer]: nextValue } as SeqViewerContainerState["managedZoom"];
-      updatedZoom = nextZoom;
-      return { ...prev, managedZoom: nextZoom };
-    }, () => {
-      if (updatedZoom && this.props.onZoomChange) {
-        this.props.onZoomChange(updatedZoom);
-      }
-    });
+    this.setState(
+      prev => {
+        const nextValue = this.clampZoomValue(viewer, prev.managedZoom[viewer] + delta);
+        if (nextValue === prev.managedZoom[viewer]) return null;
+        const nextZoom = { ...prev.managedZoom, [viewer]: nextValue } as SeqViewerContainerState["managedZoom"];
+        updatedZoom = nextZoom;
+        return { ...prev, managedZoom: nextZoom };
+      },
+      () => {
+        if (updatedZoom && this.props.onZoomChange) {
+          this.props.onZoomChange(updatedZoom);
+        }
+      },
+    );
   };
 
   private viewerFromTarget = (el: HTMLElement | null): "linear" | "circular" | "linearMap" | null => {
@@ -402,7 +407,9 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   };
 
   private getCircularViewerSize = (): Size => {
-    const size = this.props.testSize ? { ...this.props.testSize } : { height: this.props.height, width: this.props.width };
+    const size = this.props.testSize
+      ? { ...this.props.testSize }
+      : { height: this.props.height, width: this.props.width };
     const { showCircular, showLinear } = this.getViewerVisibility();
     const isDual = (this.props.viewer === "both" || this.props.viewer === "both_flip") && showCircular && showLinear;
 
@@ -450,7 +457,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       viewerSize.width,
       viewerSize.height,
       translations,
-      managedZoom.linear
+      managedZoom.linear,
     );
   };
 
@@ -487,12 +494,13 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       showIndex,
       size.width,
       size.height,
-      managedZoom.circular
+      managedZoom.circular,
     );
   };
 
   private getLinearMapProps = (viewerSize: Size, selection: Selection) => {
-    const { annotations, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } = this.props;
+    const { annotations, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } =
+      this.props;
     const managedZoom = this.state.managedZoom;
     const zoomLinearMap = managedZoom.linearMap;
 
@@ -510,7 +518,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       showIndex,
       viewerSize.width,
       viewerSize.height,
-      zoomLinearMap
+      zoomLinearMap,
     );
   };
 
@@ -520,7 +528,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     const showCircular = !disableCircularMap && (viewer === "circular" || viewer === "both" || viewer === "both_flip");
     const showLinearMap = !disableLinearMap && (viewer === "linear_map" || viewer === "linear_map_linear");
     const showLinear =
-      !disableLinearSequence && (viewer === "linear" || viewer === "linear_map_linear" || viewer === "both" || viewer === "both_flip");
+      !disableLinearSequence &&
+      (viewer === "linear" || viewer === "linear_map_linear" || viewer === "both" || viewer === "both_flip");
 
     return { showCircular, showLinearMap, showLinear };
   };

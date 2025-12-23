@@ -1,12 +1,13 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import * as ReactDOMClient from "react-dom/client";
 import { renderToString as reactRenderToString } from "react-dom/server";
 
+import SeqViz, { SeqVizProps } from "./SeqViz";
+import enzymes from "./core/enzymes";
 import Circular from "./viewers/Circular/Circular";
 import Linear from "./viewers/Linear/Linear";
 import LinearMap from "./viewers/LinearMap/LinearMap";
-import SeqViz, { SeqVizProps } from "./SeqViz";
-import enzymes from "./core/enzymes";
 
 /**
  * Export a React component directly for React-based development
@@ -58,13 +59,12 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
     }
 
     reactRootChecked = true;
-    try {
-      const client = require("react-dom/client");
-      if (client && typeof client.createRoot === "function" && domElement) {
-        reactRoot = client.createRoot(domElement);
+    if (ReactDOMClient && typeof ReactDOMClient.createRoot === "function" && domElement) {
+      try {
+        reactRoot = ReactDOMClient.createRoot(domElement);
+      } catch {
+        reactRoot = null;
       }
-    } catch (error) {
-      reactRoot = null;
     }
 
     return reactRoot;

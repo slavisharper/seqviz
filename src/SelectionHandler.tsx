@@ -134,7 +134,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   };
 
   private isTouchLike = (e: React.PointerEvent | React.MouseEvent) => {
-    const anyE = e as any;
+    const anyE = e as { pointerType?: string };
     return anyE.pointerType === "touch" || anyE.pointerType === "pen";
   };
 
@@ -204,8 +204,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return false;
     }
 
-    const start = typeof selection.start === "number" ? selection.start : selection.end ?? 0;
-    const end = typeof selection.end === "number" ? selection.end : selection.start ?? start;
+    const start = typeof selection.start === "number" ? selection.start : (selection.end ?? 0);
+    const end = typeof selection.end === "number" ? selection.end : (selection.start ?? start);
     const viewer = selection.viewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
 
     if (start === end) {
@@ -241,17 +241,13 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     // Special handling for enzyme-to-enzyme fragment selection: span the cut positions
     if (base.type === "ENZYME" && selection.type === "ENZYME") {
       const cutStart =
-        typeof base.fcut === "number"
-          ? base.fcut
-          : typeof base.rcut === "number"
-          ? base.rcut
-          : base.start;
+        typeof base.fcut === "number" ? base.fcut : typeof base.rcut === "number" ? base.rcut : base.start;
       const cutEnd =
         typeof selection.fcut === "number"
           ? selection.fcut
           : typeof selection.rcut === "number"
-          ? selection.rcut
-          : selEnd;
+            ? selection.rcut
+            : selEnd;
 
       return {
         ...defaultSelection,
@@ -290,10 +286,10 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         typeof normalized.direction === "number"
           ? normalized.direction
           : typeof normalized.clockwise === "boolean"
-          ? normalized.clockwise
-            ? 1
-            : -1
-          : undefined,
+            ? normalized.clockwise
+              ? 1
+              : -1
+            : undefined,
       end: normalized.end || 0,
       name: normalized.name,
       start: normalized.start || 0,
@@ -364,8 +360,15 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       case "ENZYME":
       case "PRIMER":
       case "HIGHLIGHT":
+      case "SINGLE_STRAND_ANNOTATION":
       case "AMINOACID": {
-        const clockwise = typeof range.direction === "number" ? range.direction === 1 : true;
+        const inferredDirection =
+          typeof range.direction === "number"
+            ? range.direction
+            : typeof (range as any).strand === "number"
+              ? (range as any).strand
+              : 1;
+        const clockwise = inferredDirection === 1;
         const selectionStart = clockwise ? normalizedRange.start : normalizedRange.end;
         const selectionEnd = clockwise ? normalizedRange.end : normalizedRange.start;
 
@@ -387,7 +390,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return "";
     }
     const len = seq.length;
-    const rawStart = typeof selection.start === "number" ? selection.start : selection.end ?? 0;
+    const rawStart = typeof selection.start === "number" ? selection.start : (selection.end ?? 0);
     const rawEnd = typeof selection.end === "number" ? selection.end : rawStart;
 
     if (rawStart === rawEnd) {

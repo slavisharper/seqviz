@@ -1,8 +1,8 @@
 import * as React from "react";
 
 import CentralIndexContext from "./state/centralIndexContext";
-import debounce from "./utils/debounce";
 import { Selection, SelectionEventMeta } from "./state/selectionContext";
+import debounce from "./utils/debounce";
 
 type ViewerPanelType = "CIRCULAR" | "LINEAR" | "LINEAR_MAP";
 
@@ -338,7 +338,12 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
     this.longPressTimer = setTimeout(() => {
       if (!this.longPressMeta) return;
       this.longPressTriggered = true;
-      this.dispatchSyntheticDomEvent(this.longPressMeta.target, "contextmenu", this.longPressMeta.x, this.longPressMeta.y);
+      this.dispatchSyntheticDomEvent(
+        this.longPressMeta.target,
+        "contextmenu",
+        this.longPressMeta.x,
+        this.longPressMeta.y,
+      );
       this.cancelLongPress();
     }, 600);
   };
@@ -371,7 +376,12 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
     this.lastTap = { time: now, x: e.clientX, y: e.clientY, target: e.target };
   };
 
-  private dispatchSyntheticDomEvent = (target: EventTarget | null, type: "contextmenu" | "dblclick", x: number, y: number) => {
+  private dispatchSyntheticDomEvent = (
+    target: EventTarget | null,
+    type: "contextmenu" | "dblclick",
+    x: number,
+    y: number,
+  ) => {
     const element = target as HTMLElement | null;
     if (!element) return;
     const synthetic = new MouseEvent(type, {

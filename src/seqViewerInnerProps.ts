@@ -9,13 +9,13 @@ import {
   Size,
   TranslationProp,
 } from "./core/elements";
+import { Selection } from "./state/selectionContext";
 import { CircularProps } from "./viewers/Circular/Circular";
 import { LinearProps } from "./viewers/Linear/Linear";
 import { LinearMapProps } from "./viewers/LinearMap/LinearMap";
-import { Selection } from "./state/selectionContext";
 
 export const memoizeOne = <Args extends unknown[], Result>(
-  fn: (...args: Args) => Result
+  fn: (...args: Args) => Result,
 ): ((...args: Args) => Result) => {
   let lastArgs: Args | null = null;
   let lastResult: Result;
@@ -62,7 +62,7 @@ export const createLinearPropsBuilder = () =>
       sizeWidth: number,
       sizeHeight: number,
       translations: NameRange[],
-      zoomLinear: number
+      zoomLinear: number,
     ): Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount"> => {
       const seqLength = seq.length;
       const size: Size = { height: sizeHeight, width: sizeWidth };
@@ -114,7 +114,7 @@ export const createLinearPropsBuilder = () =>
         translations,
         zoom: { linear: zoomLinear },
       };
-    }
+    },
   );
 
 export const createCircularPropsBuilder = () =>
@@ -134,7 +134,7 @@ export const createCircularPropsBuilder = () =>
       showIndex: boolean,
       sizeWidth: number,
       sizeHeight: number,
-      zoomCircular: number
+      zoomCircular: number,
     ): Omit<CircularProps, "handleMouseEvent" | "inputRef" | "onUnmount"> => {
       const size: Size = { height: sizeHeight, width: sizeWidth };
       const zoomNorm = Math.max(0, Math.min(zoomCircular || 0, 100)) / 100;
@@ -187,7 +187,7 @@ export const createCircularPropsBuilder = () =>
         zoom: zoomCircular || 0,
         yDiff: 0,
       };
-    }
+    },
   );
 
 export const createLinearMapPropsBuilder = () =>
@@ -206,7 +206,7 @@ export const createLinearMapPropsBuilder = () =>
       showIndex: boolean,
       sizeWidth: number,
       sizeHeight: number,
-      zoomLinearMap: number
+      zoomLinearMap: number,
     ): Omit<LinearMapProps, "handleMouseEvent" | "inputRef"> => ({
       annotations,
       cutSites,
@@ -221,5 +221,5 @@ export const createLinearMapPropsBuilder = () =>
       showIndex,
       size: { height: sizeHeight, width: sizeWidth },
       zoom: zoomLinearMap,
-    })
+    }),
   );

@@ -1,9 +1,9 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import CentralIndexContext from "../../state/centralIndexContext";
-import { Primer } from "../../core/elements";
 import { COLOR_BORDER_MAP, darkerColor } from "../../core/colors";
+import { Primer } from "../../core/elements";
+import CentralIndexContext from "../../state/centralIndexContext";
 import { annotation } from "../../style";
 import { GenArcFunc } from "./Circular";
 
@@ -52,7 +52,7 @@ export const Primers = React.memo((props: PrimersProps) => {
                   innerRadius={currTRadius}
                   outerRadius={currBRadius}
                 />
-              ))
+              )),
             );
           }, [])}
         </g>
@@ -60,6 +60,8 @@ export const Primers = React.memo((props: PrimersProps) => {
     </CentralIndexContext.Consumer>
   );
 });
+
+Primers.displayName = "Primers";
 
 interface PrimerArcProps {
   primer: Primer;

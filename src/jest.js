@@ -1,6 +1,10 @@
-global.TextEncoder = require("util").TextEncoder;
+import { jest } from "@jest/globals";
 
-window.ResizeObserver = jest.fn().mockImplementation(() => ({
+import { TextEncoder } from "util";
+
+globalThis.TextEncoder = TextEncoder;
+
+globalThis.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
@@ -15,3 +19,5 @@ jest.mock("react-resize-detector", () => ({
     width: 800,
   }),
 }));
+
+export {};

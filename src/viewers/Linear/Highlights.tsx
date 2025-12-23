@@ -20,15 +20,23 @@ export const Highlights = (props: {
   lineHeight: number;
   listenerOnly: boolean;
   seqBlockRef: unknown;
-}) => (
-  <>
-    {/* We use two LinearFindBlocks here because we want to span both the top and bottom strand for a highlight */}
-    {props.highlights.map((h, i) => (
-      // TODO: what's going on here, why does this lead to duplicates
-      <SingleHighlight key={`linear-highlight-${h.id}-${props.listenerOnly}`} {...props} highlight={h} index={i} />
-    ))}
-  </>
-);
+}) => {
+  const { firstBase, hasComplementRow, lastBase, seqBlockRef } = props;
+  void firstBase;
+  void hasComplementRow;
+  void lastBase;
+  void seqBlockRef;
+
+  return (
+    <>
+      {/* We use two LinearFindBlocks here because we want to span both the top and bottom strand for a highlight */}
+      {props.highlights.map((h, i) => (
+        // TODO: what's going on here, why does this lead to duplicates
+        <SingleHighlight key={`linear-highlight-${h.id}-${props.listenerOnly}`} {...props} highlight={h} index={i} />
+      ))}
+    </>
+  );
+};
 
 const SingleHighlight = (props: {
   compYDiff: number;
@@ -45,6 +53,12 @@ const SingleHighlight = (props: {
   listenerOnly: boolean;
   seqBlockRef: unknown;
 }) => {
+  const { firstBase, hasComplementRow, lastBase, seqBlockRef } = props;
+  void firstBase;
+  void hasComplementRow;
+  void lastBase;
+  void seqBlockRef;
+
   const { width, x } = props.findXAndWidth(props.index, props.highlight, props.highlights);
 
   let fill = highlightStyle.fill;

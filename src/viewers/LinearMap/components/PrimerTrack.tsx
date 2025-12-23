@@ -3,7 +3,7 @@ import * as React from "react";
 import { InputRefFunc } from "../../../SelectionHandler";
 import { COLOR_BORDER_MAP, darkerColor } from "../../../core/colors";
 import { Primer } from "../../../core/elements";
-import { annotation as annotationStyle, annotationLabel } from "../../../style";
+import { annotationLabel, annotation as annotationStyle } from "../../../style";
 import { createSegments, rangeMidpoint } from "../utils";
 import { LinearMapScale } from "../utils";
 

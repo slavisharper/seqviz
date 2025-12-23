@@ -1,102 +1,60 @@
 import * as React from "react";
 
-import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
-import CentralIndexContext from "../../state/centralIndexContext";
 import { Annotation, CutSite, Highlight, NameRange, Primer, Range, Size, TranslationProp } from "../../core/elements";
-import { stackElements } from "../../utils/elementsToRows";
-import { isEqual } from "../../utils/isEqual";
+import CentralIndexContext from "../../state/centralIndexContext";
 import { Selection as SelectionState } from "../../state/selectionContext";
 import { circularLabelLine, viewerCircular } from "../../style";
+import { stackElements } from "../../utils/elementsToRows";
+import { isEqual } from "../../utils/isEqual";
+import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { Find } from "./Find";
 import { Index } from "./Index";
 import { Labels, LinearLabelDatum, LinearLabelItem } from "./Labels";
 import { Selection } from "./Selection";
-import { OrfTrack } from "./components/OrfTrack";
 import { AnnotationTrack } from "./components/AnnotationTrack";
+import { OrfTrack } from "./components/OrfTrack";
 import { PrimerTrack } from "./components/PrimerTrack";
+import {
+  ANNOTATION_HEIGHT_RATIO,
+  ENZYME_GROUP_THRESHOLD_PX,
+  ENZYME_LABEL_MIN_WIDTH,
+  ENZYME_MAX_VISIBLE_PER_GROUP,
+  ENZYME_UNIFIED_LINE_THRESHOLD_PX,
+  LABEL_GAP,
+  LINE_HEIGHT,
+  MIN_MAP_WIDTH,
+  ORF_FEATURE_GAP,
+  ORF_HEIGHT_RATIO,
+  ORF_INDEX_GAP,
+  PADDING_BOTTOM,
+  PADDING_TOP,
+  PADDING_X,
+  PRIMER_HEIGHT_RATIO,
+  ROW_GAP,
+  SELECTION_HEIGHT_RATIO,
+  TRACK_GAP,
+} from "./constants";
+import {
+  RawLabel,
+  buildOrfIdentifier,
+  createLabelItemWithSelection,
+  getFeatureIdsForSelection,
+  getMergedHoverState,
+  getOrfId,
+  getSelectionTypeForLabel,
+  isDefined,
+  isFeatureHovered,
+  stripOrfMeta,
+} from "./helpers";
 import { LinearOrf } from "./types";
 import { LinearMapScale, clamp, normalizeBase, rangeLength, rangeMidpoint } from "./utils";
-
-const LINE_HEIGHT = 14;
-const TRACK_GAP = 12;
-const ROW_GAP = 4;
-const PADDING_X = 30;
-const PADDING_TOP = 20;
-const PADDING_BOTTOM = 0;
-const LABEL_GAP = 14;
-const MIN_MAP_WIDTH = 160;
-const ANNOTATION_HEIGHT_RATIO = 0.8;
-const PRIMER_HEIGHT_RATIO = 0.7;
-const ORF_HEIGHT_RATIO = 0.55;
-const SELECTION_HEIGHT_RATIO = 0.85;
-const ORF_INDEX_GAP = 15;
-const ORF_FEATURE_GAP = 2;
-const ENZYME_LABEL_MIN_WIDTH = 50;
-const ENZYME_GROUP_THRESHOLD_PX = 25;
-const ENZYME_MAX_VISIBLE_PER_GROUP = 5;
-const ENZYME_UNIFIED_LINE_THRESHOLD_PX = 5;
-
-type RawLabelItem = LinearLabelItem;
-
-interface RawLabel {
-  cutPosition?: number;
-  direction?: 1 | -1;
-  end: number;
-  id: string;
-  items?: RawLabelItem[];
-  name: string;
-  start: number;
-  type: "annotation" | "primer" | "enzyme";
-}
-
-function isDefined<T>(value: T | undefined | null): value is T {
-  return value !== undefined && value !== null;
-}
-
-const createLabelItemWithSelection = (
-  config: {
-    direction?: 1 | -1;
-    end: number;
-    id: string;
-    name: string;
-    start: number;
-    type: "annotation" | "primer" | "enzyme";
-  },
-  selectionType: SelectionState["type"],
-  options?: { scrollLinearOnSelect?: boolean }
-): LinearLabelItem => ({
-  direction: config.direction,
-  id: config.id,
-  name: config.name,
-  selectionEnd: config.end,
-  selectionName: config.name,
-  selectionRef: config.id,
-  selectionStart: config.start,
-  selectionScrollLinearOnSelect: options?.scrollLinearOnSelect,
-  selectionType,
-  selectionViewer: "LINEAR",
-  type: config.type,
-});
-
-const getSelectionTypeForLabel = (type: RawLabel["type"]): SelectionState["type"] => {
-  switch (type) {
-    case "annotation":
-      return "ANNOTATION";
-    case "primer":
-      return "PRIMER";
-    case "enzyme":
-      return "ENZYME";
-    default:
-      return "";
-  }
-};
 
 export interface LinearMapProps {
   annotations: Annotation[];
   cutSites: CutSite[];
-  handleMouseEvent: (e: any) => void;
+  handleMouseEvent: React.MouseEventHandler<SVGSVGElement>;
   highlights: Highlight[];
   inputRef: InputRefFunc;
   name: string;
@@ -198,18 +156,16 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       orfById.set(orf.__id, orf);
     });
     const orfRows: LinearOrf[][] = stackElements(orfRanges, seqLength).map(row =>
-      row
-        .map(range => orfById.get(range.id))
-        .filter((value): value is LinearOrf => isDefined(value))
+      row.map(range => orfById.get(range.id)).filter((value): value is LinearOrf => isDefined(value)),
     );
     const annotationRows = stackElements(annotations, seqLength);
     const primerForwardRows = stackElements(
       primers.filter(primer => primer.direction === 1),
-      seqLength
+      seqLength,
     );
     const primerReverseRows = stackElements(
       primers.filter(primer => primer.direction === -1),
-      seqLength
+      seqLength,
     );
 
     const annotationRowIndex = new Map<string, number>();
@@ -259,7 +215,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       annotations,
       primers,
       cutSites,
-      scale
+      scale,
     );
     const enzymeLabelRowMax = enzymeLabels.reduce((acc, label) => Math.max(acc, label.row), -1);
     const enzymeLabelsHeight = enzymeLabelRowMax >= 0 ? (enzymeLabelRowMax + 1) * LINE_HEIGHT : 0;
@@ -545,7 +501,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       primerReverseRowHeight: number;
       primerReverseRowIndex: Map<string, number>;
       primerReverseY: number;
-    }
+    },
   ): number | null {
     const primary = label.labels[0];
     if (!primary) return null;
@@ -578,54 +534,20 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     return null;
   }
 
-  private getOrfId(orf: LinearOrf) {
-    return orf.__id;
-  }
+  private getOrfId = getOrfId;
 
-  private stripOrfMeta(orf: LinearOrf): TranslationProp {
-    const { __colorIndex: _meta, __id: _id, ...rest } = orf;
-    return rest;
-  }
+  private stripOrfMeta = stripOrfMeta;
 
-  private buildOrfIdentifier(orf: TranslationProp, seqLength: number, colorIndex: number) {
-    const safeLength = Math.max(seqLength, 1);
-    const dirLabel = orf.direction === -1 ? "rev" : "fwd";
-    const normStart = normalizeBase(orf.start, safeLength);
-    const normEnd = normalizeBase(orf.end, safeLength);
-    const namePart = (orf.name || "orf").replace(/[^a-zA-Z0-9_-]+/g, "").toLowerCase() || "orf";
-    return `linear-orf-${namePart}-${dirLabel}-${normStart}-${normEnd}-${colorIndex}`;
-  }
+  private buildOrfIdentifier = buildOrfIdentifier;
 
-  private isFeatureHovered = (id: string): boolean => {
-    if (!id) return false;
-    return !!this.state.hoveredFeatures[id] || this.selectedFeatureIds.has(id);
-  };
+  private isFeatureHovered = (id: string): boolean =>
+    isFeatureHovered(id, this.state.hoveredFeatures, this.selectedFeatureIds);
 
-  private getMergedHoverState(selectedFeatures: Set<string>): Record<string, boolean> {
-    const merged: Record<string, boolean> = { ...this.state.hoveredFeatures };
-    selectedFeatures.forEach(id => {
-      if (id) {
-        merged[id] = true;
-      }
-    });
-    return merged;
-  }
+  private getMergedHoverState = (selectedFeatures: Set<string>): Record<string, boolean> =>
+    getMergedHoverState(selectedFeatures, this.state.hoveredFeatures);
 
-  private getFeatureIdsForSelection(selection?: SelectionState): string[] {
-    if (!selection) return [];
-    const { id, ref, type } = selection;
-    const targetId = ref || id || "";
-    if (!targetId) return [];
-    const allowedTypes = new Set(["ANNOTATION", "PRIMER", "ENZYME", "TRANSLATION"]);
-    if (!type || !allowedTypes.has(type)) {
-      return [];
-    }
-    const label = this.labelLookup.get(targetId);
-    if (label) {
-      return label.labels.map(item => item.id).filter(Boolean);
-    }
-    return [targetId];
-  }
+  private getFeatureIdsForSelection = (selection?: SelectionState): string[] =>
+    getFeatureIdsForSelection(selection, this.labelLookup);
 
   private updateLabelUnderlineForLabel(label: LinearLabelDatum, underline: boolean, force = false) {
     let nextUnderline = underline;
@@ -696,7 +618,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
                 start: annotation.start,
                 type: "annotation",
               },
-              "ANNOTATION"
+              "ANNOTATION",
             ),
           ],
           name: annotation.name,
@@ -727,7 +649,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
                 start: primer.start,
                 type: "primer",
               },
-              "PRIMER"
+              "PRIMER",
             ),
           ],
           name: primer.name,
@@ -766,7 +688,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
               type: "enzyme",
             },
             "ENZYME",
-            { scrollLinearOnSelect: true }
+            { scrollLinearOnSelect: true },
           ),
         ],
         name,
@@ -820,7 +742,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       const anchorX = clamp(
         (last.anchorX * last.labels.length + label.anchorX * label.labels.length) / mergedLabels.length,
         scale.offsetX,
-        scale.offsetX + scale.width
+        scale.offsetX + scale.width,
       );
       const minWidth = label.groupType === "enzyme" ? ENZYME_LABEL_MIN_WIDTH : CHAR_WIDTH * 3;
       const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, minWidth);
@@ -892,13 +814,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
                   type: label.type,
                 },
                 getSelectionTypeForLabel(label.type),
-                { scrollLinearOnSelect: label.type === "enzyme" }
+                { scrollLinearOnSelect: label.type === "enzyme" },
               ),
             ];
       const uniqueNames = Array.from(
         new Set(
-          labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0)
-        )
+          labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0),
+        ),
       );
       const baseName = uniqueNames.length ? uniqueNames.join("+") : label.name;
       const displayName =
@@ -954,13 +876,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
                     type: label.type,
                   },
                   getSelectionTypeForLabel(label.type),
-                  { scrollLinearOnSelect: label.type === "enzyme" }
+                  { scrollLinearOnSelect: label.type === "enzyme" },
                 ),
               ];
         const uniqueNames = Array.from(
           new Set(
-            labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0)
-          )
+            labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0),
+          ),
         );
         const baseName = uniqueNames.length ? uniqueNames.join("+") : label.name;
         const displayName =

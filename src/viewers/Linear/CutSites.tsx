@@ -43,7 +43,7 @@ export const CutSites = (props: {
     cutSites,
     firstBase,
     lastBase,
-    findXAndWidth
+    findXAndWidth,
   );
   if (!enhancedCutSites.length) return null;
 
@@ -177,7 +177,7 @@ const enhanceCutSites = (
   cutSites: CutSite[],
   firstBase: number,
   lastBase: number,
-  findXAndWidth: FindXAndWidthType
+  findXAndWidth: FindXAndWidthType,
 ): CutSiteEnhanced[] =>
   cutSites.map((c: CutSite) => {
     // Prevent double rendering of cut-site lines across SeqBlocks. Without the shenanigans below,
@@ -243,7 +243,7 @@ const enhanceCutSites = (
         lastBase,
         showTopLine,
         showBottomLine,
-        findXAndWidth
+        findXAndWidth,
       ),
       highlight: calcHighlight(enhancedCutSite, firstBase, lastBase, findXAndWidth),
       top: {
@@ -260,18 +260,18 @@ const calcHighlight = (
   c: CutSite,
   firstBase: number,
   lastBase: number,
-  findXAndWidth: FindXAndWidthType
+  findXAndWidth: FindXAndWidthType,
 ): { width: number; x: number } => {
   if (isWithinSeqBlock(c.start, c.end, firstBase, lastBase)) {
     if (c.start > c.end) {
       return findXAndWidth(
         c.end < firstBase ? lastBase : Math.min(lastBase, c.end),
-        c.start > lastBase ? firstBase : Math.max(firstBase, c.start)
+        c.start > lastBase ? firstBase : Math.max(firstBase, c.start),
       );
     }
     return findXAndWidth(
       c.start < firstBase ? lastBase : Math.min(lastBase, c.start),
-      c.end > lastBase ? firstBase : Math.max(firstBase, c.end)
+      c.end > lastBase ? firstBase : Math.max(firstBase, c.end),
     );
   }
   return findXAndWidth(c.start, c.end);
@@ -299,7 +299,7 @@ const calcConnector = (
   lastBase: number,
   showTopLine: boolean,
   showBottomLine: boolean,
-  findXAndWidth: FindXAndWidthType
+  findXAndWidth: FindXAndWidthType,
 ): { render: boolean; width: number; x: number } => {
   if (showTopLine && showBottomLine) {
     return {

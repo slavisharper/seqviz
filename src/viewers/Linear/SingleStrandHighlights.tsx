@@ -50,13 +50,16 @@ const SingleStrandHighlight = (props: {
 }) => {
   const { width, x } = props.findXAndWidth(props.index, props.annotation, props.singleStrandAnnotations);
 
-  const fill = props.listenerOnly ? "transparent" : props.annotation.color || highlightStyle.fill || "rgba(255, 251, 7, 0.25)";
+  const fill = props.listenerOnly
+    ? "transparent"
+    : props.annotation.color || highlightStyle.fill || "rgba(255, 251, 7, 0.25)";
   const stroke = props.listenerOnly ? "none" : "rgba(0, 0, 0, 0.35)";
 
   const y = props.annotation.strand === -1 && props.hasComplementRow ? props.compYDiff : props.indexYDiff;
 
   // Avoid passing annotation color into selection metadata so selection uses the default blue fill
   const { color: _annotationColor, ...annotationSelectionProps } = props.annotation;
+  void _annotationColor;
 
   return (
     <rect

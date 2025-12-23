@@ -1,6 +1,6 @@
 import { NameRange } from "../core/elements";
-import { stackElements } from "./elementsToRows";
 import { randomID } from "../core/sequence";
+import { stackElements } from "./elementsToRows";
 
 describe("Elements to rows", () => {
   // https://github.com/Lattice-Automation/seqviz/issues/201

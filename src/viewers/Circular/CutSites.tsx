@@ -56,17 +56,8 @@ const SingleCutSite = (props: {
   radius: number;
   seqLength: number;
 }) => {
-  const {
-    calculateLinePath,
-    cutSite,
-    genArc,
-    getRotation,
-    inputRef,
-    lineHeight,
-    occurrenceIndex,
-    radius,
-    seqLength,
-  } = props;
+  const { calculateLinePath, cutSite, genArc, getRotation, inputRef, lineHeight, occurrenceIndex, radius, seqLength } =
+    props;
   const { id, start } = cutSite;
   let { end, fcut, rcut } = cutSite;
   const domId = `${id}-${cutSite.start}-${cutSite.end}-${occurrenceIndex}`;

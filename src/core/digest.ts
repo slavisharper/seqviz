@@ -1,7 +1,7 @@
-import { SeqType, Enzyme, CutSite } from "./elements";
-import { reverseComplement } from "./sequence";
 import { createRegex } from "../utils/search";
+import { CutSite, Enzyme, SeqType } from "./elements";
 import presetEnzymes from "./enzymes";
+import { reverseComplement } from "./sequence";
 
 /**
  * Digest a sequence with the enzymes and return an array of cut-site.

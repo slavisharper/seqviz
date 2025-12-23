@@ -2,19 +2,19 @@ import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
-import CentralIndexContext from "../../state/centralIndexContext";
 import { Annotation, Coor, CutSite, Highlight, Primer, Range, Size, TranslationProp } from "../../core/elements";
+import CentralIndexContext from "../../state/centralIndexContext";
 import type { Selection as SelectionRange } from "../../state/selectionContext";
+import { viewerCircular } from "../../style";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
-import { viewerCircular } from "../../style";
 import { Annotations } from "./Annotations";
 import { Find } from "./Find";
 import { Index } from "./Index";
 import { Labels } from "./Labels";
-import { Selection } from "./Selection";
 import { Orfs, getOrfRingDimensions } from "./Orfs";
 import { Primers } from "./Primers";
+import { Selection } from "./Selection";
 
 /** Sequence length cutoff below which the circular viewer's sequence won't be rendered. */
 export const RENDER_SEQ_LENGTH_CUTOFF = 250;
@@ -51,7 +51,7 @@ export interface CircularProps {
   center: { x: number; y: number };
   compSeq: string;
   cutSites: CutSite[];
-  handleMouseEvent: (e: any) => void;
+  handleMouseEvent: React.MouseEventHandler<SVGSVGElement>;
   highlights: Highlight[];
   inputRef: InputRefFunc;
   name: string;
@@ -353,7 +353,8 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     this.context.setCentralIndex("CIRCULAR", newCentralIndex);
   };
 
-  private isTouchPointer = (e: React.PointerEvent<SVGSVGElement>) => e.pointerType === "touch" || e.pointerType === "pen";
+  private isTouchPointer = (e: React.PointerEvent<SVGSVGElement>) =>
+    e.pointerType === "touch" || e.pointerType === "pen";
 
   private isSelectionTarget = (target: EventTarget | null) => {
     if (!target) return false;
@@ -379,7 +380,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     if (this.touchRotateSession && this.svgRef.current) {
       try {
         this.svgRef.current.releasePointerCapture?.(this.touchRotateSession.pointerId);
-      } catch (_err) {
+      } catch {
         // ignore release errors
       }
     }
@@ -498,10 +499,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         onPointerLeave={this.handleTouchRotatePointerEnd}
         onWheel={this.handleScrollEvent}
       >
-        <g
-          ref={this.contentGroupRef}
-          className="la-vz-circular-root"
-        >
+        <g ref={this.contentGroupRef} className="la-vz-circular-root">
           <Selection {...props} seq={seq} totalRows={totalRows} />
           <Index
             {...props}
@@ -525,17 +523,8 @@ export default class Circular extends React.Component<CircularProps, CircularSta
             search={search}
             seqLength={props.seqLength}
           />
-          <Annotations
-            {...props}
-            annotations={annotationsInRows}
-            inlinedAnnotations={inlinedLabels}
-            rowsToSkip={0}
-          />
-          <Primers
-            {...props}
-            primers={primerRows}
-            rowsToSkip={annotationsInRows.length}
-          />
+          <Annotations {...props} annotations={annotationsInRows} inlinedAnnotations={inlinedLabels} rowsToSkip={0} />
+          <Primers {...props} primers={primerRows} rowsToSkip={annotationsInRows.length} />
           <Labels {...props} labels={outerLabels} size={size} yDiff={yDiff} zoom={zoom} />
         </g>
       </svg>

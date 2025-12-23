@@ -1,10 +1,19 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import { Annotation, CutSite, Highlight, NameRange, Primer, SeqType, SingleStrandAnnotation, Size } from "../../core/elements";
+import {
+  Annotation,
+  CutSite,
+  Highlight,
+  NameRange,
+  Primer,
+  SeqType,
+  SingleStrandAnnotation,
+  Size,
+} from "../../core/elements";
+import { createTranslations } from "../../core/sequence";
 import { createMultiRows, createSingleRows, stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
-import { createTranslations } from "../../core/sequence";
 import { InfiniteScroll } from "./InfiniteScroll";
 import { SeqBlock } from "./SeqBlock";
 
@@ -115,18 +124,18 @@ export default class Linear extends React.Component<LinearProps> {
     const primerFwdRows = createMultiRows(
       stackElements(vetAnnotations(primers.filter(p => p.direction === 1)), seq.length),
       bpsPerBlock,
-      arrSize
+      arrSize,
     );
     const primerRevRows = createMultiRows(
       stackElements(vetAnnotations(primers.filter(p => p.direction === -1)), seq.length),
       bpsPerBlock,
-      arrSize
+      arrSize,
     );
 
     const annotationRows = createMultiRows(
       stackElements(vetAnnotations(annotations), seq.length),
       bpsPerBlock,
-      arrSize
+      arrSize,
     );
 
     const searchRows: NameRange[][] =
@@ -218,7 +227,7 @@ export default class Linear extends React.Component<LinearProps> {
           zoom={zoom}
           zoomed={zoomed}
           onUnmount={onUnmount}
-        />
+        />,
       );
       yDiff += blockHeights[i];
     }

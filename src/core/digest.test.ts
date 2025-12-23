@@ -1,5 +1,5 @@
-import { Enzyme, CutSite } from "./elements";
 import digest, { findCutSites } from "./digest";
+import { CutSite, Enzyme } from "./elements";
 
 describe("Digest", () => {
   interface test {

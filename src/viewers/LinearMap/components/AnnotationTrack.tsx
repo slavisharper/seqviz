@@ -3,7 +3,7 @@ import * as React from "react";
 import { InputRefFunc } from "../../../SelectionHandler";
 import { COLOR_BORDER_MAP, darkerColor } from "../../../core/colors";
 import { Annotation } from "../../../core/elements";
-import { annotation as annotationStyle, annotationLabel } from "../../../style";
+import { annotationLabel, annotation as annotationStyle } from "../../../style";
 import { createSegments, rangeMidpoint } from "../utils";
 import { LinearMapScale } from "../utils";
 
@@ -120,9 +120,10 @@ const AnnotationFeature: React.FC<AnnotationFeatureProps> = ({
         const bodyX = direction === -1 ? x + arrowWidth : x;
         const rectStart = bodyX;
         const rectEnd = bodyX + bodyWidth;
-        const polygonPoints = direction === -1
-          ? `${x + width},0 ${x + width},${featureHeight} ${rectStart},${featureHeight} ${x},${featureHeight / 2} ${rectStart},0`
-          : `${rectStart},0 ${rectEnd},0 ${x + width},${featureHeight / 2} ${rectEnd},${featureHeight} ${rectStart},${featureHeight}`;
+        const polygonPoints =
+          direction === -1
+            ? `${x + width},0 ${x + width},${featureHeight} ${rectStart},${featureHeight} ${x},${featureHeight / 2} ${rectStart},0`
+            : `${rectStart},0 ${rectEnd},0 ${x + width},${featureHeight / 2} ${rectEnd},${featureHeight} ${rectStart},${featureHeight}`;
         const refCallback =
           index === 0
             ? inputRef(feature.id, {

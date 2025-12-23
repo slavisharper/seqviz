@@ -5,7 +5,7 @@ import SeqViz from "../../src/SeqViz";
 import { AnnotationProp, Primer, SingleStrandAnnotationProp } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
-import { FragmentSelection } from "../../src/state/selectionContext";
+import { defaultSelection, type FragmentSelection, type Selection } from "../../src/state/selectionContext";
 import Header from "./Header";
 import CheckboxInput from "./components/CheckboxInput";
 import ContextInfoPanel, { type ContextInfo } from "./components/ContextInfoPanel";
@@ -43,8 +43,8 @@ const buildDefaultPresetState = () => ({
   enzymes: [...DEFAULT_ENZYMES],
   primers: createDefaultPrimers(),
   search: { query: DEFAULT_SEARCH_QUERY },
-  searchResults: {},
-  selection: {},
+  searchResults: {} as Record<string, unknown>,
+  selection: { ...defaultSelection },
   fragmentSelection: null as FragmentSelection | null,
   showComplement: true,
   showIndex: true,
@@ -68,12 +68,12 @@ interface AppState {
   disableLinearMap: boolean;
   disableLinearSequence: boolean;
   exampleId: DemoExampleId;
-  enzymes: any[];
+  enzymes: string[];
   name: string;
   primers: Primer[];
   search: { query: string };
-  searchResults: any;
-  selection: any;
+  searchResults: Record<string, unknown>;
+  selection: Selection;
   fragmentSelection: FragmentSelection | null;
   seq: string;
   seqType: SupportedSeqType;
@@ -92,7 +92,7 @@ interface AppState {
   translationPopoverOpen: boolean;
 }
 
-export default class App extends React.Component<any, AppState> {
+export default class App extends React.Component<Record<string, never>, AppState> {
   state: AppState = {
     ...buildDefaultPresetState(),
     annotations: [],
@@ -107,6 +107,7 @@ export default class App extends React.Component<any, AppState> {
   private defaultSequenceData: Pick<AppState, "annotations" | "name" | "seq"> | null = null;
   private presetStateFromConfig = (config: DemoExampleConfig): Omit<DemoExampleConfig, "description"> => {
     const { description: _description, singleStrandAnnotations = [], ...stateProjection } = config;
+    void _description;
     return { ...stateProjection, singleStrandAnnotations };
   };
 
@@ -231,7 +232,7 @@ export default class App extends React.Component<any, AppState> {
         contextInfo: null,
         exampleId,
         searchResults: {},
-        selection: {},
+        selection: { ...defaultSelection },
         fragmentSelection: null,
         showSelectionMeta: false,
         showSidebar: prevState.showSidebar,
@@ -248,7 +249,7 @@ export default class App extends React.Component<any, AppState> {
       contextInfo: null,
       exampleId,
       searchResults: {},
-      selection: {},
+      selection: { ...defaultSelection },
       fragmentSelection: null,
       showSelectionMeta: false,
       showSidebar: prevState.showSidebar,

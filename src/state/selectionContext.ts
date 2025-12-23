@@ -52,8 +52,8 @@ export interface FragmentSelection {
 
 export interface ExternalSelection {
   clockwise?: boolean;
-  end: number;
-  start: number;
+  end?: number;
+  start?: number;
 }
 
 /** Initial/default selection */

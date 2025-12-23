@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
+
 import * as React from "react";
 
 import SelectionHandler from "./SelectionHandler";
@@ -45,7 +46,7 @@ describe("SelectionHandler dataset fallback", () => {
             />
           )}
         </SelectionHandler>
-      </SelectionContext.Provider>
+      </SelectionContext.Provider>,
     );
 
     const block = screen.getByTestId("mock-seq-block");
@@ -102,7 +103,7 @@ describe("SelectionHandler amino acid selection", () => {
             </svg>
           )}
         </SelectionHandler>
-      </SelectionContext.Provider>
+      </SelectionContext.Provider>,
     );
 
     const aa = screen.getByTestId("aa");

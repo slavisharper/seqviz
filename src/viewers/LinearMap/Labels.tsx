@@ -1,10 +1,10 @@
 import * as React from "react";
 
+import { Selection as SelectionRange } from "../../state/selectionContext";
+import { circularLabel, circularLabelLine, circularLabelLineHover } from "../../style";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { LinearGroupLabelOverlay } from "./GroupLabelOverlay";
 import { LinearMapScale } from "./utils";
-import { Selection as SelectionRange } from "../../state/selectionContext";
-import { circularLabel, circularLabelLine, circularLabelLineHover } from "../../style";
 
 const ANNOTATION_HEIGHT_RATIO = 0.8;
 const PRIMER_HEIGHT_RATIO = 0.7;
@@ -66,7 +66,10 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
     const prevGroup = this.props.labels.find(l => l.groupId === this.state.overlayGroupId);
     if (prevGroup) {
       this.toggleUnderline(prevGroup, false);
-      this.props.onHoverFeatures?.(prevGroup.labels.map(item => item.id), false);
+      this.props.onHoverFeatures?.(
+        prevGroup.labels.map(item => item.id),
+        false,
+      );
     }
     this.currentLabel = null;
     this.currentHoveredFeatureIds = [];
@@ -136,13 +139,18 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
   handleLabelClick = (label: LinearLabelDatum) => {
     if (!label.grouped) return;
     this.setState(prev => {
-      const prevGroup = prev.overlayGroupId ? this.props.labels.find(l => l.groupId === prev.overlayGroupId) : undefined;
+      const prevGroup = prev.overlayGroupId
+        ? this.props.labels.find(l => l.groupId === prev.overlayGroupId)
+        : undefined;
 
       // If any group is currently pinned, close it on the next tap/click.
       if (prev.overlayPinned && prev.overlayGroupId) {
         if (prevGroup) {
           this.toggleUnderline(prevGroup, false);
-          this.props.onHoverFeatures?.(prevGroup.labels.map(item => item.id), false);
+          this.props.onHoverFeatures?.(
+            prevGroup.labels.map(item => item.id),
+            false,
+          );
         }
         this.currentLabel = null;
         this.currentHoveredFeatureIds = [];
@@ -152,7 +160,10 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
       // Otherwise open the tapped group and pin it.
       if (prevGroup && prevGroup.groupId !== label.groupId) {
         this.toggleUnderline(prevGroup, false);
-        this.props.onHoverFeatures?.(prevGroup.labels.map(item => item.id), false);
+        this.props.onHoverFeatures?.(
+          prevGroup.labels.map(item => item.id),
+          false,
+        );
       }
 
       this.currentLabel = label;
@@ -201,8 +212,8 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
             label.groupType === "annotation"
               ? ANNOTATION_HEIGHT_RATIO
               : label.groupType === "primer"
-              ? PRIMER_HEIGHT_RATIO
-              : 0;
+                ? PRIMER_HEIGHT_RATIO
+                : 0;
           const featureBottom = rawSourceY !== null ? rawSourceY + lineHeight * labelHeightRatio : connectorY;
           const verticalVisible = rawSourceY !== null && featureBottom < connectorY;
           const connectorStartY = verticalVisible ? connectorY : featureBottom;

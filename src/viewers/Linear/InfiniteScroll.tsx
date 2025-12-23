@@ -1,9 +1,9 @@
 import * as React from "react";
 
-import CentralIndexContext from "../../state/centralIndexContext";
 import { Size } from "../../core/elements";
-import { isEqual } from "../../utils/isEqual";
+import CentralIndexContext from "../../state/centralIndexContext";
 import { linearScroller } from "../../style";
+import { isEqual } from "../../utils/isEqual";
 
 interface InfiniteScrollProps {
   blockHeights: number[];

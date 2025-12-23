@@ -17,7 +17,7 @@ export interface TranslationSettings {
 export const generateTranslations = (
   seq: string,
   seqType: SeqType,
-  translations?: TranslationProp[] | TranslationSettings
+  translations?: TranslationProp[] | TranslationSettings,
 ): TranslationProp[] => {
   if (!seq.length) {
     return [];
@@ -50,7 +50,7 @@ export const generateTranslations = (
 export const generateOrfs = (
   seq: string,
   seqType: SeqType,
-  translations?: TranslationProp[] | TranslationSettings
+  translations?: TranslationProp[] | TranslationSettings,
 ): TranslationProp[] => {
   if (!seq.length || seqType === "aa" || !translations || Array.isArray(translations)) {
     return [];
@@ -123,7 +123,7 @@ const findOpenReadingFrames = (
   stopCodons: Set<string>,
   minLength: number,
   direction: 1 | -1,
-  referenceLength: number
+  referenceLength: number,
 ): TranslationProp[] => {
   const upperSeq = seq.toUpperCase();
   const seqLength = upperSeq.length;
@@ -187,6 +187,4 @@ const normalizeCodons = (codons: string[] | undefined, seqType: SeqType): Set<st
 };
 
 const getDefaultCodons = (seqType: SeqType): { start: string[]; stop: string[] } =>
-  seqType === "rna"
-    ? { start: ["AUG"], stop: ["UAA", "UAG", "UGA"] }
-    : { start: ["ATG"], stop: ["TAA", "TAG", "TGA"] };
+  seqType === "rna" ? { start: ["AUG"], stop: ["UAA", "UAG", "UGA"] } : { start: ["ATG"], stop: ["TAA", "TAG", "TGA"] };

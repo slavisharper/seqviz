@@ -1,8 +1,10 @@
 import * as React from "react";
 import seqparse, { ParseOptions, parseFile } from "seqparse";
 
+import { ViewerContextMenuEvent } from "./SelectionHandler";
 import SeqViewerContainer, { CustomChildrenProps, SeqVizChildRefs } from "./SeqViewerContainer";
 import { COLORS, colorByIndex } from "./core/colors";
+import digest from "./core/digest";
 import {
   Annotation,
   AnnotationProp,
@@ -18,14 +20,12 @@ import {
   SingleStrandAnnotationProp,
   TranslationProp,
 } from "./core/elements";
-import { isEqual } from "./utils/isEqual";
-import search from "./utils/search";
-import { ExternalSelection, FragmentSelection, Selection } from "./state/selectionContext";
-import { ViewerContextMenuEvent } from "./SelectionHandler";
 import { complement, directionality, guessType, randomID } from "./core/sequence";
 import { generateOrfs, generateTranslations } from "./core/translations";
 import type { TranslationSettings } from "./core/translations";
-import digest from "./core/digest";
+import { ExternalSelection, FragmentSelection, Selection } from "./state/selectionContext";
+import { isEqual } from "./utils/isEqual";
+import search from "./utils/search";
 
 export type { TranslationFrame, TranslationOrfSettings, TranslationSettings } from "./core/translations";
 
@@ -214,10 +214,10 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     enzymes: [],
     enzymesCustom: {},
     name: "",
-    onSearch: (_: Range[]) => null,
-    onSelection: (_: Selection, __?: FragmentSelection | null) => null,
-    onContextMenu: (_: ViewerContextMenuEvent) => null,
-    onDoubleClick: (_: ViewerContextMenuEvent) => null,
+    onSearch: () => null,
+    onSelection: () => null,
+    onContextMenu: () => null,
+    onDoubleClick: () => null,
     enableInteractiveZoom: true,
     primers: [],
     singleStrandAnnotations: [],
@@ -302,7 +302,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     // previous props
     { accession = "", annotations, enzymes, enzymesCustom, file, search }: SeqVizProps,
     // previous state
-    { seq, seqType, name }: SeqVizState
+    { seq, seqType, name }: SeqVizState,
   ) => {
     // New accession or file provided, fetch and/or parse.
     if (
@@ -351,7 +351,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
    * If an accession is provided, query a remote repository and parse the sequence and annotations.
    */
   parseInput = (
-    props?: SeqVizProps
+    props?: SeqVizProps,
   ): {
     annotations: Annotation[];
     compSeq: string;
@@ -462,7 +462,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           id: `highlight-${i}-${h.start}-${h.end}`,
           name: "",
           start: h.start % (seq.length + 1),
-        })
+        }),
       ),
       singleStrandAnnotations: (singleStrandAnnotations || []).map(
         (annotation, i): SingleStrandAnnotation => ({
@@ -474,7 +474,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           name: annotation.name,
           start: annotation.start % (seq.length + 1),
           strand: annotation.strand === -1 ? -1 : 1,
-        })
+        }),
       ),
       onSelection:
         this.props.onSelection ||
@@ -494,7 +494,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           color: t.color || colorByIndex(i, COLORS),
           id: `translation${t.name}${i}${t.start}${t.end}`,
           name: t.name,
-        })
+        }),
       ),
       viewer: this.props.viewer || "both",
       zoom: {

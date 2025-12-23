@@ -4,8 +4,10 @@ import * as React from "react";
 const defaultCentralIndex = {
   circular: 0,
   linear: 0,
-  setCentralIndex: (_: "LINEAR" | "CIRCULAR", __: number) => {
-    // do nothing
+  setCentralIndex: (_type: "LINEAR" | "CIRCULAR", _value: number) => {
+    // noop
+    void _type;
+    void _value;
   },
 };
 
