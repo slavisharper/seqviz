@@ -25,8 +25,10 @@ export const createLabelItemWithSelection = (
   config: {
     direction?: 1 | -1;
     end: number;
+    fcut?: number;
     id: string;
     name: string;
+    rcut?: number;
     start: number;
     type: "annotation" | "primer" | "enzyme";
   },
@@ -37,9 +39,11 @@ export const createLabelItemWithSelection = (
   id: config.id,
   name: config.name,
   selectionEnd: config.end,
+  selectionFcut: typeof config.fcut === "number" ? config.fcut : undefined,
   selectionName: config.name,
   selectionRef: config.id,
   selectionStart: config.start,
+  selectionRcut: typeof config.rcut === "number" ? config.rcut : undefined,
   selectionScrollLinearOnSelect: options?.scrollLinearOnSelect,
   selectionType,
   selectionViewer: "LINEAR",

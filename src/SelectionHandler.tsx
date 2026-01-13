@@ -225,8 +225,60 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     return base >= min && base <= max;
   };
 
+  private normalizeIndexValue = (idx: number, seqLength: number): number => {
+    if (!Number.isFinite(idx) || seqLength <= 0) {
+      return idx;
+    }
+
+    const modded = idx % seqLength;
+    return modded < 0 ? modded + seqLength : modded;
+  };
+
+  private getCutPosition = (selection: Selection, seqLength: number): number | null => {
+    const candidate =
+      typeof selection.fcut === "number"
+        ? selection.fcut
+        : typeof selection.rcut === "number"
+          ? selection.rcut
+          : typeof selection.start === "number"
+            ? selection.start
+            : typeof selection.end === "number"
+              ? selection.end
+              : null;
+    if (typeof candidate !== "number" || Number.isNaN(candidate)) {
+      return null;
+    }
+
+    return this.normalizeIndexValue(candidate, seqLength);
+  };
+
+  private complementSelection = (selection: Selection, seqLength: number): Selection => {
+    if (
+      typeof selection.start !== "number" ||
+      typeof selection.end !== "number" ||
+      Number.isNaN(selection.start) ||
+      Number.isNaN(selection.end) ||
+      seqLength <= 0 ||
+      selection.start === selection.end
+    ) {
+      return selection;
+    }
+
+    const normalizedStart = this.normalizeIndexValue(selection.start, seqLength);
+    const normalizedEnd = this.normalizeIndexValue(selection.end, seqLength);
+    const clockwise = typeof selection.clockwise === "boolean" ? selection.clockwise : true;
+
+    return {
+      ...selection,
+      clockwise,
+      end: normalizedStart,
+      start: normalizedEnd,
+    };
+  };
+
   private extendWithLastSelection = (selection: Selection): Selection => {
-    const base = this.lastSelection;
+    const normalizedContext = this.normalizeSelection(this.context);
+    const base = this.lastSelection || (this.selectionHasLength(normalizedContext) ? normalizedContext : null);
     if (!base || typeof base.start !== "number" || typeof base.end !== "number") {
       return selection;
     }
@@ -238,25 +290,45 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return selection;
     }
 
+    const seqLength = this.props.seq?.length || 0;
+
     // Special handling for enzyme-to-enzyme fragment selection: span the cut positions
     if (base.type === "ENZYME" && selection.type === "ENZYME") {
-      const cutStart =
-        typeof base.fcut === "number" ? base.fcut : typeof base.rcut === "number" ? base.rcut : base.start;
-      const cutEnd =
-        typeof selection.fcut === "number"
-          ? selection.fcut
-          : typeof selection.rcut === "number"
-            ? selection.rcut
-            : selEnd;
+      const startCut = this.getCutPosition(base, seqLength);
+      const endCut = this.getCutPosition(selection, seqLength);
+      if (typeof startCut !== "number" || typeof endCut !== "number") {
+        return selection;
+      }
+
+      const viewer = selection.viewer || base.viewer || "CIRCULAR";
+
+      if (viewer === "LINEAR") {
+        const start = Math.min(startCut, endCut);
+        const end = Math.max(startCut, endCut);
+
+        return {
+          ...defaultSelection,
+          clockwise: true,
+          end,
+          ref: selection.ref || base.ref,
+          start,
+          type: "SEQ",
+          viewer: "LINEAR",
+        };
+      }
+
+      const cwLength = this.calcSelectionLength(startCut, endCut, true);
+      const ccwLength = this.calcSelectionLength(startCut, endCut, false);
+      const clockwise = cwLength <= ccwLength;
 
       return {
         ...defaultSelection,
-        clockwise: cutStart <= cutEnd,
-        end: cutEnd,
+        clockwise,
+        end: endCut,
         ref: selection.ref || base.ref,
-        start: cutStart,
+        start: startCut,
         type: "SEQ",
-        viewer: selection.viewer || base.viewer,
+        viewer: "CIRCULAR",
       };
     }
 
@@ -532,6 +604,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     }
     const {
       selectionEnd,
+      selectionDirection,
       selectionFcut,
       selectionName,
       selectionRcut,
@@ -551,6 +624,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const end = Number(selectionEnd);
     const fcut = typeof selectionFcut === "undefined" ? undefined : Number(selectionFcut);
     const rcut = typeof selectionRcut === "undefined" ? undefined : Number(selectionRcut);
+    const direction = typeof selectionDirection === "undefined" ? undefined : Number(selectionDirection);
     if (!Number.isFinite(start) || !Number.isFinite(end)) {
       return null;
     }
@@ -562,6 +636,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     return {
       clockwise: true,
+      direction: Number.isFinite(direction) && direction !== 0 ? (direction as number > 0 ? 1 : -1) : undefined,
       end,
       fcut: Number.isFinite(fcut) ? fcut : undefined,
       name: selectionName,
@@ -724,16 +799,23 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     };
 
     const isCtrlSelect = e.ctrlKey || e.metaKey;
+    const invertCtrlSelection = isCtrlSelect && e.shiftKey;
 
     if (isCtrlSelect && eventType === "mousedown") {
       const derived = this.deriveSelectionFromContextTarget(knownRange, e, this.context);
       if (derived) {
+        const baseSelection = this.lastSelection || this.context;
         const extended = this.extendWithLastSelection(derived);
+        const finalSelection = invertCtrlSelection
+          ? this.complementSelection(extended, this.props.seq?.length || 0)
+          : extended;
+        const firstDetailSource = invertCtrlSelection ? derived : baseSelection;
+        const secondDetailSource = invertCtrlSelection ? baseSelection : derived;
         const fragmentSelection: FragmentSelection = {
-          firstSelection: this.toSelectionEventDetail(this.lastSelection || this.context),
-          secondSelection: this.toSelectionEventDetail(derived),
+          firstSelection: this.toSelectionEventDetail(firstDetailSource || undefined),
+          secondSelection: this.toSelectionEventDetail(secondDetailSource || undefined),
         };
-        this.setSelection(extended, {
+        this.setSelection(finalSelection, {
           fragmentSelection,
           skipLastSelectionUpdate: true,
         });
@@ -777,8 +859,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       case "AMINOACID": {
         // Annotation or find selection range
         const clockwise = direction ? direction === 1 : true;
-        let selectionStart = clockwise ? start : end;
-        let selectionEnd = clockwise ? end : start;
+        const selectionStart = clockwise ? start : end;
+        const selectionEnd = clockwise ? end : start;
 
         // On double-click, immediately select the full translation once and exit to avoid flicker
         if (clickCount >= 2 && knownRange.parent) {

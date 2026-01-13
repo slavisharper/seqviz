@@ -66,6 +66,18 @@ const getSelectionAttributes = (label: ILabel): Record<string, string | number> 
     attrs["data-scroll-linear-on-select"] = "true";
   }
 
+  if (typeof label.selectionDirection === "number") {
+    attrs["data-selection-direction"] = label.selectionDirection;
+  }
+
+  if (typeof label.selectionFcut === "number") {
+    attrs["data-selection-fcut"] = label.selectionFcut;
+  }
+
+  if (typeof label.selectionRcut === "number") {
+    attrs["data-selection-rcut"] = label.selectionRcut;
+  }
+
   return attrs;
 };
 

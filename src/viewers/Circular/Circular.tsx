@@ -23,11 +23,14 @@ export interface ILabel {
   end: number;
   id?: string;
   name: string;
+  selectionDirection?: number;
   selectionEnd?: number;
+  selectionFcut?: number;
   selectionName?: string;
   selectionScrollLinearOnSelect?: boolean;
   selectionStart?: number;
   selectionType?: SelectionRange["type"];
+  selectionRcut?: number;
   selectionViewer?: "LINEAR" | "CIRCULAR";
   start: number;
   type: "enzyme" | "annotation";
@@ -166,9 +169,12 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         selectionEnd: c.end,
         selectionName: c.name,
         selectionScrollLinearOnSelect: true,
+        selectionDirection: c.direction,
+        selectionFcut: c.fcut,
         selectionStart: c.start,
         selectionType: "ENZYME",
         selectionViewer: "CIRCULAR",
+        selectionRcut: c.rcut,
         start: c.fcut,
         type: "enzyme",
       });

@@ -14,12 +14,14 @@ export interface LinearLabelItem {
   id: string;
   name: string;
   selectionEnd?: number;
+  selectionFcut?: number;
   selectionName?: string;
   selectionRef?: string;
   selectionStart?: number;
   selectionScrollLinearOnSelect?: boolean;
   selectionType?: SelectionRange["type"];
   selectionViewer?: "LINEAR" | "CIRCULAR";
+  selectionRcut?: number;
   type: "annotation" | "primer" | "enzyme";
 }
 
@@ -100,6 +102,18 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
 
     if (label.selectionScrollLinearOnSelect) {
       attrs["data-scroll-linear-on-select"] = "true";
+    }
+
+    if (typeof label.direction === "number") {
+      attrs["data-selection-direction"] = label.direction;
+    }
+
+    if (typeof label.selectionFcut === "number") {
+      attrs["data-selection-fcut"] = label.selectionFcut;
+    }
+
+    if (typeof label.selectionRcut === "number") {
+      attrs["data-selection-rcut"] = label.selectionRcut;
     }
 
     return attrs;

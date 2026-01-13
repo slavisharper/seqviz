@@ -670,8 +670,10 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
             {
               direction,
               end: site.end,
+              fcut: site.fcut,
               id: site.id,
               name,
+              rcut: site.rcut,
               start: site.start,
               type: "enzyme",
             },

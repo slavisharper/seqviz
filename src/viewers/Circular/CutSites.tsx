@@ -93,6 +93,7 @@ const SingleCutSite = (props: {
       {/* an arc that surrounds the cut site */}
       <path
         ref={inputRef(domId, {
+          direction: cutSite.direction,
           end: end,
           name: cutSite.name,
           ref: domId,
@@ -103,6 +104,7 @@ const SingleCutSite = (props: {
           viewer: "CIRCULAR",
         })}
         data-selection-end={end}
+        data-selection-direction={cutSite.direction}
         data-selection-fcut={cutSite.fcut}
         data-selection-rcut={cutSite.rcut}
         data-selection-start={start}
