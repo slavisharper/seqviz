@@ -207,6 +207,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     const start = typeof selection.start === "number" ? selection.start : (selection.end ?? 0);
     const end = typeof selection.end === "number" ? selection.end : (selection.start ?? start);
     const viewer = selection.viewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
+    const seqLength = this.props.seq?.length || 0;
+    const selectionLength = typeof selection.length === "number" ? selection.length : undefined;
 
     if (start === end) {
       return false;
@@ -216,7 +218,11 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return base >= start && base <= end;
     }
 
-    if (viewer === "CIRCULAR") {
+    const wrapsAround =
+      viewer === "CIRCULAR" ||
+      (viewer === "LINEAR" && selectionLength && seqLength > 0 && selectionLength > Math.abs(start - end));
+
+    if (wrapsAround) {
       return base >= start || base <= end;
     }
 
