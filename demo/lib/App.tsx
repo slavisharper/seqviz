@@ -2,7 +2,7 @@ import * as React from "react";
 import seqparse from "seqparse";
 
 import SeqViz from "../../src/SeqViz";
-import { AnnotationProp, Primer, SingleStrandAnnotationProp } from "../../src/core/elements";
+import { AnnotationProp, Primer, SeparatorClickEvent, SeparatorProp, SingleStrandAnnotationProp } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
 import { defaultSelection, type FragmentSelection, type Selection } from "../../src/state/selectionContext";
@@ -26,6 +26,7 @@ import {
   VIEWER_TYPE_OPTIONS,
   type ViewerOption,
   createDefaultPrimers,
+  createDefaultSeparators,
   createDefaultSingleStrandAnnotations,
   createDefaultTranslations,
 } from "./constants";
@@ -53,6 +54,7 @@ const buildDefaultPresetState = () => ({
   singleStrandAnnotations: createDefaultSingleStrandAnnotations(),
   showTranslations: true,
   translations: createDefaultTranslations(),
+  separators: createDefaultSeparators(),
   viewer: "both" as ViewerOption,
   zoom: DEFAULT_ZOOM,
   circularZoom: 0,
@@ -77,6 +79,7 @@ interface AppState {
   fragmentSelection: FragmentSelection | null;
   seq: string;
   seqType: SupportedSeqType;
+  separators: SeparatorProp[];
   showComplement: boolean;
   showIndex: boolean;
   showSelectionMeta: boolean;
@@ -106,9 +109,9 @@ export default class App extends React.Component<Record<string, never>, AppState
   seqViewerRef: React.RefObject<HTMLDivElement> = React.createRef();
   private defaultSequenceData: Pick<AppState, "annotations" | "name" | "seq"> | null = null;
   private presetStateFromConfig = (config: DemoExampleConfig): Omit<DemoExampleConfig, "description"> => {
-    const { description: _description, singleStrandAnnotations = [], ...stateProjection } = config;
+    const { description: _description, singleStrandAnnotations = [], separators = [], ...stateProjection } = config;
     void _description;
-    return { ...stateProjection, singleStrandAnnotations };
+    return { ...stateProjection, singleStrandAnnotations, separators };
   };
 
   componentDidMount = async () => {
@@ -245,6 +248,7 @@ export default class App extends React.Component<Record<string, never>, AppState
     this.setState(prevState => ({
       ...presetState,
       singleStrandAnnotations: presetState.singleStrandAnnotations || [],
+      separators: presetState.separators || [],
       showTranslations: typeof presetState.showTranslations === "boolean" ? presetState.showTranslations : true,
       contextInfo: null,
       exampleId,
@@ -254,6 +258,29 @@ export default class App extends React.Component<Record<string, never>, AppState
       showSelectionMeta: false,
       showSidebar: prevState.showSidebar,
     }));
+  };
+
+  handleSeparatorClick = ({ order, separator }: SeparatorClickEvent) => {
+    const label = separator?.name || (order ? `Separator ${order}` : "Separator");
+    const index = separator?.index ?? 0;
+    this.setState({
+      contextInfo: {
+        fragmentSelection: null,
+        name: `${label} (position ${index})`,
+        selection: {
+          ...defaultSelection,
+          end: index,
+          length: 0,
+          name: label,
+          start: index,
+          type: "SEPARATOR",
+          viewer: "LINEAR",
+        },
+        sequence: "",
+        triggerLabel: "Separator",
+        type: "SEPARATOR",
+      },
+    });
   };
 
   render() {
@@ -422,6 +449,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                   primers={this.state.primers}
                   refs={{ circular: this.circularRef, linear: this.linearRef }}
                   search={this.state.search}
+                  separators={this.state.separators}
                   singleStrandAnnotations={this.state.singleStrandAnnotations}
                   selection={this.state.selection}
                   seq={this.state.seq}
@@ -435,6 +463,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                     linearMap: this.state.linearMapZoom,
                   }}
                   onZoomChange={this.handleZoomChange}
+                  onSeparatorClick={this.handleSeparatorClick}
                   onSelection={(selection, fragmentSelection) => {
                     this.setState({ selection, fragmentSelection: fragmentSelection || null });
                   }}

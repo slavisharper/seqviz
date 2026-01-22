@@ -86,6 +86,26 @@ export interface Highlight extends HighlightProp {
   name: string;
 }
 
+/** Description of a single cut/separator along the sequence. */
+export interface SeparatorProp {
+  color?: string;
+  complementIndex?: number;
+  index: number;
+  name: string;
+}
+
+/** Parsed version of SeparatorProp with metadata for rendering. */
+export interface Separator extends SeparatorProp {
+  id: string;
+  /** 1-based order of the separator once sorted by index. */
+  order: number;
+}
+
+export interface SeparatorClickEvent {
+  order: number;
+  separator: Separator;
+}
+
 export interface Part {
   annotations: Annotation[];
   compSeq: string;

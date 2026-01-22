@@ -52,6 +52,25 @@ export const selectionEdge: CSS.Properties = {
   stroke: "black",
 };
 
+export const separatorLine: CSS.Properties = {
+  cursor: "pointer",
+  fill: "none",
+  pointerEvents: "stroke",
+  shapeRendering: "geometricPrecision",
+  stroke: "rgba(32, 45, 90, 0.95)",
+  strokeLinecap: "butt",
+  strokeWidth: "2.5",
+};
+
+export const separatorConnectorLine: CSS.Properties = {
+  cursor: "pointer",
+  fill: "none",
+  shapeRendering: "geometricPrecision",
+  stroke: "rgba(32, 45, 90, 0.65)",
+  strokeLinecap: "butt",
+  strokeWidth: "1.5",
+};
+
 export const cutSite: CSS.Properties = {
   fill: "transparent",
   shapeRendering: "auto",

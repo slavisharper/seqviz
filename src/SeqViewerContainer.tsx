@@ -9,6 +9,8 @@ import {
   Highlight,
   NameRange,
   Primer,
+  Separator,
+  SeparatorClickEvent,
   SeqType,
   SingleStrandAnnotation,
   Size,
@@ -39,12 +41,14 @@ import LinearMap, { LinearMapProps } from "./viewers/LinearMap/LinearMap";
  */
 export const CHAR_WIDTH = 7.2;
 
+type LinearMapChildProps = Omit<LinearMapProps, "handleMouseEvent" | "inputRef">;
+
 export interface CustomChildrenProps {
   circularProps: Omit<CircularProps, "handleMouseEvent" | "inputRef" | "onUnmount">;
   handleContextMenu: (event: React.MouseEvent) => void;
   handleMouseEvent: React.MouseEventHandler;
   inputRef: InputRefFunc;
-  linearMapProps: Omit<LinearMapProps, "handleMouseEvent" | "inputRef">;
+  linearMapProps: LinearMapChildProps;
   linearProps: Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount">;
   onUnmount: (ref: string) => void;
   handleDoubleClick: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -84,6 +88,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   onSelection: (selection: Selection, fragmentSelection?: FragmentSelection | null) => void;
   primers: Primer[];
   refs?: SeqVizChildRefs;
+  separators: Separator[];
   rotateOnScroll: boolean;
   search: NameRange[];
   singleStrandAnnotations?: SingleStrandAnnotation[];
@@ -101,6 +106,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   zoom: { circular: number; linear: number; linearMap?: number };
   enableInteractiveZoom?: boolean;
   onZoomChange?: (zoom: { circular: number; linear: number; linearMap?: number }) => void;
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
 }
 
 type SeqViewerContainerPublicProps = Omit<SeqViewerContainerProps, keyof ResizeInjectedProps>;
@@ -441,7 +447,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     } = this.props;
     const managedZoom = this.state.managedZoom;
 
-    return this.buildLinearProps(
+    const linearProps = this.buildLinearProps(
       annotations,
       bpColors,
       compSeq,
@@ -459,6 +465,12 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       translations,
       managedZoom.linear,
     );
+
+    return {
+      ...linearProps,
+      separators: this.props.separators || [],
+      onSeparatorClick: this.props.onSeparatorClick,
+    };
   };
 
   private getCircularProps = () => {
@@ -479,7 +491,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     const managedZoom = this.state.managedZoom;
     const size = this.getCircularViewerSize();
 
-    return this.buildCircularProps(
+    const circularProps = this.buildCircularProps(
       annotations,
       compSeq,
       cutSites,
@@ -496,15 +508,21 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       size.height,
       managedZoom.circular,
     );
+
+    return {
+      ...circularProps,
+      separators: this.props.separators || [],
+      onSeparatorClick: this.props.onSeparatorClick,
+    };
   };
 
-  private getLinearMapProps = (viewerSize: Size, selection: Selection) => {
+  private getLinearMapProps = (viewerSize: Size, selection: Selection): LinearMapChildProps => {
     const { annotations, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } =
       this.props;
     const managedZoom = this.state.managedZoom;
     const zoomLinearMap = managedZoom.linearMap;
 
-    return this.buildLinearMapProps(
+    const linearMapProps = this.buildLinearMapProps(
       annotations,
       cutSites,
       highlights,
@@ -520,6 +538,12 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       viewerSize.height,
       zoomLinearMap,
     );
+
+    return {
+      ...linearMapProps,
+      separators: this.props.separators || [],
+      onSeparatorClick: this.props.onSeparatorClick,
+    };
   };
 
   private getViewerVisibility = (): ViewerVisibility => {
@@ -632,7 +656,7 @@ const SeqViewerContainerWithResize = (props: SeqViewerContainerPublicProps) => {
 export default SeqViewerContainerWithResize;
 
 type ViewerRendererProps = CustomChildrenProps & {
-  combinedLinearMapProps: Omit<LinearMapProps, "handleMouseEvent" | "inputRef">;
+  combinedLinearMapProps: LinearMapChildProps;
   showCircular: boolean;
   showLinear: boolean;
   showLinearMap: boolean;

@@ -11,6 +11,7 @@ type SelectionTypeEnum =
   | "HIGHLIGHT"
   | "SINGLE_STRAND_ANNOTATION"
   | "PRIMER"
+  | "SEPARATOR"
   | "";
 
 /* Selection holds meta about the viewer(s) active selection. */

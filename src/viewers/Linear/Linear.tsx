@@ -7,6 +7,8 @@ import {
   Highlight,
   NameRange,
   Primer,
+  Separator,
+  SeparatorClickEvent,
   SeqType,
   SingleStrandAnnotation,
   Size,
@@ -39,8 +41,10 @@ export interface LinearProps {
   showComplement: boolean;
   showIndex: boolean;
   size: Size;
+  separators: Separator[];
   translations: NameRange[];
   zoom: { linear: number };
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
 }
 
 /**
@@ -88,8 +92,10 @@ export default class Linear extends React.Component<LinearProps> {
       showComplement,
       showIndex,
       size,
+      separators = [],
       translations,
       zoom,
+      onSeparatorClick,
     } = this.props;
 
     // un-official definition for being zoomed in. Being over 10 seems like a decent cut-off
@@ -222,11 +228,13 @@ export default class Linear extends React.Component<LinearProps> {
           showComplement={showComplement}
           showIndex={showIndex}
           size={size}
+          separators={separators}
           translationRows={translationRows[i]}
           y={yDiff}
           zoom={zoom}
           zoomed={zoomed}
           onUnmount={onUnmount}
+          onSeparatorClick={onSeparatorClick}
         />,
       );
       yDiff += blockHeights[i];

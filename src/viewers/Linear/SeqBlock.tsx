@@ -8,12 +8,14 @@ import {
   NameRange,
   Primer,
   Range,
+  Separator,
+  SeparatorClickEvent,
   SeqType,
   SingleStrandAnnotation,
   Size,
   Translation,
 } from "../../core/elements";
-import { seqBlock, svgText } from "../../style";
+import { separatorConnectorLine, separatorLine, seqBlock, svgText } from "../../style";
 import AnnotationRows from "./Annotations";
 import { CutSites } from "./CutSites";
 import Find from "./Find";
@@ -33,7 +35,7 @@ export type FindXAndWidthType = (
 };
 
 type TextProps = {
-  fontSize: number;
+  fontSize?: number;
   lengthAdjust: string;
   textAnchor: "start";
   textLength: number;
@@ -74,10 +76,12 @@ interface SeqBlockProps {
   showComplement: boolean;
   showIndex: boolean;
   size: Size;
+  separators: Separator[];
   translationRows: Translation[][];
   y: number;
   zoom: { linear: number };
   zoomed: boolean;
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
 }
 
 /**
@@ -263,9 +267,11 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       showComplement,
       showIndex,
       size,
+      separators,
       translationRows,
       zoom,
       zoomed,
+      onSeparatorClick,
     } = this.props;
 
     if (!size.width || !size.height) return null;
@@ -578,7 +584,251 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           listenerOnly={true}
           seqBlockRef={this}
         />
+        <SeparatorMarkers
+          compYDiff={compYDiff}
+          findXAndWidth={this.findXAndWidth}
+          firstBase={firstBase}
+          fullSeqLength={fullSeq.length}
+          hasComplementRow={hasComplementRow}
+          indexYDiff={indexYDiff}
+          lastBase={lastBase}
+          lineHeight={lineHeight}
+          separators={separators}
+          onSeparatorClick={onSeparatorClick}
+        />
       </svg>
     );
   }
 }
+
+interface SeparatorMarkersProps {
+  compYDiff: number;
+  findXAndWidth: FindXAndWidthType;
+  firstBase: number;
+  fullSeqLength: number;
+  hasComplementRow: boolean;
+  indexYDiff: number;
+  lastBase: number;
+  lineHeight: number;
+  separators: Separator[];
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
+}
+
+type SeparatorDatum = {
+  color: string;
+  id: string;
+  order: number;
+  separator: Separator;
+  xTop: number;
+  xBottom?: number;
+  selectionStart: number;
+  selectionEnd: number;
+};
+
+const SeparatorMarkers = ({
+  compYDiff,
+  findXAndWidth,
+  firstBase,
+  fullSeqLength,
+  hasComplementRow,
+  indexYDiff,
+  lastBase,
+  lineHeight,
+  separators,
+  onSeparatorClick,
+}: SeparatorMarkersProps) => {
+  if (!separators?.length || fullSeqLength <= 0) {
+    return null;
+  }
+
+  const blockContains = (index?: number): boolean => {
+    if (typeof index !== "number") {
+      return false;
+    }
+    if (index === fullSeqLength) {
+      return lastBase === fullSeqLength;
+    }
+    return index >= firstBase && index < lastBase;
+  };
+
+  const fallbackColor = "#2B6CB0";
+  const data: SeparatorDatum[] = [];
+
+  const toNumericStrokeWidth = (value: React.CSSProperties["strokeWidth"]): number => {
+    if (typeof value === "number") {
+      return value;
+    }
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const interactiveStrokeWidth = Math.max(toNumericStrokeWidth(separatorLine.strokeWidth) || 0, 2);
+  const connectorStrokeWidth = Math.max(toNumericStrokeWidth(separatorConnectorLine.strokeWidth) || 0, 2);
+
+  const clampSelectionIndex = (index: number): number => {
+    if (!Number.isFinite(index)) {
+      return 0;
+    }
+    const floored = Math.floor(index);
+    if (floored < 0) {
+      return 0;
+    }
+    const maxBound = Math.max(fullSeqLength, 0);
+    if (floored > maxBound) {
+      return maxBound;
+    }
+    return floored;
+  };
+
+  const toSelectionRange = (index: number): { end: number; start: number } => {
+    const normalized = clampSelectionIndex(index);
+    return {
+      start: normalized,
+      end: normalized,
+    };
+  };
+
+  const separatorXOffset = 2;
+
+  separators.forEach(separator => {
+    if (!blockContains(separator.index)) {
+      return;
+    }
+    const { x: topX } = findXAndWidth(separator.index, separator.index);
+    if (typeof topX !== "number" || Number.isNaN(topX)) {
+      return;
+    }
+    let xBottom: number | undefined;
+    if (typeof separator.complementIndex === "number" && blockContains(separator.complementIndex)) {
+      const { x: bottomX } = findXAndWidth(separator.complementIndex, separator.complementIndex);
+      if (typeof bottomX === "number" && !Number.isNaN(bottomX)) {
+        xBottom = bottomX + separatorXOffset;
+      }
+    }
+    const selectionRange = toSelectionRange(separator.index ?? 0);
+    data.push({
+      color: separator.color || fallbackColor,
+      id: separator.id,
+      order: separator.order,
+      separator,
+      xTop: topX + separatorXOffset,
+      xBottom,
+      selectionStart: selectionRange.start,
+      selectionEnd: selectionRange.end,
+    });
+  });
+
+  if (!data.length) {
+    return null;
+  }
+
+  const strandHeight = Math.max(lineHeight, 12);
+  const strandPadding = 4;
+  const topStartY = indexYDiff - strandPadding;
+  const topFullEndY = indexYDiff + strandHeight + strandPadding;
+  const bottomStartY = compYDiff - strandPadding;
+  const bottomFullEndY = compYDiff + strandHeight + strandPadding;
+  const connectorY = topFullEndY + (bottomStartY - topFullEndY) / 2;
+  const separatorYOffset = -5;
+  const adjustedTopStartY = topStartY + separatorYOffset;
+  const adjustedTopFullEndY = topFullEndY + separatorYOffset;
+  const adjustedConnectorY = connectorY + separatorYOffset;
+  const adjustedBottomFullEndY = bottomFullEndY + separatorYOffset;
+
+  const fireClick = (datum: SeparatorDatum) => {
+    onSeparatorClick?.({
+      order: datum.order,
+      separator: datum.separator,
+    });
+  };
+
+  const handlePointerDown = (datum: SeparatorDatum, event: React.PointerEvent<SVGLineElement>) => {
+    if (event.pointerType && event.pointerType !== "mouse") {
+      event.preventDefault();
+    }
+    fireClick(datum);
+  };
+
+  const handleKeyDown = (datum: SeparatorDatum, event: React.KeyboardEvent<SVGLineElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    fireClick(datum);
+  };
+
+  return (
+    <g className="la-vz-separators">
+      {data.map(datum => {
+        const hasComplement = hasComplementRow && typeof datum.xBottom === "number";
+        const isBlunt = hasComplement && Math.abs(datum.xBottom! - datum.xTop) <= 0.5;
+        const hasConnector = hasComplement && !isBlunt;
+        return (
+          <React.Fragment key={datum.id}>
+            <line
+              className="la-vz-separator-line"
+              role="button"
+              tabIndex={0}
+              x1={datum.xTop}
+              x2={datum.xTop}
+              y1={adjustedTopStartY}
+              y2={isBlunt ? adjustedBottomFullEndY : hasConnector ? adjustedConnectorY : adjustedTopFullEndY}
+              style={{ ...separatorLine, stroke: datum.color, strokeWidth: interactiveStrokeWidth }}
+              data-selection-type="SEPARATOR"
+              data-selection-start={datum.selectionStart}
+              data-selection-end={datum.selectionEnd}
+              data-selection-name={datum.separator.name || datum.id}
+              data-selection-viewer="LINEAR"
+              data-selection-ref={datum.id}
+              onPointerDown={event => handlePointerDown(datum, event)}
+              onKeyDown={event => handleKeyDown(datum, event)}
+            />
+            {hasConnector ? (
+              <>
+                <line
+                  className="la-vz-separator-line"
+                  role="button"
+                  tabIndex={0}
+                  x1={datum.xBottom!}
+                  x2={datum.xBottom!}
+                  y1={adjustedConnectorY}
+                  y2={adjustedBottomFullEndY}
+                  style={{ ...separatorLine, stroke: datum.color, strokeWidth: interactiveStrokeWidth }}
+                  data-selection-type="SEPARATOR"
+                  data-selection-start={datum.selectionStart}
+                  data-selection-end={datum.selectionEnd}
+                  data-selection-name={datum.separator.name || datum.id}
+                  data-selection-viewer="LINEAR"
+                  data-selection-ref={datum.id}
+                  onPointerDown={event => handlePointerDown(datum, event)}
+                  onKeyDown={event => handleKeyDown(datum, event)}
+                />
+                <line
+                  className="la-vz-separator-connector"
+                  role="button"
+                  tabIndex={0}
+                  x1={datum.xTop}
+                  x2={datum.xBottom!}
+                  y1={adjustedConnectorY}
+                  y2={adjustedConnectorY}
+                  style={{ ...separatorConnectorLine, stroke: datum.color, strokeWidth: connectorStrokeWidth }}
+                  data-selection-type="SEPARATOR"
+                  data-selection-start={datum.selectionStart}
+                  data-selection-end={datum.selectionEnd}
+                  data-selection-name={datum.separator.name || datum.id}
+                  data-selection-viewer="LINEAR"
+                  data-selection-ref={datum.id}
+                  onPointerDown={event => handlePointerDown(datum, event)}
+                  onKeyDown={event => handleKeyDown(datum, event)}
+                />
+              </>
+            ) : null}
+          </React.Fragment>
+        );
+      })}
+    </g>
+  );
+};

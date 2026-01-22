@@ -2,10 +2,21 @@ import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
-import { Annotation, Coor, CutSite, Highlight, Primer, Range, Size, TranslationProp } from "../../core/elements";
+import {
+  Annotation,
+  Coor,
+  CutSite,
+  Highlight,
+  Primer,
+  Range,
+  Separator,
+  SeparatorClickEvent,
+  Size,
+  TranslationProp,
+} from "../../core/elements";
 import CentralIndexContext from "../../state/centralIndexContext";
 import type { Selection as SelectionRange } from "../../state/selectionContext";
-import { viewerCircularTouchRotate } from "../../style";
+import { separatorLine, viewerCircularTouchRotate } from "../../style";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { Annotations } from "./Annotations";
@@ -58,12 +69,14 @@ export interface CircularProps {
   highlights: Highlight[];
   inputRef: InputRefFunc;
   name: string;
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
   orfs: TranslationProp[];
   primers: Primer[];
   onUnmount: (id: string) => void;
   radius: number;
   rotateOnScroll: boolean;
   search: Range[];
+  separators?: Separator[];
   seq: string;
   zoom: number;
   showComplement: boolean;
@@ -447,7 +460,9 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       handleMouseEvent,
       inputRef,
       name,
+      onSeparatorClick,
       orfs,
+      separators = [],
       radius,
       search,
       seq,
@@ -507,6 +522,17 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       >
         <g ref={this.contentGroupRef} className="la-vz-circular-root">
           <Selection {...props} seq={seq} totalRows={totalRows} />
+          <SeparatorRadials
+            findCoor={findCoor}
+            getRotation={getRotation}
+            lineHeight={lineHeight}
+            onSeparatorClick={onSeparatorClick}
+            radius={radius}
+            separators={separators}
+            seq={seq}
+            seqLength={seqLength}
+            totalRows={totalRows}
+          />
           <Index
             {...props}
             compSeq={compSeq}
@@ -537,6 +563,147 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     );
   }
 }
+
+interface SeparatorRadialsProps {
+  findCoor: Circular["findCoor"];
+  getRotation: Circular["getRotation"];
+  lineHeight: number;
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
+  radius: number;
+  separators: Separator[];
+  seq: string;
+  seqLength: number;
+  totalRows: number;
+}
+
+type CircularSeparatorEdge = {
+  color: string;
+  id: string;
+  order: number;
+  rotationOffset: number;
+  separator: Separator;
+  selectionStart: number;
+  selectionEnd: number;
+};
+
+const SeparatorRadials = ({
+  findCoor,
+  getRotation,
+  lineHeight,
+  onSeparatorClick,
+  radius,
+  separators,
+  seq,
+  seqLength,
+  totalRows,
+}: SeparatorRadialsProps) => {
+  if (!separators?.length || seqLength <= 0) {
+    return null;
+  }
+
+  let topR = radius + lineHeight;
+  if (seq.length <= RENDER_SEQ_LENGTH_CUTOFF) {
+    topR += 2 * lineHeight + 3;
+  }
+  const innerAdjust = lineHeight * (totalRows - 1);
+  const bottomR = Math.max(0, radius - innerAdjust);
+
+  const baseBottom = findCoor(0, bottomR);
+  const baseTop = findCoor(0, topR);
+  const edgePath = `M ${baseBottom.x} ${baseBottom.y} L ${baseTop.x} ${baseTop.y}`;
+
+  const normalizeIndex = (index: number): number => {
+    if (index === seqLength) {
+      return seqLength;
+    }
+    const modded = index % seqLength;
+    return ((modded + seqLength) % seqLength + seqLength) % seqLength;
+  };
+
+  const fallbackColor = "#2B6CB0";
+  const edges: CircularSeparatorEdge[] = [];
+
+  const clampSelectionIndex = (index: number): number => {
+    if (!Number.isFinite(index)) {
+      return 0;
+    }
+    const floored = Math.floor(index);
+    if (floored < 0) {
+      return 0;
+    }
+    const maxBound = Math.max(seqLength, 0);
+    if (floored > maxBound) {
+      return maxBound;
+    }
+    return floored;
+  };
+
+  const toSelectionRange = (index: number): { end: number; start: number } => {
+    const normalized = clampSelectionIndex(index);
+    return {
+      start: normalized,
+      end: normalized,
+    };
+  };
+  separators.forEach(separator => {
+    if (typeof separator.index !== "number") {
+      return;
+    }
+    const primaryIndex = normalizeIndex(separator.index);
+    const rotationOffset = (primaryIndex + 0.5 + seqLength) % seqLength;
+    const selectionRange = toSelectionRange(separator.index);
+    edges.push({
+      color: separator.color || fallbackColor,
+      id: separator.id,
+      order: separator.order,
+      rotationOffset,
+      separator,
+      selectionStart: selectionRange.start,
+      selectionEnd: selectionRange.end,
+    });
+  });
+
+  if (!edges.length) {
+    return null;
+  }
+
+  const fireSelection = (edge: CircularSeparatorEdge) => {
+    onSeparatorClick?.({ order: edge.order, separator: edge.separator });
+  };
+
+  const handleKeyDown = (edge: CircularSeparatorEdge, event: React.KeyboardEvent<SVGPathElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    fireSelection(edge);
+  };
+
+  return (
+    <g className="la-vz-separators-circular">
+      {edges.map(edge => (
+        <path
+          key={edge.id}
+          className="la-vz-separator-edge"
+          d={edgePath}
+          style={{ ...separatorLine, stroke: edge.color }}
+          transform={getRotation(edge.rotationOffset)}
+          role="button"
+          tabIndex={0}
+          data-selection-type="SEPARATOR"
+          data-selection-start={edge.selectionStart}
+          data-selection-end={edge.selectionEnd}
+          data-selection-name={edge.separator.name || edge.id}
+          data-selection-viewer="CIRCULAR"
+          data-selection-ref={edge.id}
+          data-scroll-linear-on-select="true"
+          onPointerDown={() => fireSelection(edge)}
+          onKeyDown={event => handleKeyDown(edge, event)}
+        />
+      ))}
+    </g>
+  );
+};
 
 /**
  * Create an SVG arc around a single element in the Circular Viewer.

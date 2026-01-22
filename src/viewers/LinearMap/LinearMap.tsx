@@ -2,10 +2,20 @@ import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
-import { Annotation, CutSite, Highlight, NameRange, Primer, Range, Size, TranslationProp } from "../../core/elements";
+import {
+  Annotation,
+  CutSite,
+  Highlight,
+  NameRange,
+  Primer,
+  Separator,
+  SeparatorClickEvent,
+  Size,
+  TranslationProp,
+} from "../../core/elements";
 import CentralIndexContext from "../../state/centralIndexContext";
 import { Selection as SelectionState } from "../../state/selectionContext";
-import { circularLabelLine, viewerCircular } from "../../style";
+import { circularLabelLine, separatorLine, viewerCircular } from "../../style";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
@@ -61,13 +71,149 @@ export interface LinearMapProps {
   orfs: TranslationProp[];
   primers: Primer[];
   rotateOnScroll?: boolean;
-  search: Range[];
+  search: NameRange[];
   selection?: SelectionState;
   seq: string;
+  separators: Separator[];
   showIndex: boolean;
   size: Size;
   zoom: number;
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
 }
+
+interface LinearMapSeparatorsProps {
+  bottom: number;
+  onSeparatorClick?: (event: SeparatorClickEvent) => void;
+  scale: LinearMapScale;
+  separators: Separator[];
+  top: number;
+}
+
+type LinearMapSeparatorDatum = {
+  color: string;
+  id: string;
+  order: number;
+  separator: Separator;
+  x: number;
+  selectionStart: number;
+  selectionEnd: number;
+};
+
+const LinearMapSeparators = ({ bottom, onSeparatorClick, scale, separators, top }: LinearMapSeparatorsProps) => {
+  if (!separators?.length || scale.seqLength <= 0) {
+    return null;
+  }
+
+  const resolveIndex = (index: number): number => {
+    if (index === scale.seqLength) {
+      return scale.seqLength;
+    }
+    return normalizeBase(index, scale.seqLength);
+  };
+
+  const toX = (index: number): number => {
+    const resolved = resolveIndex(index);
+    if (resolved === scale.seqLength) {
+      return scale.offsetX + scale.width;
+    }
+    return scale.offsetX + resolved * scale.pxPerBase;
+  };
+
+  const fallbackColor = "#2B6CB0";
+  const data: LinearMapSeparatorDatum[] = [];
+
+  const clampSelectionIndex = (index: number): number => {
+    if (!Number.isFinite(index)) {
+      return 0;
+    }
+    const floored = Math.floor(index);
+    if (floored < 0) {
+      return 0;
+    }
+    const maxBound = Math.max(scale.seqLength, 0);
+    if (floored > maxBound) {
+      return maxBound;
+    }
+    return floored;
+  };
+
+  const toSelectionRange = (index: number): { end: number; start: number } => {
+    const normalized = clampSelectionIndex(index);
+    return {
+      start: normalized,
+      end: normalized,
+    };
+  };
+
+  separators.forEach(separator => {
+    if (typeof separator.index !== "number") {
+      return;
+    }
+    const x = toX(separator.index);
+    if (typeof x !== "number" || Number.isNaN(x)) {
+      return;
+    }
+    const selectionRange = toSelectionRange(separator.index);
+    data.push({
+      color: separator.color || fallbackColor,
+      id: separator.id,
+      order: separator.order,
+      separator,
+      x,
+      selectionStart: selectionRange.start,
+      selectionEnd: selectionRange.end,
+    });
+  });
+
+  if (!data.length) {
+    return null;
+  }
+
+  const topStartY = top;
+  const bottomEndY = bottom;
+
+  const fireClick = (datum: LinearMapSeparatorDatum) => {
+    onSeparatorClick?.({
+      order: datum.order,
+      separator: datum.separator,
+    });
+  };
+
+  const handleKeyDown = (datum: LinearMapSeparatorDatum, event: React.KeyboardEvent<SVGLineElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    fireClick(datum);
+  };
+
+  return (
+    <g className="la-vz-linear-map-separators">
+      {data.map(datum => (
+        <line
+          key={datum.id}
+          className="la-vz-separator-line"
+          role="button"
+          tabIndex={0}
+          x1={datum.x}
+          x2={datum.x}
+          y1={topStartY}
+          y2={bottomEndY}
+          style={{ ...separatorLine, stroke: datum.color }}
+          data-selection-type="SEPARATOR"
+          data-selection-start={datum.selectionStart}
+          data-selection-end={datum.selectionEnd}
+          data-selection-name={datum.separator.name || datum.id}
+          data-selection-viewer="LINEAR"
+          data-selection-ref={datum.id}
+          data-scroll-linear-on-select="true"
+          onPointerDown={() => fireClick(datum)}
+          onKeyDown={event => handleKeyDown(datum, event)}
+        />
+      ))}
+    </g>
+  );
+};
 
 interface LinearMapState {
   hoveredFeatures: Record<string, boolean>;
@@ -121,9 +267,11 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       primers = [],
       search = [],
       seq,
+      separators = [],
       showIndex,
       size,
       zoom,
+      onSeparatorClick,
     } = this.props;
 
     const seqLength = Math.max(seq.length, 1);
@@ -259,6 +407,8 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const selectionHighlightTop = mapBottom + 1;
     const selectionHighlightBottom = Math.max(featureAreaBottom, selectionHighlightTop + selectionHeight);
     const selectionHighlightHeight = selectionHighlightBottom - selectionHighlightTop;
+    const segmentLineTop = Math.max(0, PADDING_TOP * 0.5);
+    const segmentLineBottom = selectionHighlightBottom;
 
     const labelSourceContext = {
       annotationRowHeight,
@@ -387,6 +537,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
           rows={primerReverseRows}
           scale={scale}
           startY={primerReverseY}
+        />
+        <LinearMapSeparators
+          bottom={segmentLineBottom}
+          onSeparatorClick={onSeparatorClick}
+          scale={scale}
+          separators={separators}
+          top={segmentLineTop}
         />
         <Find
           height={findHeight}

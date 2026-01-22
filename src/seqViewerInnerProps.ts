@@ -207,7 +207,7 @@ export const createLinearMapPropsBuilder = () =>
       sizeWidth: number,
       sizeHeight: number,
       zoomLinearMap: number,
-    ): Omit<LinearMapProps, "handleMouseEvent" | "inputRef"> => ({
+    ): Omit<LinearMapProps, "handleMouseEvent" | "inputRef" | "separators" | "onSeparatorClick"> => ({
       annotations,
       cutSites,
       highlights,

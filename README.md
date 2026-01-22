@@ -195,6 +195,19 @@ primers = [
 
 In the example above, the forward and reverse primers of LacZ are define by the direction parameter. Notice that color could be used optionally.
 
+#### `separators (=[])`
+
+Separators mark ligation junctions, assembly boundaries, or enzyme cuts using a single genomic index plus an optional complementary index. Each separator accepts a `name`, `index`, optional `complementIndex`, and optional `color`. Lines render across the circular viewer, linear viewer, and linear map, splitting the top/bottom strands and, when a `complementIndex` is provided, connecting the two cut positions with an angled bridge.
+
+```js
+separators = [
+  { name: "PstI Assembly Junction", index: 648, complementIndex: 644, color: "#2563EB" },
+  { name: "Assembly B Boundary", index: 1420 },
+];
+```
+
+To mirror a specific restriction digest, set `index` to the forward-strand cut position and `complementIndex` to the reverse-strand cut. PstI recognizes `CTGCA|G` and leaves a 4 bp, 3' overhang. If the top-strand cut lands at index 648 and the complementary strand terminates at 644, encoding `{ index: 648, complementIndex: 644 }` keeps the divider aligned with the PstI cut in every viewer.
+
 #### `translations`
 
 Configure automatic amino acid translations. Pass a `TranslationSettings` object to request any combination of reading frames and/or open reading frames (ORFs). `frames` accepts the canonical values `[-3,-2,-1,1,2,3]` and renders the entire plasmid for each selected frame. `orf` enables ORF discovery with customizable start/stop codons and minimum base-pair length (defaults: start `ATG/AUG`, stop `TAA/TAG/TGA` or RNA equivalents, min length `90bp`). For backwards compatibility, an explicit `TranslationProp[]` array is still accepted.
@@ -295,6 +308,10 @@ This occurs after drag/drop selections and clicks. It will have meta on `annotat
   "type": "ANNOTATION",
 }
 ```
+
+#### `onSeparatorClick (=(_: { order: number; separator: Separator }) => {})`
+
+Fired when a separator line is clicked or tapped. Receives the parsed `separator` object plus its 1-based `order` within the sequence (after sorting by index). Combine this with `separators` to power assembly editors—e.g., reveal metadata for a ligation junction whenever the user clicks one of the divider lines.
 
 #### `onContextMenu`
 

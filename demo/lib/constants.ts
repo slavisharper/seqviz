@@ -1,5 +1,5 @@
 import { chooseRandomColor } from "../../src/core/colors";
-import { AnnotationProp, Primer, SeqType, SingleStrandAnnotationProp } from "../../src/core/elements";
+import { AnnotationProp, Primer, SeparatorProp, SeqType, SingleStrandAnnotationProp } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 
 export type SupportedSeqType = Extract<SeqType, "dna" | "rna" | "aa">;
@@ -129,6 +129,7 @@ export const DEFAULT_ENZYMES: string[] = [
 ];
 
 export const DEFAULT_SEARCH_QUERY = "ttnnnaat";
+
 export const DEFAULT_ZOOM = 50;
 
 export const createDefaultPrimers = (): Primer[] => [
@@ -192,6 +193,27 @@ export const createDefaultTranslations = (): TranslationSettings => ({
   },
 });
 
+export const createDefaultSeparators = (): SeparatorProp[] => [
+  {
+    color: "#2563EB",
+    complementIndex: 633,
+    index: 633,
+    name: "PstI Assembly Junction",
+  },
+  {
+    color: "#16A34A",
+    complementIndex: 1424,
+    index: 1420,
+    name: "Assembly B Boundary",
+  },
+  {
+    color: "#F97316",
+    complementIndex: 1974,
+    index: 1980,
+    name: "Assembly C Boundary",
+  },
+];
+
 export interface DemoExampleConfig {
   annotations: AnnotationProp[];
   description: string;
@@ -202,6 +224,7 @@ export interface DemoExampleConfig {
   name: string;
   primers: Primer[];
   search: { query: string };
+  separators?: SeparatorProp[];
   singleStrandAnnotations?: SingleStrandAnnotationProp[];
   seq: string;
   showComplement: boolean;
@@ -249,6 +272,7 @@ export const AMINO_LINEAR_EXAMPLE: DemoExampleConfig = {
   primers: [],
   search: { query: "" },
   singleStrandAnnotations: [],
+  separators: [],
   seq: AMINO_LINEAR_SEQUENCE,
   seqType: "aa",
   showComplement: false,

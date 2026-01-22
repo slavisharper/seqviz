@@ -15,6 +15,9 @@ import {
   NameRange,
   PrimerProp,
   Range,
+  Separator,
+  SeparatorClickEvent,
+  SeparatorProp,
   SeqType,
   SingleStrandAnnotation,
   SingleStrandAnnotationProp,
@@ -112,6 +115,9 @@ export interface SeqVizProps {
   /** a callback that's executed on each click of the sequence viewer. Selection includes meta about the selected element */
   onSelection?: (selection: Selection, fragmentSelection?: FragmentSelection | null) => void;
 
+  /** fired when a separator line is clicked */
+  onSeparatorClick?: (payload: SeparatorClickEvent) => void;
+
   /** fired on right-clicks within the viewer with the associated selection metadata */
   onContextMenu?: (event: ViewerContextMenuEvent) => void;
 
@@ -126,6 +132,9 @@ export interface SeqVizProps {
 
   /** a list of primers to render above or below the sequences. At the time of writing, only the Linear viewer is supported. */
   primers: PrimerProp[];
+
+  /** separators mark restriction or ligation cut lines within the sequence */
+  separators?: SeparatorProp[];
 
   /** Refs associated with custom children. */
   refs?: SeqVizChildRefs;
@@ -216,10 +225,12 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     name: "",
     onSearch: () => null,
     onSelection: () => null,
+    onSeparatorClick: () => null,
     onContextMenu: () => null,
     onDoubleClick: () => null,
     enableInteractiveZoom: true,
     primers: [],
+    separators: [],
     singleStrandAnnotations: [],
     rotateOnScroll: true,
     search: { mismatch: 0, query: "" },
@@ -439,11 +450,68 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       start: a.start % (seq.length + 1),
     }));
 
+  parseSeparators = (separators: SeparatorProp[] | null = null, seq = ""): Separator[] => {
+    if (!separators || !separators.length || !seq.length) {
+      return [];
+    }
+
+    const seqLength = seq.length;
+    const normalize = (value?: number): number | undefined => {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        return undefined;
+      }
+      if (seqLength <= 0) {
+        return Math.max(0, Math.floor(value));
+      }
+      if (value === seqLength) {
+        return seqLength;
+      }
+      const modded = value % seqLength;
+      if (modded === 0 && value !== 0 && Math.floor(value / seqLength) !== 0) {
+        return seqLength;
+      }
+      return ((modded + seqLength) % seqLength + seqLength) % seqLength;
+    };
+
+    type ParsedSeparator = Omit<Separator, "order">;
+
+    const prepared: ParsedSeparator[] = separators
+      .map((separator, i) => {
+        const primaryIndex = normalize(separator.index);
+        if (typeof primaryIndex !== "number") {
+          return null;
+        }
+        const complementIndex = normalize(separator.complementIndex);
+        const entry: ParsedSeparator = {
+          id: `separator-${separator.name || i}-${i}-${primaryIndex}-${randomID()}`,
+          name: separator.name || `Separator ${i + 1}`,
+          color: separator.color || colorByIndex(i, COLORS),
+          index: primaryIndex,
+          complementIndex,
+        };
+        return entry;
+      })
+      .filter((value): value is ParsedSeparator => value !== null);
+
+    const sorted = prepared.sort((a, b) => {
+      if (a.index === b.index) {
+        return a.name.localeCompare(b.name);
+      }
+      return a.index - b.index;
+    });
+
+    return sorted.map((separator, order) => ({
+      ...separator,
+      order: order + 1,
+    }));
+  };
+
   render() {
     const { highlights, primers, showComplement, showIndex, singleStrandAnnotations, style, zoom } = this.props;
     const { compSeq, seq, seqType } = this.state;
     const translations = generateTranslations(seq, seqType, this.props.translations);
     const orfs = generateOrfs(seq, seqType, this.props.translations);
+    const separators = this.parseSeparators(this.props.separators, seq);
 
     // This is an unfortunate bit of seq checking. We could get a seq directly or from a file parsed to a part.
     if (!seq) return <div className="la-vz-seqviz" />;
@@ -486,6 +554,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       rotateOnScroll: !!this.props.rotateOnScroll,
       showComplement: (!!compSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
       showIndex: !!showIndex,
+      separators,
       translations: translations.map(
         (t, i): { direction: 1 | -1; end: number; start: number; color: string; id: string; name: string } => ({
           direction: t.direction ? (t.direction < 0 ? -1 : 1) : 1,
@@ -502,6 +571,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
         linear: typeof zoom?.linear == "number" ? Math.min(Math.max(zoom.linear, 20), 100) : 50,
         linearMap: typeof zoom?.linearMap == "number" ? Math.min(Math.max(zoom.linearMap, 0), 100) : 0,
       },
+      onSeparatorClick: this.props.onSeparatorClick,
     };
 
     return (
