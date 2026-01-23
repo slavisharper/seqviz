@@ -52,12 +52,21 @@ const DEMO_FRAGMENT: FragmentProp = {
   start: 56,
 };
 
+const DEMO_FRAGMENT_2: FragmentProp = {
+  color: "#FFB347",
+  direction: 1,
+  end: 2000,
+  id: "demo-fragment-1-1343",
+  name: "Fragment (776 - 2000)",
+  start: 776,
+};
+
 const buildDefaultPresetState = () => ({
   contextInfo: null as ContextInfo | null,
   disableCircularMap: false,
   disableLinearMap: false,
   disableLinearSequence: false,
-  fragments: [{ ...DEMO_FRAGMENT }],
+  fragments: [DEMO_FRAGMENT, DEMO_FRAGMENT_2],
   enzymes: [...DEFAULT_ENZYMES],
   primers: createDefaultPrimers(),
   search: { query: DEFAULT_SEARCH_QUERY },
