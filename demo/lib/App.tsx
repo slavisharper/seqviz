@@ -47,18 +47,9 @@ const DEMO_FRAGMENT: FragmentProp = {
   color: "#FFB347",
   direction: 1,
   end: 775,
-  id: "demo-fragment-1-1343",
+  id: "demo-fragment-56-775",
   name: "Fragment (AciI - PvuII)",
   start: 56,
-};
-
-const DEMO_FRAGMENT_2: FragmentProp = {
-  color: "#FFB347",
-  direction: 1,
-  end: 2000,
-  id: "demo-fragment-1-1343",
-  name: "Fragment (776 - 2000)",
-  start: 776,
 };
 
 const buildDefaultPresetState = () => ({
@@ -66,7 +57,7 @@ const buildDefaultPresetState = () => ({
   disableCircularMap: false,
   disableLinearMap: false,
   disableLinearSequence: false,
-  fragments: [DEMO_FRAGMENT, DEMO_FRAGMENT_2],
+  fragments: [DEMO_FRAGMENT],
   enzymes: [...DEFAULT_ENZYMES],
   primers: createDefaultPrimers(),
   search: { query: DEFAULT_SEARCH_QUERY },

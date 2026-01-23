@@ -197,3 +197,14 @@ export const seqBlock: CSS.Properties = {
   padding: 0,
   width: "100%",
 };
+
+export const linearHorizontalScroller: CSS.Properties = {
+  cursor: "text",
+  fontWeight: 300,
+  height: "100%",
+  outline: "none !important",
+  overflowX: "scroll",
+  overflowY: "hidden",
+  padding: "10px",
+  position: "relative",
+};

@@ -32,6 +32,7 @@ import SelectionContext, {
 import { isEqual } from "./utils/isEqual";
 import Circular, { CircularProps } from "./viewers/Circular/Circular";
 import Linear, { LinearProps } from "./viewers/Linear/Linear";
+import LinearHorizontal from "./viewers/LinearHorizontal/LinearHorizontal";
 import LinearMap, { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
 /**
@@ -103,7 +104,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   /** testSize is a forced height/width that overwrites anything from sizeMe. For testing */
   testSize?: { height: number; width: number };
   translations: NameRange[];
-  viewer: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear";
+  viewer: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear" | "linear_horizontal" | "linear_map_horizontal" | "circular_horizontal";
   zoom: { circular: number; linear: number; linearMap?: number };
   enableInteractiveZoom?: boolean;
   onZoomChange?: (zoom: { circular: number; linear: number; linearMap?: number }) => void;
@@ -120,6 +121,7 @@ export interface SeqViewerContainerState {
   };
   selection: Selection;
   managedZoom: { circular: number; linear: number; linearMap: number };
+  linearPanelHeight: number;
 }
 
 /**
@@ -134,6 +136,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   private buildLinearMapProps = createLinearMapPropsBuilder();
 
   private containerEl: HTMLDivElement | null = null;
+  private linearPanelEl: HTMLDivElement | null = null;
+  private linearResizeObserver: ResizeObserver | null = null;
   private pinchTouches = new Map<number, { x: number; y: number }>();
   private pinchBaseDist: number | null = null;
   private pinchStartViewer: "linear" | "circular" | "linearMap" | null = null;
@@ -156,6 +160,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
         linear: clamp("linear", props.zoom?.linear ?? 50),
         linearMap: clamp("linearMap", props.zoom?.linearMap ?? props.zoom?.circular ?? 0),
       },
+      linearPanelHeight: 0,
     };
   }
 
@@ -171,6 +176,16 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     }
 
     this.attachInteractiveListeners(this.containerEl);
+
+    // Setup ResizeObserver for linear panel to track height changes
+    if (this.linearPanelEl) {
+      this.linearResizeObserver = new ResizeObserver(() => {
+        if (this.linearPanelEl) {
+          this.setState({ linearPanelHeight: this.linearPanelEl.offsetHeight });
+        }
+      });
+      this.linearResizeObserver.observe(this.linearPanelEl);
+    }
   }
 
   // If the selection prop updates, also scroll the linear view to the new selection
@@ -213,6 +228,9 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
   componentWillUnmount() {
     this.detachInteractiveListeners(this.containerEl);
+    if (this.linearResizeObserver) {
+      this.linearResizeObserver.disconnect();
+    }
   }
 
   /** this is here because the size listener is returning a new "size" prop every time */
@@ -555,11 +573,17 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   private getViewerVisibility = (): ViewerVisibility => {
     const { disableCircularMap, disableLinearMap, disableLinearSequence, viewer } = this.props;
 
-    const showCircular = !disableCircularMap && (viewer === "circular" || viewer === "both" || viewer === "both_flip");
-    const showLinearMap = !disableLinearMap && (viewer === "linear_map" || viewer === "linear_map_linear");
+    const showCircular = !disableCircularMap && (viewer === "circular" || viewer === "both" || viewer === "both_flip" || viewer === "circular_horizontal");
+    const showLinearMap = !disableLinearMap && (viewer === "linear_map" || viewer === "linear_map_linear" || viewer === "linear_map_horizontal");
     const showLinear =
       !disableLinearSequence &&
-      (viewer === "linear" || viewer === "linear_map_linear" || viewer === "both" || viewer === "both_flip");
+      (viewer === "linear" ||
+        viewer === "linear_map_linear" ||
+        viewer === "both" ||
+        viewer === "both_flip" ||
+        viewer === "linear_horizontal" ||
+        viewer === "linear_map_horizontal" ||
+        viewer === "circular_horizontal");
 
     return { showCircular, showLinearMap, showLinear };
   };
@@ -642,6 +666,9 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                         showLinear,
                         showLinearMap,
                         viewer,
+                        containerHeight: this.props.height,
+                        linearPanelHeight: this.state.linearPanelHeight,
+                        setLinearPanelRef: (el) => { this.linearPanelEl = el; },
                       })}
                 </EventHandler>
               )}
@@ -667,6 +694,9 @@ type ViewerRendererProps = CustomChildrenProps & {
   showLinear: boolean;
   showLinearMap: boolean;
   viewer: SeqViewerContainerProps["viewer"];
+  containerHeight: number;
+  linearPanelHeight: number;
+  setLinearPanelRef: (el: HTMLDivElement | null) => void;
 };
 
 const renderViewerPanels = ({
@@ -681,8 +711,15 @@ const renderViewerPanels = ({
   showLinear,
   showLinearMap,
   viewer,
+  containerHeight,
+  linearPanelHeight,
+  setLinearPanelRef,
 }: ViewerRendererProps) => {
   const isDual = (viewer === "both" || viewer === "both_flip") && showCircular && showLinear;
+  const isCircularHorizontal = viewer === "circular_horizontal" && showCircular && showLinear;
+  const isLinearMapHorizontal = viewer === "linear_map_horizontal" && showLinearMap && showLinear;
+
+  // For circular_horizontal, stack vertically: circular map on top, horizontal linear on bottom full width.
   const layoutDirection: React.CSSProperties["flexDirection"] = isDual ? "row" : "column";
 
   const layoutStyle: React.CSSProperties = {
@@ -694,37 +731,41 @@ const renderViewerPanels = ({
   };
 
   const circularStyle: React.CSSProperties = {
-    flex: isDual ? "1 1 50%" : undefined,
+    flex: isDual ? "1 1 50%" : isCircularHorizontal ? "1 1 auto" : undefined,
     order: viewer === "both_flip" ? 2 : undefined,
     minWidth: 0,
+    overflow: isCircularHorizontal ? "hidden" : undefined,
+    height: isCircularHorizontal ? `${containerHeight - linearPanelHeight}px` : undefined,
   };
 
   const isLinearMapLinear = viewer === "linear_map_linear";
   const isLinearMapOnly = viewer === "linear_map";
 
-  const mapZoom = (viewer === "linear_map_linear" ? combinedLinearMapProps : linearMapProps).zoom ?? 0;
+  const mapZoom = (viewer === "linear_map_linear" || viewer === "linear_map_horizontal" ? combinedLinearMapProps : linearMapProps).zoom ?? 0;
 
   const linearMapStyle: React.CSSProperties = {
-    borderBottom: isLinearMapLinear ? "1px solid rgba(0, 0, 0, 0.15)" : undefined,
-    boxShadow: isLinearMapLinear ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
-    flex: isLinearMapLinear ? "0 0 auto" : isLinearMapOnly ? "1 1 auto" : undefined,
-    overflowY: isLinearMapLinear || isLinearMapOnly ? "auto" : undefined,
-    overflowX: mapZoom > 0 ? (isLinearMapLinear || isLinearMapOnly ? "auto" : undefined) : "hidden",
-    maxHeight: isLinearMapLinear ? "50%" : undefined,
-    minHeight: isLinearMapLinear ? "14rem" : undefined,
+    borderBottom: isLinearMapLinear || isLinearMapHorizontal ? "1px solid rgba(0, 0, 0, 0.15)" : undefined,
+    boxShadow: isLinearMapLinear || isLinearMapHorizontal ? "0 2px 4px rgba(0, 0, 0, 0.08)" : undefined,
+    flex: isLinearMapLinear || isLinearMapHorizontal ? "0 0 auto" : isLinearMapOnly ? "1 1 auto" : undefined,
+    overflowY: isLinearMapLinear || isLinearMapHorizontal || isLinearMapOnly ? "auto" : undefined,
+    overflowX: mapZoom > 0 ? (isLinearMapLinear || isLinearMapHorizontal || isLinearMapOnly ? "auto" : undefined) : "hidden",
+    maxHeight: isLinearMapLinear || isLinearMapHorizontal ? "50%" : undefined,
+    minHeight: isLinearMapLinear || isLinearMapHorizontal ? "14rem" : undefined,
     height: isLinearMapOnly ? "100%" : undefined,
     minWidth: 0,
   };
 
   const linearStyle: React.CSSProperties = {
-    flex: isLinearMapLinear ? "1 1 auto" : isDual ? "1 1 50%" : showLinear ? "1 1 auto" : undefined,
-    minHeight: isLinearMapLinear || !isDual ? 0 : undefined,
-    overflow: isLinearMapLinear ? "hidden" : undefined,
-    order: viewer === "both" ? 2 : viewer === "both_flip" ? 1 : undefined,
+    flex: isLinearMapLinear || isLinearMapHorizontal ? "1 1 auto" : isDual ? "1 1 50%" : isCircularHorizontal ? "0 0 auto" : showLinear ? "1 1 auto" : undefined,
+    minHeight: isLinearMapLinear || isLinearMapHorizontal || !isDual ? 0 : undefined,
+    overflow: isLinearMapLinear || isLinearMapHorizontal || isCircularHorizontal ? "hidden" : undefined,
+    order: viewer === "both" ? 2 : viewer === "both_flip" ? 1 : viewer === "circular_horizontal" ? 2 : undefined,
     minWidth: 0,
   };
 
-  const mapProps = viewer === "linear_map_linear" ? combinedLinearMapProps : linearMapProps;
+  const mapProps = viewer === "linear_map_linear" || viewer === "linear_map_horizontal" ? combinedLinearMapProps : linearMapProps;
+
+  const useHorizontalLinear = viewer === "linear_horizontal" || viewer === "linear_map_horizontal" || viewer === "circular_horizontal";
 
   return (
     <div className={`la-vz-viewer-panels la-vz-viewer-panels-${viewer}`} style={layoutStyle}>
@@ -739,8 +780,21 @@ const renderViewerPanels = ({
         </div>
       )}
       {showLinear && (
-        <div className="la-vz-viewer-panel la-vz-viewer-panel-linear" style={linearStyle}>
-          <Linear {...linearProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} onUnmount={onUnmount} />
+        <div
+          ref={setLinearPanelRef}
+          className="la-vz-viewer-panel la-vz-viewer-panel-linear"
+          style={linearStyle}
+        >
+          {useHorizontalLinear ? (
+            <LinearHorizontal
+              {...linearProps}
+              handleMouseEvent={handleMouseEvent}
+              inputRef={inputRef}
+              onUnmount={onUnmount}
+            />
+          ) : (
+            <Linear {...linearProps} handleMouseEvent={handleMouseEvent} inputRef={inputRef} onUnmount={onUnmount} />
+          )}
         </div>
       )}
     </div>

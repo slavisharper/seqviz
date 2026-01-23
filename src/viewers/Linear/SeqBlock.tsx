@@ -83,6 +83,15 @@ interface SeqBlockProps {
   zoom: { linear: number };
   zoomed: boolean;
   onSeparatorClick?: (event: SeparatorClickEvent) => void;
+  /** Optional override for consistent Y positions across blocks (horizontal viewer). */
+  globalMaxHeights?: {
+    primerFwdHeight: number;
+    cutSiteHeight: number;
+    primerRevHeight: number;
+    translationHeight: number;
+    fragmentsHeight: number;
+    annHeight: number;
+  };
 }
 
 /**
@@ -274,6 +283,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       zoom,
       zoomed,
       onSeparatorClick,
+      globalMaxHeights,
     } = this.props;
 
     if (!size.width || !size.height) return null;
@@ -290,13 +300,20 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
     // use the rendered character width to represent the clickable width of this block
     const selectionWidth = seq.length < bpsPerBlock ? charWidth * seq.length : size.width;
 
+    // If globalMaxHeights is provided, use them for consistent layout across blocks
+    const useGlobalHeights = !!globalMaxHeights;
+
     // height and yDiff of forward primers
     const primerFwdYDiff = 0;
-    const primerFwdHeight = primerFwdRows.length ? elementHeight * primerFwdRows.length : 0;
+    const primerFwdHeight = useGlobalHeights
+      ? globalMaxHeights.primerFwdHeight
+      : primerFwdRows.length
+        ? elementHeight * primerFwdRows.length
+        : 0;
 
     // height and yDiff of cut sites
     const cutSiteYDiff = primerFwdYDiff + primerFwdHeight; // spacing for cutSite names
-    const cutSiteHeight = zoomed && cutSiteRows.length ? lineHeight : 0;
+    const cutSiteHeight = useGlobalHeights ? globalMaxHeights.cutSiteHeight : zoomed && cutSiteRows.length ? lineHeight : 0;
 
     // height and yDiff of the sequence strand
     const indexYDiff = cutSiteYDiff + cutSiteHeight;
@@ -309,24 +326,32 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
 
     // height and yDiff of reverse primers
     const primerRevYDiff = compYDiff + compHeight;
-    const primerRevHeight = primerRevRows.length ? elementHeight * primerRevRows.length : 0;
+    const primerRevHeight = useGlobalHeights
+      ? globalMaxHeights.primerRevHeight
+      : primerRevRows.length
+        ? elementHeight * primerRevRows.length
+        : 0;
 
     // height and yDiff of translations
     // elementHeight * 2 is to account for the translation handle. If no name, don't show the handle
     const translationYDiff = primerRevYDiff + primerRevHeight;
     let translationHeight = 0;
-    for (let i = 0; i < translationRows.length; i++) {
-      const multiplier = translationRows[i][0]["name"] ? 2 : 1;
-      translationHeight += elementHeight * multiplier;
+    if (useGlobalHeights) {
+      translationHeight = globalMaxHeights.translationHeight;
+    } else {
+      for (let i = 0; i < translationRows.length; i++) {
+        const multiplier = translationRows[i][0]["name"] ? 2 : 1;
+        translationHeight += elementHeight * multiplier;
+      }
     }
 
     // height and yDiff of fragments (rendered before standard annotations)
     const fragmentsYDiff = translationYDiff + translationHeight;
-    const fragmentsHeight = elementHeight * fragmentRows.length;
+    const fragmentsHeight = useGlobalHeights ? globalMaxHeights.fragmentsHeight : elementHeight * fragmentRows.length;
 
     // height and yDiff of annotations
     const annYDiff = fragmentsYDiff + fragmentsHeight;
-    const annHeight = elementHeight * annotationRows.length;
+    const annHeight = useGlobalHeights ? globalMaxHeights.annHeight : elementHeight * annotationRows.length;
 
     // height and ydiff of the index row
     const elementGap =

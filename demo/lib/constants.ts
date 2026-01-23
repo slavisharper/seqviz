@@ -4,11 +4,23 @@ import type { TranslationSettings } from "../../src/SeqViz";
 
 export type SupportedSeqType = Extract<SeqType, "dna" | "rna" | "aa">;
 
-export type ViewerOption = "both" | "circular" | "linear" | "both_flip" | "linear_map" | "linear_map_linear";
+export type ViewerOption =
+  | "both"
+  | "circular"
+  | "linear"
+  | "both_flip"
+  | "linear_map"
+  | "linear_map_linear"
+  | "linear_horizontal"
+  | "linear_map_horizontal"
+  | "circular_horizontal";
 
 export const VIEWER_TYPE_OPTIONS = [
   { key: "linear", text: "Linear Sequence", value: "linear" },
+  { key: "linear_horizontal", text: "Linear Sequence (Horizontal)", value: "linear_horizontal" },
   { key: "linear_map_linear", text: "Linear map + Sequence", value: "linear_map_linear" },
+  { key: "linear_map_horizontal", text: "Linear map + Sequence (Horizontal)", value: "linear_map_horizontal" },
+  { key: "circular_horizontal", text: "Circular Map + Sequence (Horizontal)", value: "circular_horizontal" },
   { key: "linear_map", text: "Linear map", value: "linear_map" },
   { key: "both", text: "Circular Map + Sequence", value: "both" },
   { key: "both_flip", text: "Sequence + Circular Map", value: "both_flip" },
