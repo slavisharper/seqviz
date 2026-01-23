@@ -21,6 +21,7 @@ import { SeqBlock } from "./SeqBlock";
 
 export interface LinearProps {
   annotations: Annotation[];
+  fragments: Annotation[];
   bpColors?: { [key: number | string]: string };
   bpsPerBlock: number;
   charWidth: number;
@@ -77,6 +78,7 @@ export default class Linear extends React.Component<LinearProps> {
   render() {
     const {
       annotations,
+      fragments = [],
       bpsPerBlock,
       compSeq,
       cutSites,
@@ -144,6 +146,12 @@ export default class Linear extends React.Component<LinearProps> {
       arrSize,
     );
 
+    const fragmentRows = createMultiRows(
+      stackElements(vetAnnotations(fragments), seq.length),
+      bpsPerBlock,
+      arrSize,
+    );
+
     const searchRows: NameRange[][] =
       search && search.length ? createSingleRows(search, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);
 
@@ -189,6 +197,9 @@ export default class Linear extends React.Component<LinearProps> {
       if (annotationRows[i].length) {
         blockHeight += annotationRows[i].length * elementHeight;
       }
+      if (fragmentRows[i].length) {
+        blockHeight += fragmentRows[i].length * elementHeight;
+      }
       if (cutSiteRows[i].length) {
         blockHeight += lineHeight; // space for cutsite name
       }
@@ -204,6 +215,7 @@ export default class Linear extends React.Component<LinearProps> {
         <SeqBlock
           key={ids[i]}
           annotationRows={annotationRows[i]}
+          fragmentRows={fragmentRows[i]}
           blockHeight={blockHeights[i]}
           bpColors={this.props.bpColors}
           bpsPerBlock={bpsPerBlock}

@@ -17,9 +17,12 @@ export interface AnnotationProp {
   color?: string;
   direction?: number | string;
   end: number;
+  id?: string;
   name: string;
   start: number;
 }
+
+export type FragmentProp = AnnotationProp;
 
 /** Single-strand annotation rendered over the sequence (similar to search highlights). */
 export interface SingleStrandAnnotationProp extends AnnotationProp {
@@ -39,6 +42,8 @@ export interface TranslationProp {
 export interface Annotation extends NameRange {
   color: string;
 }
+
+export type Fragment = Annotation;
 
 /** Translation is a single translated CDS. */
 export interface Translation extends NameRange {

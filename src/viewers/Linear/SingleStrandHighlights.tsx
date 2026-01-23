@@ -70,8 +70,10 @@ const SingleStrandHighlight = (props: {
         viewer: "LINEAR",
       })}
       className="la-vz-single-strand-annotation"
+      data-selection-end={props.annotation.end}
       data-selection-name={props.annotation.name}
       data-selection-ref={props.annotation.id}
+      data-selection-start={props.annotation.start}
       data-selection-type="SINGLE_STRAND_ANNOTATION"
       data-selection-viewer="LINEAR"
       height={props.lineHeight}

@@ -2,7 +2,14 @@ import * as React from "react";
 import seqparse from "seqparse";
 
 import SeqViz from "../../src/SeqViz";
-import { AnnotationProp, Primer, SeparatorClickEvent, SeparatorProp, SingleStrandAnnotationProp } from "../../src/core/elements";
+ import {
+  AnnotationProp,
+  FragmentProp,
+  Primer,
+  SeparatorClickEvent,
+  SeparatorProp,
+  SingleStrandAnnotationProp,
+} from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
 import { defaultSelection, type FragmentSelection, type Selection } from "../../src/state/selectionContext";
@@ -36,11 +43,21 @@ import CircularZoomInput from "./components/CircularZoomInput";
 
 type ViewerTypeOptionConfig = (typeof VIEWER_TYPE_OPTIONS)[number];
 
+const DEMO_FRAGMENT: FragmentProp = {
+  color: "#FFB347",
+  direction: 1,
+  end: 775,
+  id: "demo-fragment-1-1343",
+  name: "Fragment (AciI - PvuII)",
+  start: 56,
+};
+
 const buildDefaultPresetState = () => ({
   contextInfo: null as ContextInfo | null,
   disableCircularMap: false,
   disableLinearMap: false,
   disableLinearSequence: false,
+  fragments: [{ ...DEMO_FRAGMENT }],
   enzymes: [...DEFAULT_ENZYMES],
   primers: createDefaultPrimers(),
   search: { query: DEFAULT_SEARCH_QUERY },
@@ -71,6 +88,7 @@ interface AppState {
   disableLinearSequence: boolean;
   exampleId: DemoExampleId;
   enzymes: string[];
+  fragments: FragmentProp[];
   name: string;
   primers: Primer[];
   search: { query: string };
@@ -109,9 +127,15 @@ export default class App extends React.Component<Record<string, never>, AppState
   seqViewerRef: React.RefObject<HTMLDivElement> = React.createRef();
   private defaultSequenceData: Pick<AppState, "annotations" | "name" | "seq"> | null = null;
   private presetStateFromConfig = (config: DemoExampleConfig): Omit<DemoExampleConfig, "description"> => {
-    const { description: _description, singleStrandAnnotations = [], separators = [], ...stateProjection } = config;
+    const {
+      description: _description,
+      fragments = [],
+      singleStrandAnnotations = [],
+      separators = [],
+      ...stateProjection
+    } = config;
     void _description;
-    return { ...stateProjection, singleStrandAnnotations, separators };
+    return { ...stateProjection, fragments, singleStrandAnnotations, separators };
   };
 
   componentDidMount = async () => {
@@ -247,6 +271,7 @@ export default class App extends React.Component<Record<string, never>, AppState
 
     this.setState(prevState => ({
       ...presetState,
+      fragments: presetState.fragments || [],
       singleStrandAnnotations: presetState.singleStrandAnnotations || [],
       separators: presetState.separators || [],
       showTranslations: typeof presetState.showTranslations === "boolean" ? presetState.showTranslations : true,
@@ -440,6 +465,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                   seqType={this.state.seqType}
                   key={`${this.state.viewer}${this.state.exampleId}`}
                   annotations={this.state.annotations}
+                  fragments={this.state.fragments}
                   disableCircularMap={this.state.disableCircularMap}
                   disableLinearMap={this.state.disableLinearMap}
                   disableLinearSequence={this.state.disableLinearSequence}

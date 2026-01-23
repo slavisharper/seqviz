@@ -5,6 +5,7 @@ import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import {
   Annotation,
   CutSite,
+  Fragment,
   Highlight,
   NameRange,
   Primer,
@@ -63,6 +64,7 @@ import { LinearMapScale, clamp, normalizeBase, rangeLength, rangeMidpoint } from
 
 export interface LinearMapProps {
   annotations: Annotation[];
+  fragments: Fragment[];
   cutSites: CutSite[];
   handleMouseEvent: React.MouseEventHandler<SVGSVGElement>;
   highlights: Highlight[];
@@ -258,6 +260,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
   render() {
     const {
       annotations = [],
+      fragments = [],
       cutSites = [],
       handleMouseEvent,
       highlights = [],
@@ -294,7 +297,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const orfRows: LinearOrf[][] = stackElements(orfRanges, seqLength).map(row =>
       row.map(range => orfById.get(range.id)).filter((value): value is LinearOrf => isDefined(value)),
     );
+    const fragmentRows = stackElements(fragments, seqLength);
     const annotationRows = stackElements(annotations, seqLength);
+    const combinedAnnotationRows = fragmentRows.concat(annotationRows);
     const primerForwardRows = stackElements(
       primers.filter(primer => primer.direction === 1),
       seqLength,
@@ -305,7 +310,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     );
 
     const annotationRowIndex = new Map<string, number>();
-    annotationRows.forEach((row, rowIndex) => {
+    combinedAnnotationRows.forEach((row, rowIndex) => {
       row.forEach(annotation => {
         annotationRowIndex.set(annotation.id, rowIndex);
       });
@@ -343,12 +348,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const annotationRowHeight = LINE_HEIGHT + ROW_GAP;
     const primerRowHeight = LINE_HEIGHT + ROW_GAP;
     const orfRowHeight = LINE_HEIGHT + ROW_GAP;
+    const primerFeatureHeight = LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
     const orfFeatureHeight = LINE_HEIGHT * ORF_HEIGHT_RATIO;
     const annotationFeatureHeight = LINE_HEIGHT * ANNOTATION_HEIGHT_RATIO;
-    const primerFeatureHeight = LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
 
+    const allAnnotations = fragments.concat(annotations);
     const { enzymeLabels, featureLabels, inlineAnnotationIds, inlinePrimerIds } = this.computeLabelLayout(
-      annotations,
+      allAnnotations,
       primers,
       cutSites,
       scale,
@@ -380,7 +386,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     }
 
     const annotationStartY = currentY;
-    const annotationAreaHeight = annotationRows.length ? annotationRows.length * annotationRowHeight - ROW_GAP : 0;
+    const annotationAreaHeight = combinedAnnotationRows.length
+      ? combinedAnnotationRows.length * annotationRowHeight - ROW_GAP
+      : 0;
     if (annotationAreaHeight) {
       currentY += annotationAreaHeight + TRACK_GAP;
     }
@@ -510,7 +518,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
           isFeatureHovered={this.isFeatureHovered}
           onFeatureHover={this.handleFeatureHover}
           rowSpacing={annotationRowHeight}
-          rows={annotationRows}
+          rows={combinedAnnotationRows}
           scale={scale}
           startY={annotationStartY}
         />

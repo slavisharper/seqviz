@@ -9,6 +9,8 @@ import {
   Annotation,
   AnnotationProp,
   CutSite,
+  Fragment,
+  FragmentProp,
   Enzyme,
   Highlight,
   HighlightProp,
@@ -43,6 +45,9 @@ export interface SeqVizProps {
 
   /** a list of annotations to render to the viewer */
   annotations?: AnnotationProp[];
+
+  /** fragments render like annotations but are prioritized to the outer/top rows */
+  fragments?: FragmentProp[];
 
   /**
    * an iGEM backbone to render within the viewer
@@ -196,6 +201,7 @@ export interface SeqVizProps {
 
 export interface SeqVizState {
   annotations: Annotation[];
+  fragments: Fragment[];
   compSeq: string;
   cutSites: CutSite[];
   name: string;
@@ -222,6 +228,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     disableLinearSequence: false,
     enzymes: [],
     enzymesCustom: {},
+    fragments: [],
     name: "",
     onSearch: () => null,
     onSelection: () => null,
@@ -311,7 +318,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
    */
   componentDidUpdate = (
     // previous props
-    { accession = "", annotations, enzymes, enzymesCustom, file, search }: SeqVizProps,
+    { accession = "", annotations, enzymes, enzymesCustom, file, fragments: prevFragments, search }: SeqVizProps,
     // previous state
     { seq, seqType, name }: SeqVizState,
   ) => {
@@ -326,6 +333,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       const input = this.parseInput();
       this.setState({
         annotations: input.annotations,
+        fragments: input.fragments,
         compSeq: input.compSeq,
         name: input.name,
         seq: input.seq,
@@ -355,6 +363,12 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
         annotations: this.parseAnnotations(this.props.annotations, this.props.seq),
       });
     }
+
+    if (!isEqual(prevFragments, this.props.fragments)) {
+      this.setState({
+        fragments: this.parseAnnotations(this.props.fragments, this.props.seq),
+      });
+    }
   };
 
   /**
@@ -365,12 +379,13 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     props?: SeqVizProps,
   ): {
     annotations: Annotation[];
+    fragments: Fragment[];
     compSeq: string;
     name: string;
     seq: string;
     seqType: SeqType;
   } => {
-    const { annotations, compSeq, file, name = "", seq, seqType } = props || this.props;
+    const { annotations, compSeq, file, fragments, name = "", seq, seqType } = props || this.props;
 
     if (file) {
       // Parse a sequence file
@@ -384,6 +399,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
         const parsedSeqType = seqType ?? guessType(parsed[0].seq);
         return {
           annotations: this.parseAnnotations(parsed[0].annotations, parsed[0].seq),
+          fragments: this.parseAnnotations(fragments, parsed[0].seq),
           compSeq: complement(parsed[0].seq, parsedSeqType).compSeq,
           name: parsed[0].name,
           seq: parsed[0].seq,
@@ -395,6 +411,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       const parsedSeqType = seqType ?? guessType(seq);
       return {
         annotations: this.parseAnnotations(annotations, seq),
+        fragments: this.parseAnnotations(fragments, seq),
         compSeq: compSeq || complement(seq, parsedSeqType).compSeq,
         name,
         seq,
@@ -404,6 +421,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
 
     return {
       annotations: [],
+      fragments: [],
       compSeq: "",
       name: "",
       seq: "",
@@ -544,6 +562,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           strand: annotation.strand === -1 ? -1 : 1,
         }),
       ),
+      fragments: this.state.fragments,
       onSelection:
         this.props.onSelection ||
         (() => {

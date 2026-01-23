@@ -81,6 +81,12 @@ const SingleHighlight = (props: {
         viewer: "LINEAR",
       })}
       className="la-vz-highlight"
+      data-selection-end={props.highlight.end}
+      data-selection-name={props.highlight.name}
+      data-selection-ref={props.highlight.id}
+      data-selection-start={props.highlight.start}
+      data-selection-type="HIGHLIGHT"
+      data-selection-viewer="LINEAR"
       height={spanHeight}
       id={props.highlight.id}
       stroke={props.listenerOnly ? "none" : "rgba(0, 0, 0, 0.5)"}

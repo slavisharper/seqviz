@@ -62,6 +62,7 @@ export type GenArcFunc = (args: {
 
 export interface CircularProps {
   annotations: Annotation[];
+  fragments: Annotation[];
   center: { x: number; y: number };
   compSeq: string;
   cutSites: CutSite[];
@@ -120,7 +121,9 @@ export default class Circular extends React.Component<CircularProps, CircularSta
 
   static getDerivedStateFromProps = (nextProps: CircularProps): CircularState => {
     const lineHeight = 14;
-    const annotationsInRows = stackElements(nextProps.annotations, nextProps.seq.length);
+    const fragmentRows = stackElements(nextProps.fragments || [], nextProps.seq.length);
+    const annotationRows = stackElements(nextProps.annotations, nextProps.seq.length);
+    const annotationsInRows = fragmentRows.concat(annotationRows);
     const primerRows = stackElements(nextProps.primers || [], nextProps.seq.length);
 
     /**

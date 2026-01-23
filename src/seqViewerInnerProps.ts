@@ -14,6 +14,8 @@ import { CircularProps } from "./viewers/Circular/Circular";
 import { LinearProps } from "./viewers/Linear/Linear";
 import { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
+type LinearBaseProps = Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount" | "separators" | "onSeparatorClick">;
+
 export const memoizeOne = <Args extends unknown[], Result>(
   fn: (...args: Args) => Result,
 ): ((...args: Args) => Result) => {
@@ -48,6 +50,7 @@ export const createLinearPropsBuilder = () =>
   memoizeOne(
     (
       annotations: Annotation[],
+      fragments: Annotation[],
       bpColors: { [key: number | string]: string } | undefined,
       compSeq: string,
       cutSites: CutSite[],
@@ -63,7 +66,7 @@ export const createLinearPropsBuilder = () =>
       sizeHeight: number,
       translations: NameRange[],
       zoomLinear: number,
-    ): Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount"> => {
+    ): LinearBaseProps => {
       const seqLength = seq.length;
       const size: Size = { height: sizeHeight, width: sizeWidth };
 
@@ -94,6 +97,7 @@ export const createLinearPropsBuilder = () =>
 
       return {
         annotations,
+        fragments,
         bpColors,
         bpsPerBlock,
         charWidth,
@@ -121,6 +125,7 @@ export const createCircularPropsBuilder = () =>
   memoizeOne(
     (
       annotations: Annotation[],
+      fragments: Annotation[],
       compSeq: string,
       cutSites: CutSite[],
       highlights: Highlight[],
@@ -170,6 +175,7 @@ export const createCircularPropsBuilder = () =>
 
       return {
         annotations,
+        fragments,
         center,
         compSeq,
         cutSites,
@@ -194,6 +200,7 @@ export const createLinearMapPropsBuilder = () =>
   memoizeOne(
     (
       annotations: Annotation[],
+      fragments: Annotation[],
       cutSites: CutSite[],
       highlights: Highlight[],
       name: string,
@@ -209,6 +216,7 @@ export const createLinearMapPropsBuilder = () =>
       zoomLinearMap: number,
     ): Omit<LinearMapProps, "handleMouseEvent" | "inputRef" | "separators" | "onSeparatorClick"> => ({
       annotations,
+      fragments,
       cutSites,
       highlights,
       name,

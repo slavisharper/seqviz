@@ -73,6 +73,7 @@ type ViewerVisibility = {
 
 interface SeqViewerContainerProps extends ResizeInjectedProps {
   annotations: Annotation[];
+  fragments: Annotation[];
   bpColors: { [key: number | string]: string };
   children?: (props: CustomChildrenProps) => React.ReactNode;
   compSeq: string;
@@ -429,9 +430,10 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     return size;
   };
 
-  private getLinearProps = (viewerSize: Size) => {
+  private getLinearProps = (viewerSize: Size): Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount"> => {
     const {
       annotations,
+      fragments,
       bpColors,
       compSeq,
       cutSites,
@@ -449,6 +451,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
     const linearProps = this.buildLinearProps(
       annotations,
+      fragments,
       bpColors,
       compSeq,
       cutSites,
@@ -476,6 +479,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   private getCircularProps = () => {
     const {
       annotations,
+      fragments,
       compSeq,
       cutSites,
       highlights,
@@ -493,6 +497,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
     const circularProps = this.buildCircularProps(
       annotations,
+      fragments,
       compSeq,
       cutSites,
       highlights,
@@ -517,13 +522,14 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
   };
 
   private getLinearMapProps = (viewerSize: Size, selection: Selection): LinearMapChildProps => {
-    const { annotations, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } =
+    const { annotations, fragments, cutSites, highlights, name, orfs, primers, rotateOnScroll, search, seq, showIndex } =
       this.props;
     const managedZoom = this.state.managedZoom;
     const zoomLinearMap = managedZoom.linearMap;
 
     const linearMapProps = this.buildLinearMapProps(
       annotations,
+      fragments,
       cutSites,
       highlights,
       name,

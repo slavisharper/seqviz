@@ -50,6 +50,7 @@ export type FindXAndWidthElementType = (
 
 interface SeqBlockProps {
   annotationRows: Annotation[][];
+  fragmentRows: Annotation[][];
   blockHeight: number;
   bpColors?: { [key: number | string]: string };
   bpsPerBlock: number;
@@ -243,6 +244,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
   render() {
     const {
       annotationRows,
+      fragmentRows,
       blockHeight,
       bpsPerBlock,
       charWidth,
@@ -318,8 +320,12 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       translationHeight += elementHeight * multiplier;
     }
 
+    // height and yDiff of fragments (rendered before standard annotations)
+    const fragmentsYDiff = translationYDiff + translationHeight;
+    const fragmentsHeight = elementHeight * fragmentRows.length;
+
     // height and yDiff of annotations
-    const annYDiff = translationYDiff + translationHeight;
+    const annYDiff = fragmentsYDiff + fragmentsHeight;
     const annHeight = elementHeight * annotationRows.length;
 
     // height and ydiff of the index row
@@ -336,6 +342,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       indexHeight +
       compHeight +
       translationHeight +
+      fragmentsHeight +
       annHeight +
       primerRevHeight +
       elementGap +
@@ -494,6 +501,21 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             onUnmount={onUnmount}
           />
         )}
+        {fragmentRows.length && (
+          <AnnotationRows
+            annotationRows={fragmentRows}
+            bpsPerBlock={bpsPerBlock}
+            elementHeight={elementHeight}
+            findXAndWidth={this.findXAndWidthElement}
+            firstBase={firstBase}
+            fullSeq={fullSeq}
+            inputRef={inputRef}
+            lastBase={lastBase}
+            seqBlockRef={this}
+            width={size.width}
+            yDiff={fragmentsYDiff}
+          />
+        )}
         {annotationRows.length && (
           <AnnotationRows
             annotationRows={annotationRows}
@@ -547,6 +569,18 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             zoom={zoom}
           />
         )}
+        <SeparatorMarkers
+          compYDiff={compYDiff}
+          findXAndWidth={this.findXAndWidth}
+          firstBase={firstBase}
+          fullSeqLength={fullSeq.length}
+          hasComplementRow={hasComplementRow}
+          indexYDiff={indexYDiff}
+          lastBase={lastBase}
+          lineHeight={lineHeight}
+          separators={separators}
+          onSeparatorClick={onSeparatorClick}
+        />
         <Find
           compYDiff={compYDiff - 3}
           filteredRows={showComplement ? searchRows : searchRows.filter(r => r.direction === 1)}
@@ -583,18 +617,6 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           lineHeight={lineHeight}
           listenerOnly={true}
           seqBlockRef={this}
-        />
-        <SeparatorMarkers
-          compYDiff={compYDiff}
-          findXAndWidth={this.findXAndWidth}
-          firstBase={firstBase}
-          fullSeqLength={fullSeq.length}
-          hasComplementRow={hasComplementRow}
-          indexYDiff={indexYDiff}
-          lastBase={lastBase}
-          lineHeight={lineHeight}
-          separators={separators}
-          onSeparatorClick={onSeparatorClick}
         />
       </svg>
     );

@@ -1,5 +1,5 @@
 import { chooseRandomColor } from "../../src/core/colors";
-import { AnnotationProp, Primer, SeparatorProp, SeqType, SingleStrandAnnotationProp } from "../../src/core/elements";
+import { AnnotationProp, FragmentProp, Primer, SeparatorProp, SeqType, SingleStrandAnnotationProp } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 
 export type SupportedSeqType = Extract<SeqType, "dna" | "rna" | "aa">;
@@ -221,6 +221,7 @@ export interface DemoExampleConfig {
   disableLinearMap: boolean;
   disableLinearSequence: boolean;
   enzymes: string[];
+  fragments?: FragmentProp[];
   name: string;
   primers: Primer[];
   search: { query: string };
@@ -268,6 +269,7 @@ export const AMINO_LINEAR_EXAMPLE: DemoExampleConfig = {
   disableLinearMap: false,
   disableLinearSequence: false,
   enzymes: [],
+  fragments: [],
   name: "Linear Amino Demo",
   primers: [],
   search: { query: "" },

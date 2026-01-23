@@ -90,7 +90,7 @@ const FindBlock = ({
     ));
   }
 
-  const id = randomID();
+  const id = `find-${start}-${end}-${direction}`;
   let y = indexYDiff; // template row result
   if (direction < 0 || !zoomed) {
     y = compYDiff; // complement row result
@@ -108,6 +108,10 @@ const FindBlock = ({
       })}
       className="la-vz-search"
       cursor="pointer"
+      data-selection-end={end}
+      data-selection-start={start}
+      data-selection-type="FIND"
+      data-selection-viewer="LINEAR"
       height={lineHeight}
       id={id}
       shapeRendering="crispEdges"
