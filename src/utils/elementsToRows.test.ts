@@ -34,4 +34,28 @@ describe("Elements to rows", () => {
     expect(rows).toHaveLength(1);
     expect(rows).toEqual(stackElements(elements.reverse(), 100));
   });
+
+  it("keeps adjacent fragments in the same row", () => {
+    const fragments: NameRange[] = [
+      {
+        direction: 1,
+        end: 775,
+        id: "fragment-a",
+        name: "Fragment A",
+        start: 56,
+      },
+      {
+        direction: 1,
+        end: 56,
+        id: "fragment-b",
+        name: "Fragment B",
+        start: 775,
+      },
+    ];
+
+    const rows = stackElements(fragments, 2500);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveLength(2);
+  });
 });

@@ -43,7 +43,7 @@ import CircularZoomInput from "./components/CircularZoomInput";
 
 type ViewerTypeOptionConfig = (typeof VIEWER_TYPE_OPTIONS)[number];
 
-const DEMO_FRAGMENT: FragmentProp = {
+const DEMO_FRAGMENT_1: FragmentProp = {
   color: "#FFB347",
   direction: 1,
   end: 775,
@@ -52,12 +52,21 @@ const DEMO_FRAGMENT: FragmentProp = {
   start: 56,
 };
 
+const DEMO_FRAGMENT_2: FragmentProp = {
+  color: "#FFB347",
+  direction: 1,
+  end: 56,
+  id: "demo-fragment-775-56",
+  name: "Fragment (PvuII - AciI)",
+  start: 775,
+};
+
 const buildDefaultPresetState = () => ({
   contextInfo: null as ContextInfo | null,
   disableCircularMap: false,
   disableLinearMap: false,
   disableLinearSequence: false,
-  fragments: [DEMO_FRAGMENT],
+  fragments: [DEMO_FRAGMENT_1, DEMO_FRAGMENT_2],
   enzymes: [...DEFAULT_ENZYMES],
   primers: createDefaultPrimers(),
   search: { query: DEFAULT_SEARCH_QUERY },

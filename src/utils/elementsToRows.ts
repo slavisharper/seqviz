@@ -40,7 +40,7 @@ export const stackElements = <T extends NameRange>(elements: T[], seqL: number):
           return last(elements).end <= a.start;
         }
         // both this curr element and the last in the row cross the zero index
-        return last(elements).end < a.start && a.end < first(elements).start;
+        return last(elements).end <= a.start && a.end <= first(elements).start;
       });
 
       if (insertIndex > -1) {
