@@ -3,7 +3,6 @@ import * as React from "react";
 import { InputRefFunc } from "../../SelectionHandler";
 import { borderColorByIndex, colorByIndex } from "../../core/colors";
 import { NameRange, SeqType, Translation } from "../../core/elements";
-import { randomID } from "../../core/sequence";
 import { translationAminoAcidLabel, translationHandle, translationHandleLabel } from "../../style";
 import { FindXAndWidthElementType, FindXAndWidthType } from "./SeqBlock";
 
