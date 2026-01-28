@@ -28,7 +28,6 @@ export interface Selection {
   rcut?: number;
   ref?: null | string;
   scrollLinearOnSelect?: boolean;
-  scrollLinearOnSelect?: boolean;
   start?: number;
   type: SelectionTypeEnum;
   viewer?: "LINEAR" | "CIRCULAR";
