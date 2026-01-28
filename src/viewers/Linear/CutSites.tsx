@@ -4,7 +4,14 @@ import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { CutSite, Size } from "../../core/elements";
 import { cutSite, cutSiteHighlight, svgText } from "../../style";
+import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { FindXAndWidthType } from "./SeqBlock";
+
+const CUT_LINE_ACTIVE_COLOR = "rgb(255, 46, 99)";
+const CUT_LINE_ACTIVE_WIDTH = 1.5;
+const CUT_SITE_ACTIVE_FILL = "rgba(255, 239, 213, 0.2)";
+const CUT_SITE_ACTIVE_STROKE = "rgb(0, 0, 0)";
 
 /**
  * Renders enzyme cut sites on the linear viewer. This includes a few things:
@@ -34,6 +41,16 @@ export const CutSites = (props: {
     yDiff,
     zoom: { linear: zoom },
   } = props;
+  const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
+
+  const handleHoverChange = (cutSite: CutSite, hover: boolean) => {
+    if (!cutSite?.name) return;
+    if (hover) {
+      setHoveredEnzyme({ id: cutSite.id, name: cutSite.name });
+    } else if (matchesHoveredEnzyme(hoveredEnzyme, cutSite, highlightedEnzymes)) {
+      setHoveredEnzyme(null);
+    }
+  };
 
   // Calc x/width of highlight region, top/bottom cut lines, etc
   const enhancedCutSites = enhanceCutSites(
@@ -61,8 +78,34 @@ export const CutSites = (props: {
         if (canRenderLabel) {
           renderedLabelKeys.add(labelKey);
         }
+        const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, c.c, highlightedEnzymes);
+        const labelStyle = {
+          ...svgText,
+          cursor: "pointer",
+          fontSize: 12,
+          fill: isHighlighted ? enzymeHoverColor : svgText.fill,
+          fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+          textDecoration: isHighlighted ? "underline" : "none",
+        } as React.CSSProperties;        
+        const baseHighlightStyle = c.c.color?.length ? { ...cutSiteHighlight, fill: c.c.color } : cutSiteHighlight;
+        const highlightStyle = isHighlighted
+          ? {
+              ...baseHighlightStyle,
+              fill: CUT_SITE_ACTIVE_FILL,
+              fillOpacity: 1,
+              stroke: CUT_SITE_ACTIVE_STROKE,
+              strokeWidth: CUT_LINE_ACTIVE_WIDTH,
+            }
+          : baseHighlightStyle;
+        const cutLineStyle = isHighlighted
+          ? { ...cutSite, stroke: CUT_LINE_ACTIVE_COLOR, strokeWidth: CUT_LINE_ACTIVE_WIDTH }
+          : cutSite;
         return (
-          <g key={`cut-site-${domId}-${firstBase}`}>
+          <g
+            key={`cut-site-${domId}-${firstBase}`}
+            onMouseEnter={() => handleHoverChange(c.c, true)}
+            onMouseLeave={() => handleHoverChange(c.c, false)}
+          >
             {/* enzyme name label above the cut-site */}
             {canRenderLabel && (
               <text
@@ -78,14 +121,12 @@ export const CutSites = (props: {
                 data-selection-start={c.c.start}
                 data-selection-type="ENZYME"
                 data-selection-viewer="LINEAR"
-                style={{ ...svgText, cursor: "pointer", fontSize: 12 }}
+                style={labelStyle}
                 textAnchor="start"
                 x={c.label.x}
                 y={yDiff}
                 onBlur={() => 0}
                 onFocus={() => 0}
-                onMouseOut={() => onCutSiteHover(c.c.id, false)}
-                onMouseOver={() => onCutSiteHover(c.c.id, true)}
               >
                 {c.label.text}
               </text>
@@ -111,9 +152,7 @@ export const CutSites = (props: {
                     L ${c.highlight.x + c.highlight.width} ${lineYDiff}
                     L ${c.highlight.x + c.highlight.width} ${lineYDiff + 2 * lineHeight}
                     L ${c.highlight.x} ${lineYDiff + 2 * lineHeight} Z`}
-                style={c.c.color?.length ? { ...cutSiteHighlight, fill: c.c.color } : cutSiteHighlight}
-                onMouseOut={() => onCutSiteHover(c.c.id, false)}
-                onMouseOver={() => onCutSiteHover(c.c.id, true)}
+                style={highlightStyle}
               />
             )}
 
@@ -122,7 +161,7 @@ export const CutSites = (props: {
               <path
                 className={`la-vz-cut-site ${c.c.id}`}
                 d={`M ${c.top.x} ${lineYDiff} L ${c.top.x} ${lineYDiff + lineHeight}`}
-                style={cutSite}
+                style={cutLineStyle}
               />
             )}
             {c.connector.render && zoom > 10 && (
@@ -130,14 +169,14 @@ export const CutSites = (props: {
                 className={`la-vz-cut-site ${c.c.id}`}
                 d={`M ${c.connector.x} ${lineYDiff + lineHeight}
                     L ${c.connector.x + c.connector.width} ${lineYDiff + lineHeight}`}
-                style={cutSite}
+                style={cutLineStyle}
               />
             )}
             {c.bottom.render && zoom > 10 && (
               <path
                 className={`la-vz-cut-site ${c.c.id}`}
                 d={`M ${c.bottom.x} ${lineYDiff + lineHeight} L ${c.bottom.x} ${lineYDiff + 2 * lineHeight}`}
-                style={cutSite}
+                style={cutLineStyle}
               />
             )}
           </g>
@@ -415,72 +454,4 @@ const withLabels = (cutSites: CutSiteEnhanced[], size: Size): CutSiteLabelled[] 
   });
 
   return unlabelled.concat(labelled);
-};
-
-/**
- * This changes the opacity of the enzyme recognition sequence.
- *
- * on hover, an enzyme recognition site should have an opacity of 0.5. 0 otherwise
- * on hover, an enzyme name should have opacity 1.0, 0 otherwise
- */
-const onCutSiteHover = (className: string, on = false) => {
-  if (!document) return;
-
-  let elements = document.getElementsByClassName(`${className}-label`) as HTMLCollectionOf<HTMLElement>;
-  for (let i = 0; i < elements.length; i += 1) {
-    elements[i].style.fillOpacity = on ? "1.0" : "0.8";
-    elements[i].style.fontWeight = on ? "500" : "300";
-  }
-  elements = document.getElementsByClassName(className) as HTMLCollectionOf<HTMLElement>;
-  for (let i = 0; i < elements.length; i += 1) {
-    const element = elements[i];
-    const { classList, dataset, style } = element;
-
-    if (on) {
-      if (dataset.cutsiteOriginalStroke == null) {
-        dataset.cutsiteOriginalStroke = style.stroke || "";
-      }
-      if (dataset.cutsiteOriginalStrokeWidth == null) {
-        dataset.cutsiteOriginalStrokeWidth = style.strokeWidth || "";
-      }
-      if (dataset.cutsiteOriginalFillOpacity == null) {
-        dataset.cutsiteOriginalFillOpacity = style.fillOpacity || "";
-      }
-      if (dataset.cutsiteOriginalFill == null) {
-        dataset.cutsiteOriginalFill = style.fill || "";
-      }
-    }
-
-    const applyVibrantStyles = () => {
-      style.stroke = classList.contains("la-vz-cut-site-highlight") ? "rgb(0, 0, 0)" : "rgb(255, 46, 99)";
-      style.strokeWidth = classList.contains("la-vz-cut-site-highlight")
-        ? dataset.cutsiteOriginalStrokeWidth || "1"
-        : "1.5";
-      if (classList.contains("la-vz-cut-site-highlight")) {
-        style.fill = "rgba(255, 239, 213, 0.2)";
-        style.fillOpacity = "1";
-      }
-    };
-
-    const restoreStyles = () => {
-      if (dataset.cutsiteOriginalStroke !== undefined) {
-        style.stroke = dataset.cutsiteOriginalStroke;
-      }
-      if (dataset.cutsiteOriginalStrokeWidth !== undefined) {
-        style.strokeWidth = dataset.cutsiteOriginalStrokeWidth;
-      }
-      if (dataset.cutsiteOriginalFillOpacity !== undefined) {
-        style.fillOpacity = dataset.cutsiteOriginalFillOpacity;
-      }
-      if (dataset.cutsiteOriginalFill !== undefined) {
-        style.fill = dataset.cutsiteOriginalFill;
-      }
-    };
-
-    if (on) {
-      applyVibrantStyles();
-    } else {
-      restoreStyles();
-    }
-  }
 };

@@ -2,9 +2,11 @@ import * as React from "react";
 
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { circularLabelLine, svgText } from "../../style";
+import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { LinearLabelDatum, LinearLabelItem } from "./Labels";
 import { LinearMapScale, clamp } from "./utils";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 interface LinearGroupLabelOverlayProps {
   group: LinearLabelDatum & { textY: number };
@@ -27,6 +29,7 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   onRequestClose,
   scale,
 }) => {
+  const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
   const paddingX = CHAR_WIDTH;
   const paddingY = lineHeight * 0.25;
   const longestLabelChars = group.labels.reduce((max, label) => Math.max(max, label.name.length), 0);
@@ -51,7 +54,18 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   const handleMouseLeave = () => {
     group.labels.forEach(label => setHoveredLabelUnderline(label.id, false));
     setHoveredLabelUnderline(group.groupId, false);
+    if (group.labels.some(label => matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes))) {
+      setHoveredEnzyme(null);
+    }
     onGroupLeave?.(group.labels.map(label => label.id));
+  };
+
+  const handleHoverChange = (label: LinearLabelItem, hover: boolean) => {
+    if (hover) {
+      setHoveredEnzyme({ id: label.id, name: label.name });
+    } else if (matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)) {
+      setHoveredEnzyme(null);
+    }
   };
 
   return (
@@ -80,16 +94,25 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
             dominantBaseline="middle"
             id={label.id}
             {...getSelectionAttributes(label)}
-            style={{ cursor: "pointer", textDecoration: hoveredFeatures?.[label.id] ? "underline" : "none" }}
+            style={{
+              cursor: "pointer",
+              textDecoration: hoveredFeatures?.[label.id] ? "underline" : "none",
+              fill: matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes) ? enzymeHoverColor : undefined,
+              fontWeight: matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)
+                ? LABEL_FONT_WEIGHT_HOVER
+                : LABEL_FONT_WEIGHT_DEFAULT,
+            }}
             x={textStartX}
             y={textStartY + index * lineHeight}
             onMouseLeave={() => {
               setHoveredLabelUnderline(label.id, false);
               onHoverFeature?.(label.id, false);
+              handleHoverChange(label, false);
             }}
             onMouseOver={() => {
               setHoveredLabelUnderline(label.id, true);
               onHoverFeature?.(label.id, true);
+              handleHoverChange(label, true);
             }}
           >
             {label.name}

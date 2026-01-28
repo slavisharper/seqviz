@@ -68,11 +68,15 @@ const buildDefaultPresetState = () => ({
   disableLinearSequence: false,
   fragments: [DEMO_FRAGMENT_1, DEMO_FRAGMENT_2],
   enzymes: [...DEFAULT_ENZYMES],
+  highlightedEnzymes: [] as string[],
+  highlightedEnzymesInput: "",
   primers: createDefaultPrimers(),
   search: { query: DEFAULT_SEARCH_QUERY },
   searchResults: {} as Record<string, unknown>,
   selection: { ...defaultSelection },
   fragmentSelection: null as FragmentSelection | null,
+  customSelectionStart: 0,
+  customSelectionEnd: 100,
   showComplement: true,
   showIndex: true,
   showSelectionMeta: false,
@@ -97,6 +101,8 @@ interface AppState {
   disableLinearSequence: boolean;
   exampleId: DemoExampleId;
   enzymes: string[];
+  highlightedEnzymes: string[];
+  highlightedEnzymesInput: string;
   fragments: FragmentProp[];
   name: string;
   primers: Primer[];
@@ -104,6 +110,8 @@ interface AppState {
   searchResults: Record<string, unknown>;
   selection: Selection;
   fragmentSelection: FragmentSelection | null;
+  customSelectionStart: number;
+  customSelectionEnd: number;
   seq: string;
   seqType: SupportedSeqType;
   separators: SeparatorProp[];
@@ -250,6 +258,83 @@ export default class App extends React.Component<Record<string, never>, AppState
     this.setState({ translations });
   };
 
+  handleCustomSelectionStartInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = Number(event.target.value);
+    this.setState({ customSelectionStart: Number.isFinite(nextValue) ? nextValue : 0 });
+  };
+
+  handleCustomSelectionEndInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = Number(event.target.value);
+    this.setState({ customSelectionEnd: Number.isFinite(nextValue) ? nextValue : 0 });
+  };
+
+  private clampSelectionBoundary = (value: number, seqLength: number) => {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.max(0, Math.min(seqLength, Math.round(value)));
+  };
+
+  applyCustomSelection = () => {
+    const { customSelectionStart, customSelectionEnd, seq, selection } = this.state;
+    const seqLength = seq.length;
+
+    if (!seqLength) {
+      return;
+    }
+
+    const clampedStart = this.clampSelectionBoundary(customSelectionStart, seqLength);
+    const clampedEnd = this.clampSelectionBoundary(customSelectionEnd, seqLength);
+    const start = Math.min(clampedStart, clampedEnd);
+    const end = Math.max(clampedStart, clampedEnd);
+    const length = Math.max(end - start, 0);
+
+    this.setState({
+      selection: {
+        ...selection,
+        clockwise: true,
+        start,
+        end,
+        length,
+        type: "",
+        viewer: "LINEAR",
+        scrollLinearOnSelect: true,
+      },
+      fragmentSelection: null,
+    });
+  };
+
+  handleHighlightedEnzymesInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ highlightedEnzymesInput: event.target.value });
+  };
+
+  applyHighlightedEnzymes = () => {
+    const { highlightedEnzymesInput } = this.state;
+    const trimmed = highlightedEnzymesInput.trim();
+    if (!trimmed) {
+      this.setState({ highlightedEnzymes: [] });
+      return;
+    }
+
+    const seen = new Set<string>();
+    const parsed = trimmed
+      .split(",")
+      .map(name => name.trim())
+      .filter(name => {
+        if (!name.length) {
+          return false;
+        }
+        const key = name.toLowerCase();
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+
+    this.setState({ highlightedEnzymes: parsed });
+  };
+
   handleExampleChange = (exampleId: DemoExampleId) => {
     if (exampleId === this.state.exampleId) {
       return;
@@ -279,6 +364,7 @@ export default class App extends React.Component<Record<string, never>, AppState
     const presetState = this.presetStateFromConfig(AMINO_LINEAR_EXAMPLE);
 
     this.setState(prevState => ({
+      ...buildDefaultPresetState(),
       ...presetState,
       fragments: presetState.fragments || [],
       singleStrandAnnotations: presetState.singleStrandAnnotations || [],
@@ -332,40 +418,6 @@ export default class App extends React.Component<Record<string, never>, AppState
           className={`options-panel ${this.state.showSidebar ? "open" : "closed"}`}
           id="options-sidebar"
         >
-          <style>{`
-            .zoom-popover .popover,
-            .translation-popover .popover {
-              border: 1px solid rgba(0,0,0,0.1);
-              border-radius: 6px;
-              margin-top: 8px;
-              padding: 8px 10px;
-              background: #fff;
-              box-shadow: 0 6px 14px rgba(0,0,0,0.08);
-            }
-            .toggle-button {
-              align-items: center;
-              border: 1px solid rgba(0,0,0,0.15);
-              border-radius: 4px;
-              cursor: pointer;
-              display: inline-flex;
-              gap: 8px;
-              padding: 6px 10px;
-              background: #f7f7f7;
-            }
-            .toggle-button.active {
-              background: #e8f0ff;
-              border-color: #5b8def;
-            }
-            .toggle-button::after {
-              content: "▾";
-              font-size: 0.8rem;
-              opacity: 0.7;
-            }
-            .toggle-button.active::after {
-              content: "▴";
-              opacity: 1;
-            }
-          `}</style>
           <SidebarHeader toggleSidebar={this.toggleSidebar} />
           <div className="options-scroll">
             <ExampleSelect value={this.state.exampleId} onChange={this.handleExampleChange} />
@@ -455,6 +507,57 @@ export default class App extends React.Component<Record<string, never>, AppState
                 </div>
               )}
             </div>
+            <div className="option custom-selection">
+              <span>Custom selection (bp)</span>
+              <div className="custom-selection-inputs">
+                <label htmlFor="custom-selection-start">
+                  <span>Start</span>
+                  <input
+                    id="custom-selection-start"
+                    min={0}
+                    max={this.state.seq.length}
+                    type="number"
+                    value={this.state.customSelectionStart}
+                    onChange={this.handleCustomSelectionStartInput}
+                  />
+                </label>
+                <label htmlFor="custom-selection-end">
+                  <span>End</span>
+                  <input
+                    id="custom-selection-end"
+                    min={0}
+                    max={this.state.seq.length}
+                    type="number"
+                    value={this.state.customSelectionEnd}
+                    onChange={this.handleCustomSelectionEndInput}
+                  />
+                </label>
+              </div>
+              <button disabled={!this.state.seq} type="button" onClick={this.applyCustomSelection}>
+                Apply selection
+              </button>
+            </div>
+            <div className="option highlighted-enzymes">
+              <span>Highlighted enzymes</span>
+              <span className="highlighted-enzymes-note">Comma-separated names that stay highlighted.</span>
+              <div className="highlighted-enzymes-input">
+                <input
+                  aria-label="Comma separated list of enzyme names to highlight"
+                  placeholder="EcoRI, BamHI"
+                  type="text"
+                  value={this.state.highlightedEnzymesInput}
+                  onChange={this.handleHighlightedEnzymesInputChange}
+                />
+                <button type="button" onClick={this.applyHighlightedEnzymes}>
+                  Apply
+                </button>
+              </div>
+              {this.state.highlightedEnzymes.length > 0 && (
+                <div className="highlighted-enzymes-active">
+                  Active: {this.state.highlightedEnzymes.join(", ")}
+                </div>
+              )}
+            </div>
           </div>
           <SidebarFooter />
         </aside>
@@ -479,6 +582,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                   disableLinearMap={this.state.disableLinearMap}
                   disableLinearSequence={this.state.disableLinearSequence}
                   enzymes={this.state.enzymes}
+                  highlightedEnzymes={this.state.highlightedEnzymes}
                   highlights={[{ end: 10, start: 0 }]}
                   name={this.state.name}
                   primers={this.state.primers}

@@ -3,6 +3,8 @@ import * as React from "react";
 import { InputRefFunc } from "../../SelectionHandler";
 import { Coor, CutSite } from "../../core/elements";
 import { cutSiteHighlight, cutSite as cutSiteStyle } from "../../style";
+import { enzymeHoverColor } from "../../style/labelTheme";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { GenArcFunc, RENDER_SEQ_LENGTH_CUTOFF } from "./Circular";
 
 interface CutSitesProps {
@@ -61,6 +63,16 @@ const SingleCutSite = (props: {
   const { id, start } = cutSite;
   let { end, fcut, rcut } = cutSite;
   const domId = `${id}-${cutSite.start}-${cutSite.end}-${occurrenceIndex}`;
+  const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
+  const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, cutSite, highlightedEnzymes);
+  const handleHover = (hover: boolean) => {
+    if (!cutSite?.name) return;
+    if (hover) {
+      setHoveredEnzyme({ id: cutSite.id, name: cutSite.name });
+    } else if (matchesHoveredEnzyme(hoveredEnzyme, cutSite, highlightedEnzymes)) {
+      setHoveredEnzyme(null);
+    }
+  };
 
   // If any of the end or cut values are greater than the start, it's corssing the zero index
   if (start > end || start > fcut || start > rcut) {
@@ -88,8 +100,30 @@ const SingleCutSite = (props: {
     topR += 2 * lineHeight + 1.5;
   }
 
+  const baseHighlightStyle = cutSite.enzyme.color
+    ? { ...cutSiteHighlight, fill: cutSite.enzyme.color }
+    : cutSiteHighlight;
+  const highlightStyle = isHighlighted
+    ? {
+        ...baseHighlightStyle,
+        fill: "rgba(76, 29, 149, 0.15)",
+        fillOpacity: 0.8,
+        stroke: enzymeHoverColor,
+        strokeWidth: 1.5,
+      }
+    : baseHighlightStyle;
+  const lineStyle = isHighlighted
+    ? { ...cutSiteStyle, stroke: enzymeHoverColor, strokeWidth: 1.5 }
+    : cutSiteStyle;
+
   return (
-    <g key={`la-vz-circular-cutsite-${domId}`} id={`la-vz-circular-cutsite-${domId}`} transform={getRotation(start)}>
+    <g
+      key={`la-vz-circular-cutsite-${domId}`}
+      id={`la-vz-circular-cutsite-${domId}`}
+      transform={getRotation(start)}
+      onMouseEnter={() => handleHover(true)}
+      onMouseLeave={() => handleHover(false)}
+    >
       {/* an arc that surrounds the cut site */}
       <path
         ref={inputRef(domId, {
@@ -119,11 +153,11 @@ const SingleCutSite = (props: {
           outerRadius: topR,
           sweepFWD: true,
         })}
-        style={cutSite.enzyme.color ? { ...cutSiteHighlight, fill: cutSite.enzyme.color } : cutSiteHighlight}
+        style={highlightStyle}
       />
 
       {/* a line showing the start of the cut-site */}
-      <path className="la-vz-cut-site" d={calculateLinePath(fcut - start, topR, midR)} style={cutSiteStyle} />
+      <path className="la-vz-cut-site" d={calculateLinePath(fcut - start, topR, midR)} style={lineStyle} />
 
       {/* a connector line for the cut-site */}
       <path
@@ -136,11 +170,11 @@ const SingleCutSite = (props: {
           outerRadius: midR,
           sweepFWD: true,
         })}
-        style={cutSiteStyle}
+        style={lineStyle}
       />
 
       {/* a line showing the end of the cut-site */}
-      <path className="la-vz-cut-site" d={calculateLinePath(rcut - start, midR, botR)} style={cutSiteStyle} />
+      <path className="la-vz-cut-site" d={calculateLinePath(rcut - start, midR, botR)} style={lineStyle} />
     </g>
   );
 };

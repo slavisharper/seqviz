@@ -1,0 +1,137 @@
+.zoom-popover .popover,
+.translation-popover .popover {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-button {
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f7f7f7;
+}
+
+.toggle-button.active {
+  background: #e8f0ff;
+  border-color: #5b8def;
+}
+
+.toggle-button::after {
+  content: "▾";
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.toggle-button.active::after {
+  content: "▴";
+  opacity: 1;
+}
+
+.custom-selection {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+
+.custom-selection > span {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.custom-selection-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.custom-selection-inputs label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  gap: 4px;
+}
+
+.custom-selection-inputs input {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.custom-selection button {
+  margin-top: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 0;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.custom-selection button:disabled {
+  background: #cbd5f5;
+  cursor: not-allowed;
+}
+
+.highlighted-enzymes {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+
+.highlighted-enzymes > span {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.highlighted-enzymes-note {
+  display: block;
+  color: #4b5563;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.highlighted-enzymes-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.highlighted-enzymes-input input {
+  flex: 1;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.highlighted-enzymes-input button {
+  border: none;
+  border-radius: 4px;
+  padding: 0 12px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.highlighted-enzymes-input button:disabled {
+  background: #cbd5f5;
+  cursor: not-allowed;
+}
+
+.highlighted-enzymes-active {
+  color: #1f2937;
+  font-size: 0.8rem;
+  margin-top: 6px;
+  word-break: break-word;
+}

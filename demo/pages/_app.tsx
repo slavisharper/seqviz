@@ -2,6 +2,7 @@ import Head from "next/head";
 import * as React from "react";
 
 import "../styles/global.css";
+import "../styles/options-panel.css";
 
 export default function App({ Component, pageProps }: any) {
   return (

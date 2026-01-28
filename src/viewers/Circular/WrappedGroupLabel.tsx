@@ -2,8 +2,10 @@ import * as React from "react";
 
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { circularLabel, svgText } from "../../style";
+import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { ILabel } from "./Circular";
 import { GroupedLabelsWithCoors } from "./Labels";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 interface WrappedGroupLabelProps {
   getSelectionAttributes: (label: ILabel) => Record<string, string | number>;
@@ -35,6 +37,17 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
     onRequestClose,
     size: { height, width },
   } = props;
+  const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
+  const groupHasHighlightedEnzyme = group.labels.some(label => matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes));
+
+  const handleLabelHover = (label: ILabel, hover: boolean) => {
+    if (!label?.id) return;
+    if (hover) {
+      setHoveredEnzyme({ id: label.id, name: label.name });
+    } else if (matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)) {
+      setHoveredEnzyme(null);
+    }
+  };
 
   // utility function for calculating the width of the last row before this one
   // the +1 after name.length is for a comma
@@ -107,7 +120,12 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
   return (
     <g
       key={key}
-      onMouseLeave={() => setHoveredGroup("")}
+      onMouseLeave={() => {
+        setHoveredGroup("");
+        if (groupHasHighlightedEnzyme) {
+          setHoveredEnzyme(null);
+        }
+      }}
       onClick={e => {
         e.preventDefault();
         e.stopPropagation();
@@ -125,27 +143,38 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
           // that's vertically spaced from the row above it
           // add a comma to all but the last label
           <tspan key={`${key}_${i}`} dominantBaseline="middle" x={groupCoor.x} y={groupCoor.y + (i + 0.5) * lineHeight}>
-            {r.map((l, i2) => (
-              // every label should have its own id (used by selection
-              // handler) and trigger the hoverCutSite function
-              // if it's an enzyme
-              <React.Fragment key={l.id}>
-                <tspan
-                  className="la-vz-circular-label"
-                  dominantBaseline="middle"
-                  id={l.id}
-                  {...getSelectionAttributes(l)}
-                  style={circularLabel}
-                  tabIndex={-1}
-                  y={groupCoor.y + (i + 0.5) * lineHeight}
-                  onMouseLeave={() => setHoveredLabelUnderline(l.id || "", false)}
-                  onMouseOver={() => setHoveredLabelUnderline(l.id || "", true)}
-                >
-                  {l.name}
-                </tspan>
-                {i2 < r.length - 1 || i !== labelRows.length - 1 ? "," : ""}
-              </React.Fragment>
-            ))}
+            {r.map((l, i2) => {
+              const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, l, highlightedEnzymes);
+              const labelStyle = {
+                ...circularLabel,
+                fill: isHighlighted ? enzymeHoverColor : circularLabel.fill,
+                fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+              } as React.CSSProperties;
+              return (
+                <React.Fragment key={l.id}>
+                  <tspan
+                    className="la-vz-circular-label"
+                    dominantBaseline="middle"
+                    id={l.id}
+                    {...getSelectionAttributes(l)}
+                    style={labelStyle}
+                    tabIndex={-1}
+                    y={groupCoor.y + (i + 0.5) * lineHeight}
+                    onMouseLeave={() => {
+                      setHoveredLabelUnderline(l.id || "", false);
+                      handleLabelHover(l, false);
+                    }}
+                    onMouseOver={() => {
+                      setHoveredLabelUnderline(l.id || "", true);
+                      handleLabelHover(l, true);
+                    }}
+                  >
+                    {l.name}
+                  </tspan>
+                  {i2 < r.length - 1 || i !== labelRows.length - 1 ? "," : ""}
+                </React.Fragment>
+              );
+            })}
           </tspan>
         ))}
       </text>
@@ -163,5 +192,10 @@ export const setHoveredLabelUnderline = (id: string, underline: boolean) => {
     element.style.textDecoration = "underline";
   } else {
     element.style.textDecoration = "none";
+  }
+
+  const isEnzyme = element.dataset?.selectionType === "ENZYME";
+  if (isEnzyme) {
+    element.style.fontWeight = underline ? "600" : "300";
   }
 };

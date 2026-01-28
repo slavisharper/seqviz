@@ -30,6 +30,7 @@ export const svgText: CSS.Properties = {
   userSelect: "none",
 };
 
+
 export const search: CSS.Properties = {
   cursor: "pointer",
   fill: "rgba(255, 251, 7, 0.5)",

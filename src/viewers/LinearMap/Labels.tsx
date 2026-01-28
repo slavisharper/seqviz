@@ -2,9 +2,11 @@ import * as React from "react";
 
 import { Selection as SelectionRange } from "../../state/selectionContext";
 import { circularLabel, circularLabelLine, circularLabelLineHover } from "../../style";
+import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { LinearGroupLabelOverlay } from "./GroupLabelOverlay";
 import { LinearMapScale } from "./utils";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 const ANNOTATION_HEIGHT_RATIO = 0.8;
 const PRIMER_HEIGHT_RATIO = 0.7;
@@ -58,6 +60,8 @@ interface LinearLabelsState {
 }
 
 export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsState> {
+  static contextType = HoveredEnzymeContext;
+  declare context: React.ContextType<typeof HoveredEnzymeContext>;
   private currentLabel: LinearLabelDatum | null = null;
   private currentHoveredFeatureIds: string[] = [];
   private lastPointerType: string = "mouse";
@@ -72,6 +76,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
         prevGroup.labels.map(item => item.id),
         false,
       );
+      this.updateHoveredEnzymeForDatum(prevGroup, false);
     }
     this.currentLabel = null;
     this.currentHoveredFeatureIds = [];
@@ -128,6 +133,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
       if (this.currentHoveredFeatureIds.length) {
         this.props.onHoverFeatures?.(this.currentHoveredFeatureIds, false);
       }
+      this.updateHoveredEnzymeForDatum(this.currentLabel, false);
     }
     this.currentLabel = label;
 
@@ -145,6 +151,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
       this.props.onHoverFeatures?.(this.currentHoveredFeatureIds, true);
     }
     this.toggleUnderline(label, true);
+    this.updateHoveredEnzymeForDatum(label, true);
     if (overlayGroupId) {
       this.setState({ overlayGroupId: "" });
     }
@@ -165,6 +172,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
             prevGroup.labels.map(item => item.id),
             false,
           );
+          this.updateHoveredEnzymeForDatum(prevGroup, false);
         }
         this.currentLabel = null;
         this.currentHoveredFeatureIds = [];
@@ -178,6 +186,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
           prevGroup.labels.map(item => item.id),
           false,
         );
+        this.updateHoveredEnzymeForDatum(prevGroup, false);
       }
 
       this.currentLabel = label;
@@ -191,6 +200,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
     if (this.state.overlayPinned) return;
     if (this.currentLabel) {
       this.toggleUnderline(this.currentLabel, false);
+      this.updateHoveredEnzymeForDatum(this.currentLabel, false);
     }
     if (this.currentHoveredFeatureIds.length) {
       this.props.onHoverFeatures?.(this.currentHoveredFeatureIds, false);
@@ -199,6 +209,20 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
     this.currentHoveredFeatureIds = [];
     if (this.state.overlayGroupId) {
       this.setState({ overlayGroupId: "" });
+    }
+  };
+
+  private updateHoveredEnzymeForDatum = (label: LinearLabelDatum | null, hover: boolean) => {
+    if (!label) return;
+    const enzymeLabel = label.labels.find(item => item.type === "enzyme");
+    if (!enzymeLabel) return;
+    const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = this.context;
+    if (hover) {
+      setHoveredEnzyme({ id: enzymeLabel.id, name: enzymeLabel.name });
+      return;
+    }
+    if (matchesHoveredEnzyme(hoveredEnzyme, enzymeLabel, highlightedEnzymes)) {
+      setHoveredEnzyme(null);
     }
   };
 
@@ -212,6 +236,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
   render() {
     const { connectorY, hoveredFeatures, labels, lineHeight, scale, selectedFeatures, startY } = this.props;
     const { overlayGroupId } = this.state;
+    const { hoveredEnzyme, highlightedEnzymes } = this.context;
     if (!labels.length) return null;
 
     const overlayGroup = overlayGroupId ? labels.find(l => l.groupId === overlayGroupId) : undefined;
@@ -235,10 +260,15 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
           const connectorEndY = isAboveBaseline ? textY + lineHeight * 0.45 : textY - lineHeight * 0.45;
           const showConnector = true;
           const labelHovered = label.labels.some(item => hoveredFeatures?.[item.id] || selectedFeatures?.[item.id]);
+          const labelHasHighlightedEnzyme = label.labels.some(
+            item => item.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, item, highlightedEnzymes),
+          );
           const labelStyle: React.CSSProperties = {
             ...circularLabel,
             cursor: "pointer",
             textDecoration: labelHovered ? "underline" : "none",
+            fill: labelHasHighlightedEnzyme ? enzymeHoverColor : circularLabel.fill,
+            fontWeight: labelHasHighlightedEnzyme ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
           };
           const connectorStyle = labelHovered ? circularLabelLineHover : circularLabelLine;
           const stemStyle = connectorStyle;

@@ -29,6 +29,7 @@ import SelectionContext, {
   SelectionEventMeta,
   defaultSelection,
 } from "./state/selectionContext";
+import HoveredEnzymeContext, { HoveredEnzyme } from "./state/hoveredEnzymeContext";
 import { isEqual } from "./utils/isEqual";
 import Circular, { CircularProps } from "./viewers/Circular/Circular";
 import Linear, { LinearProps } from "./viewers/Linear/Linear";
@@ -101,6 +102,7 @@ interface SeqViewerContainerProps extends ResizeInjectedProps {
   showComplement: boolean;
   showIndex: boolean;
   orfs: TranslationProp[];
+  highlightedEnzymes?: string[];
   /** testSize is a forced height/width that overwrites anything from sizeMe. For testing */
   testSize?: { height: number; width: number };
   translations: NameRange[];
@@ -122,6 +124,7 @@ export interface SeqViewerContainerState {
   selection: Selection;
   managedZoom: { circular: number; linear: number; linearMap: number };
   linearPanelHeight: number;
+  hoveredEnzyme: HoveredEnzyme | null;
 }
 
 /**
@@ -161,6 +164,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
         linearMap: clamp("linearMap", props.zoom?.linearMap ?? props.zoom?.circular ?? 0),
       },
       linearPanelHeight: 0,
+      hoveredEnzyme: null,
     };
   }
 
@@ -262,6 +266,25 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
     void _ref;
     if (!this.props.selection) this.setState({ selection });
     if (this.props.onSelection) this.props.onSelection(rest, meta?.fragmentSelection ?? null);
+  };
+
+  private setHoveredEnzyme = (hoveredEnzyme: HoveredEnzyme | null) => {
+    this.setState(prev => {
+      const prevValue = prev.hoveredEnzyme;
+      if (!prevValue && !hoveredEnzyme) {
+        return null;
+      }
+      if (prevValue && hoveredEnzyme && prevValue.id === hoveredEnzyme.id && prevValue.name === hoveredEnzyme.name) {
+        return null;
+      }
+      if (!prevValue && hoveredEnzyme) {
+        return { hoveredEnzyme };
+      }
+      if (prevValue && !hoveredEnzyme) {
+        return { hoveredEnzyme: null };
+      }
+      return { hoveredEnzyme };
+    });
   };
 
   /**
@@ -590,6 +613,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
 
   render() {
     const { selection: selectionProp, seq, viewer } = this.props;
+    const highlightedEnzymes = Array.isArray(this.props.highlightedEnzymes) ? this.props.highlightedEnzymes : [];
     const { centralIndex, selection } = this.state;
     const visibility = this.getViewerVisibility();
     const { showCircular, showLinear, showLinearMap } = visibility;
@@ -619,16 +643,23 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
         <style>{`.la-vz-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
         <CentralIndexContext.Provider value={centralIndex}>
           <SelectionContext.Provider value={mergedSelection}>
-            <SelectionHandler
-              center={circularProps.center}
-              centralIndex={centralIndex.circular}
-              onContextMenu={this.props.onContextMenu}
-              onDoubleClick={this.props.onDoubleClick}
-              seq={seq}
-              setCentralIndex={this.setCentralIndex}
-              setSelection={this.setSelection}
-              yDiff={circularProps.yDiff}
+            <HoveredEnzymeContext.Provider
+              value={{
+                hoveredEnzyme: this.state.hoveredEnzyme,
+                highlightedEnzymes,
+                setHoveredEnzyme: this.setHoveredEnzyme,
+              }}
             >
+              <SelectionHandler
+                center={circularProps.center}
+                centralIndex={centralIndex.circular}
+                onContextMenu={this.props.onContextMenu}
+                onDoubleClick={this.props.onDoubleClick}
+                seq={seq}
+                setCentralIndex={this.setCentralIndex}
+                setSelection={this.setSelection}
+                yDiff={circularProps.yDiff}
+              >
               {(inputRef, handleMouseEvent, onUnmount, handleContextMenu, handleDoubleClick) => (
                 <EventHandler
                   bpsPerBlock={linearProps.bpsPerBlock}
@@ -672,7 +703,8 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
                       })}
                 </EventHandler>
               )}
-            </SelectionHandler>
+              </SelectionHandler>
+            </HoveredEnzymeContext.Provider>
           </SelectionContext.Provider>
         </CentralIndexContext.Provider>
       </div>

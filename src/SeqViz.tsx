@@ -108,6 +108,9 @@ export interface SeqVizProps {
   /** ranges of sequence to highlight on the viewer */
   highlights?: HighlightProp[];
 
+  /** enzyme names that should always render in a highlighted state */
+  highlightedEnzymes?: string[];
+
   /** strand-aware overlays rendered over the sequence similar to search highlights */
   singleStrandAnnotations?: SingleStrandAnnotationProp[];
 
@@ -229,6 +232,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     enzymes: [],
     enzymesCustom: {},
     fragments: [],
+    highlightedEnzymes: [],
     name: "",
     onSearch: () => null,
     onSelection: () => null,

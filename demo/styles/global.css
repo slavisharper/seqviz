@@ -838,7 +838,7 @@ input#part-input {
   border-radius: 8px;
   border: none;
   padding: 10px 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
   box-shadow: 0 4px 10px rgba(20, 34, 49, 0.08);

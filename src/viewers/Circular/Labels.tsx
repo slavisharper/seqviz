@@ -3,8 +3,10 @@ import * as React from "react";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { Coor, Size } from "../../core/elements";
 import { circularLabel, circularLabelLine } from "../../style";
+import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { GenArcFunc, ILabel, RENDER_SEQ_LENGTH_CUTOFF } from "./Circular";
 import { WrappedGroupLabel, setHoveredLabelUnderline } from "./WrappedGroupLabel";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 interface LabelWithCoors {
   label: ILabel;
@@ -97,6 +99,9 @@ const getLabelFontMetrics = () => {
  * to avoid this overlap problem
  */
 export class Labels extends React.Component<LabelsProps, LabelsState> {
+  static contextType = HoveredEnzymeContext;
+  declare context: React.ContextType<typeof HoveredEnzymeContext>;
+
   constructor(props: LabelsProps) {
     super(props);
 
@@ -346,10 +351,23 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
     });
   };
 
+  handleLabelHover = (label: ILabel, hover: boolean) => {
+    if (!label?.id) return;
+    setHoveredLabelUnderline(label.id, hover);
+    if (label.type !== "enzyme") return;
+    const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = this.context;
+    if (hover) {
+      setHoveredEnzyme({ id: label.id, name: label.name });
+    } else if (matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)) {
+      setHoveredEnzyme(null);
+    }
+  };
+
   render() {
     const { hoveredGroup, labelGroups } = this.state;
     const { lineHeight, size } = this.props;
     const { fontSize } = getLabelFontMetrics();
+    const { hoveredEnzyme, highlightedEnzymes } = this.context;
 
     // find the currently hovered group
     const hovered = labelGroups.find((g: GroupedLabelsWithCoors) => g.labels[0].id === hoveredGroup);
@@ -383,6 +401,14 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
 
           if (!g.grouped) {
             // just a single name in this position
+            const labelHighlighted =
+              first.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, first, highlightedEnzymes);
+            const singleLabelStyle = {
+              ...circularLabel,
+              fontSize,
+              fill: labelHighlighted ? enzymeHoverColor : circularLabel.fill,
+              fontWeight: labelHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+            } as React.CSSProperties;
             return (
               <g key={first.id}>
                 {labelLines}
@@ -392,10 +418,10 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                   {...selectionAttrs}
                   {...g.textCoor}
                   dominantBaseline="middle"
-                  style={{ ...circularLabel, fontSize }}
+                  style={singleLabelStyle}
                   textAnchor={g.textAnchor}
-                  onMouseEnter={() => setHoveredLabelUnderline(first.id || "", true)}
-                  onMouseLeave={() => setHoveredLabelUnderline(first.id || "", false)}
+                  onMouseEnter={() => this.handleLabelHover(first, true)}
+                  onMouseLeave={() => this.handleLabelHover(first, false)}
                 >
                   {g.name}
                 </text>
@@ -406,6 +432,15 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
             return null;
           }
           // a group of names which should render an overlap block
+          const groupContainsHighlighted = g.labels.some(
+            label => label.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes),
+          );
+          const groupLabelStyle = {
+            ...circularLabel,
+            fontSize,
+            fill: groupContainsHighlighted ? enzymeHoverColor : circularLabel.fill,
+            fontWeight: groupContainsHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+          } as React.CSSProperties;
           return (
             <g key={`${first.id}-listener`} id={`${first.id}-label`}>
               {labelLines}
@@ -414,7 +449,7 @@ export class Labels extends React.Component<LabelsProps, LabelsState> {
                 dominantBaseline="middle"
                 id={first.id}
                 {...selectionAttrs}
-                style={{ ...circularLabel, fontSize }}
+                style={groupLabelStyle}
                 textAnchor={g.textAnchor}
                 onMouseEnter={() => this.setHoveredGroup(first.id || "")}
                 onClick={e => {
