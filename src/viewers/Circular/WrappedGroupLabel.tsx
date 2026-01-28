@@ -38,10 +38,12 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
     size: { height, width },
   } = props;
   const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
+  const [hoveredLabelId, setHoveredLabelId] = React.useState<string | null>(null);
   const groupHasHighlightedEnzyme = group.labels.some(label => matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes));
 
   const handleLabelHover = (label: ILabel, hover: boolean) => {
     if (!label?.id) return;
+    if (label.type !== "enzyme") return;
     if (hover) {
       setHoveredEnzyme({ id: label.id, name: label.name });
     } else if (matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)) {
@@ -122,6 +124,7 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
       key={key}
       onMouseLeave={() => {
         setHoveredGroup("");
+        setHoveredLabelId(null);
         if (groupHasHighlightedEnzyme) {
           setHoveredEnzyme(null);
         }
@@ -144,11 +147,15 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
           // add a comma to all but the last label
           <tspan key={`${key}_${i}`} dominantBaseline="middle" x={groupCoor.x} y={groupCoor.y + (i + 0.5) * lineHeight}>
             {r.map((l, i2) => {
+              const hoverKey = l.id ?? `${group.name}-${i}-${i2}`;
+              const isLocallyHovered = hoveredLabelId === hoverKey;
               const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, l, highlightedEnzymes);
               const labelStyle = {
                 ...circularLabel,
                 fill: isHighlighted ? enzymeHoverColor : circularLabel.fill,
-                fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+                fontWeight:
+                  isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+                textDecoration: isLocallyHovered ? "underline" : "none",
               } as React.CSSProperties;
               return (
                 <React.Fragment key={l.id}>
@@ -161,10 +168,12 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
                     tabIndex={-1}
                     y={groupCoor.y + (i + 0.5) * lineHeight}
                     onMouseLeave={() => {
+                      setHoveredLabelId(prev => (prev === hoverKey ? null : prev));
                       setHoveredLabelUnderline(l.id || "", false);
                       handleLabelHover(l, false);
                     }}
                     onMouseOver={() => {
+                      setHoveredLabelId(hoverKey);
                       setHoveredLabelUnderline(l.id || "", true);
                       handleLabelHover(l, true);
                     }}
@@ -184,18 +193,50 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
 };
 
 export const setHoveredLabelUnderline = (id: string, underline: boolean) => {
-  if (!document) return;
+  if (typeof document === "undefined") return;
 
   const element = document.getElementById(id);
   if (!element) return;
-  if (underline) {
-    element.style.textDecoration = "underline";
-  } else {
-    element.style.textDecoration = "none";
+  element.style.textDecoration = underline ? "underline" : "none";
+
+  const dataset = element.dataset as Record<string, string | undefined>;
+  const isEnzyme = dataset.selectionType === "ENZYME";
+  const viewer = dataset.selectionViewer;
+  const cacheValue = (key: string, value: string) => {
+    if (dataset[key] === undefined) {
+      dataset[key] = value;
+    }
+  };
+  const restoreValue = (key: string, prop: "fill" | "fontWeight", fallback: string) => {
+    const cached = dataset[key];
+    if (cached !== undefined) {
+      element.style[prop] = cached;
+      delete dataset[key];
+      return;
+    }
+    element.style[prop] = fallback;
+  };
+
+  if (isEnzyme) {
+    if (underline) {
+      cacheValue("hoverPrevWeight", element.style.fontWeight || "");
+      element.style.fontWeight = `${LABEL_FONT_WEIGHT_HOVER}`;
+    } else {
+      restoreValue("hoverPrevWeight", "fontWeight", `${LABEL_FONT_WEIGHT_DEFAULT}`);
+    }
+    return;
   }
 
-  const isEnzyme = element.dataset?.selectionType === "ENZYME";
-  if (isEnzyme) {
-    element.style.fontWeight = underline ? "600" : "300";
+  if (viewer === "CIRCULAR") {
+    if (underline) {
+      cacheValue("hoverPrevFill", element.style.fill || "");
+      cacheValue("hoverPrevWeight", element.style.fontWeight || "");
+      element.style.fill = "black";
+      element.style.fontWeight = "500";
+    } else {
+      const defaultFill = typeof circularLabel.fill === "string" ? circularLabel.fill : "";
+      restoreValue("hoverPrevFill", "fill", defaultFill);
+      restoreValue("hoverPrevWeight", "fontWeight", `${LABEL_FONT_WEIGHT_DEFAULT}`);
+    }
   }
 };

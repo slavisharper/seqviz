@@ -54,13 +54,18 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   const handleMouseLeave = () => {
     group.labels.forEach(label => setHoveredLabelUnderline(label.id, false));
     setHoveredLabelUnderline(group.groupId, false);
-    if (group.labels.some(label => matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes))) {
+    if (
+      group.labels.some(
+        label => label.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes),
+      )
+    ) {
       setHoveredEnzyme(null);
     }
     onGroupLeave?.(group.labels.map(label => label.id));
   };
 
   const handleHoverChange = (label: LinearLabelItem, hover: boolean) => {
+    if (label.type !== "enzyme") return;
     if (hover) {
       setHoveredEnzyme({ id: label.id, name: label.name });
     } else if (matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)) {
@@ -88,20 +93,26 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
       />
       <rect fill="white" height={rectHeight} stroke="none" width={rectWidth} x={rectX} y={rectY} />
       <text style={{ ...svgText, cursor: "pointer" }} textAnchor="start">
-        {group.labels.map((label, index) => (
+        {group.labels.map((label, index) => {
+          const isHighlighted = label.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes);
+          const isHovered = !!hoveredFeatures?.[label.id];
+          const labelStyle: React.CSSProperties = {
+            cursor: "pointer",
+            textDecoration: isHovered ? "underline" : "none",
+            fill: isHighlighted ? enzymeHoverColor : undefined,
+            fontWeight: isHighlighted
+              ? LABEL_FONT_WEIGHT_HOVER
+              : isHovered
+                ? LABEL_FONT_WEIGHT_HOVER
+                : LABEL_FONT_WEIGHT_DEFAULT,
+          };
+          return (
           <tspan
             key={`${group.groupId}-${label.id}-${index}`}
             dominantBaseline="middle"
             id={label.id}
             {...getSelectionAttributes(label)}
-            style={{
-              cursor: "pointer",
-              textDecoration: hoveredFeatures?.[label.id] ? "underline" : "none",
-              fill: matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes) ? enzymeHoverColor : undefined,
-              fontWeight: matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes)
-                ? LABEL_FONT_WEIGHT_HOVER
-                : LABEL_FONT_WEIGHT_DEFAULT,
-            }}
+            style={labelStyle}
             x={textStartX}
             y={textStartY + index * lineHeight}
             onMouseLeave={() => {
@@ -117,7 +128,8 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
           >
             {label.name}
           </tspan>
-        ))}
+        );
+        })}
       </text>
       <rect fill="none" height={rectHeight} stroke="black" strokeWidth={1.5} width={rectWidth} x={rectX} y={rectY} />
     </g>

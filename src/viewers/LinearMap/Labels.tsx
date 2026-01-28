@@ -268,7 +268,11 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
             cursor: "pointer",
             textDecoration: labelHovered ? "underline" : "none",
             fill: labelHasHighlightedEnzyme ? enzymeHoverColor : circularLabel.fill,
-            fontWeight: labelHasHighlightedEnzyme ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+            fontWeight: labelHasHighlightedEnzyme
+              ? LABEL_FONT_WEIGHT_HOVER
+              : labelHovered
+                ? LABEL_FONT_WEIGHT_HOVER
+                : LABEL_FONT_WEIGHT_DEFAULT,
           };
           const connectorStyle = labelHovered ? circularLabelLineHover : circularLabelLine;
           const stemStyle = connectorStyle;
