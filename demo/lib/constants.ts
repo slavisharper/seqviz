@@ -1,5 +1,5 @@
 import { chooseRandomColor } from "../../src/core/colors";
-import { AnnotationProp, FragmentProp, Primer, SeparatorProp, SeqType, SingleStrandAnnotationProp } from "../../src/core/elements";
+import { AnnotationProp, FragmentProp, Primer, SeparatorProp, SeqType, SingleStrandAnnotationProp, SequenceEdges } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
 
 export type SupportedSeqType = Extract<SeqType, "dna" | "rna" | "aa">;
@@ -240,6 +240,7 @@ export interface DemoExampleConfig {
   separators?: SeparatorProp[];
   singleStrandAnnotations?: SingleStrandAnnotationProp[];
   seq: string;
+  sequenceEdges?: SequenceEdges;
   showComplement: boolean;
   showIndex: boolean;
   seqType: SupportedSeqType;
@@ -296,7 +297,42 @@ export const AMINO_LINEAR_EXAMPLE: DemoExampleConfig = {
   zoom: 35,
 };
 
-export type DemoExampleId = "default" | "amino_linear";
+export const SEQUENCE_EDGES_EXAMPLE: DemoExampleConfig = {
+  annotations: [
+    { color: "#3B82F6", direction: 1, start: 0,  end: 89, name: "Main Sequence" },
+  ],
+  description:
+    "DNA sequence with sticky overhangs at the 5' and 3' ends, demonstrating jagged sequence edges for molecular biology applications.",
+  disableCircularMap: true,
+  disableLinearMap: false,
+  disableLinearSequence: false,
+  enzymes: [],
+  fragments: [],
+  name: "Sequence with Overhangs",
+  primers: [],
+  search: { query: "" },
+  singleStrandAnnotations: [],
+  separators: [],
+  seq: "GGCCGGGGGGGGAATTGCG",
+  sequenceEdges: {
+    fivePrime: {
+      overhangSeq: "GGCC",
+      onComplement: false,
+    },
+    threePrime: {
+      overhangSeq: "AATT",
+      onComplement: true,
+    },
+  },
+  seqType: "dna",
+  showComplement: true,
+  showIndex: true,
+  showTranslations: false,
+  viewer: "linear",
+  zoom: 50,
+};
+
+export type DemoExampleId = "default" | "amino_linear" | "sequence_edges";
 
 export interface DemoExampleOption {
   description: string;
@@ -316,5 +352,11 @@ export const DEMO_EXAMPLE_OPTIONS: DemoExampleOption[] = [
     id: "amino_linear",
     label: "Amino Sequence",
     preset: AMINO_LINEAR_EXAMPLE,
+  },
+  {
+    description: "",
+    id: "sequence_edges",
+    label: "Sequence with Overhangs",
+    preset: SEQUENCE_EDGES_EXAMPLE,
   },
 ];

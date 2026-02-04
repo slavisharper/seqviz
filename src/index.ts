@@ -24,6 +24,8 @@ export type { LinearProps } from "./viewers/Linear/Linear";
 
 export type { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
+export type { SequenceEdges, SequenceEdgeOverhang } from "./core/elements";
+
 /**
  * Return a Viewer object with three properties:
  *  - `render` to an HTML element

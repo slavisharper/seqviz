@@ -174,5 +174,17 @@ export interface CutSite extends NameRange {
   rcut: number;
 }
 
+/** Overhang information for sequence ends */
+export interface SequenceEdgeOverhang {
+  overhangSeq: string;
+  onComplement: boolean;
+}
+
+/** Sequence edge information including 5' and 3' overhangs */
+export interface SequenceEdges {
+  fivePrime?: SequenceEdgeOverhang;
+  threePrime?: SequenceEdgeOverhang;
+}
+
 /** supported input sequence types */
 export type SeqType = "dna" | "rna" | "aa" | "unknown";

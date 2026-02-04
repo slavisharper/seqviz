@@ -8,6 +8,7 @@ import SeqViz from "../../src/SeqViz";
   Primer,
   SeparatorClickEvent,
   SeparatorProp,
+  SequenceEdges,
   SingleStrandAnnotationProp,
 } from "../../src/core/elements";
 import type { TranslationSettings } from "../../src/SeqViz";
@@ -27,6 +28,7 @@ import {
   DEFAULT_ENZYMES,
   DEFAULT_SEARCH_QUERY,
   DEFAULT_ZOOM,
+  SEQUENCE_EDGES_EXAMPLE,
   type DemoExampleConfig,
   type DemoExampleId,
   type SupportedSeqType,
@@ -81,6 +83,7 @@ const buildDefaultPresetState = () => ({
   showIndex: true,
   showSelectionMeta: false,
   seqType: "dna" as SupportedSeqType,
+  sequenceEdges: undefined as SequenceEdges | undefined,
   singleStrandAnnotations: createDefaultSingleStrandAnnotations(),
   showTranslations: true,
   translations: createDefaultTranslations(),
@@ -115,6 +118,7 @@ interface AppState {
   seq: string;
   seqType: SupportedSeqType;
   separators: SeparatorProp[];
+  sequenceEdges?: SequenceEdges;
   showComplement: boolean;
   showIndex: boolean;
   showSelectionMeta: boolean;
@@ -361,7 +365,11 @@ export default class App extends React.Component<Record<string, never>, AppState
       return;
     }
 
-    const presetState = this.presetStateFromConfig(AMINO_LINEAR_EXAMPLE);
+    const exampleConfigs: Record<Exclude<DemoExampleId, "default">, DemoExampleConfig> = {
+      amino_linear: AMINO_LINEAR_EXAMPLE,
+      sequence_edges: SEQUENCE_EDGES_EXAMPLE,
+    };
+    const presetState = this.presetStateFromConfig(exampleConfigs[exampleId]);
 
     this.setState(prevState => ({
       ...buildDefaultPresetState(),
@@ -588,6 +596,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                   primers={this.state.primers}
                   refs={{ circular: this.circularRef, linear: this.linearRef }}
                   search={this.state.search}
+                  sequenceEdges={this.state.sequenceEdges}
                   separators={this.state.separators}
                   singleStrandAnnotations={this.state.singleStrandAnnotations}
                   selection={this.state.selection}

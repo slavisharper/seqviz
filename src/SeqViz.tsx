@@ -20,6 +20,7 @@ import {
   Separator,
   SeparatorClickEvent,
   SeparatorProp,
+  SequenceEdges,
   SeqType,
   SingleStrandAnnotation,
   SingleStrandAnnotationProp,
@@ -168,6 +169,9 @@ export interface SeqVizProps {
   /** a sequence to render. Can be DNA, RNA, or an amino acid sequence. Setting accession or file overrides this */
   seq?: string;
 
+  /** sequence edge information including 5' and 3' overhangs for visualization */
+  sequenceEdges?: SequenceEdges;
+
   /** the type of the sequence. If this isn't passed, the type is guessed */
   seqType?: "dna" | "rna" | "aa";
 
@@ -211,6 +215,7 @@ export interface SeqVizState {
   search: NameRange[];
   seq: string;
   seqType: SeqType;
+  sequenceEdges?: SequenceEdges;
 }
 
 /**
@@ -247,6 +252,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     search: { mismatch: 0, query: "" },
     selectAllEvent: e => e.key === "a" && (e.metaKey || e.ctrlKey),
     seq: "",
+    sequenceEdges: undefined,
     showComplement: true,
     showIndex: true,
     style: {},
@@ -262,6 +268,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       ...seq,
       ...this.search(props, seq.seq),
       ...this.cut(seq.seq, seq.seqType),
+      sequenceEdges: props.sequenceEdges,
     };
   }
 
@@ -373,6 +380,14 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
         fragments: this.parseAnnotations(this.props.fragments, this.props.seq),
       });
     }
+
+    // New sequenceEdges provided.
+    const prevSequenceEdges = this.state.sequenceEdges;
+    if (!isEqual(prevSequenceEdges, this.props.sequenceEdges)) {
+      this.setState({
+        sequenceEdges: this.props.sequenceEdges,
+      });
+    }
   };
 
   /**
@@ -460,6 +475,57 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
   });
 
   /**
+   * Process sequence edges (overhangs) to modify seq and compSeq accordingly.
+   * Rules:
+   * - If overhang on main strand: remove complement strand with the same length
+   * - If overhang on complement strand: append overhang on complement and leave main strand empty
+   */
+  processSequenceEdges = (
+    seq: string,
+    compSeq: string,
+    edges?: SequenceEdges,
+  ): { processedSeq: string; processedCompSeq: string } => {
+    if (!edges || (!edges.fivePrime && !edges.threePrime)) {
+      return { processedSeq: seq, processedCompSeq: compSeq };
+    }
+
+    let processedSeq = seq;
+    let processedCompSeq = compSeq;
+
+    // Handle 5' overhang
+    if (edges.fivePrime) {
+      const { overhangSeq, onComplement } = edges.fivePrime;
+      const overhangLen = overhangSeq.length;
+
+      if (onComplement) {
+        // Overhang on complement strand: prepend overhang to complement, prepend spaces to main
+        processedSeq = " ".repeat(overhangLen) + processedSeq;
+        processedCompSeq = overhangSeq + processedCompSeq;
+      } else {
+        // Overhang on main strand: main strand unchanged, cut complement at start
+        processedCompSeq = " ".repeat(overhangLen) + processedCompSeq.slice(overhangLen);
+      }
+    }
+
+    // Handle 3' overhang
+    if (edges.threePrime) {
+      const { overhangSeq, onComplement } = edges.threePrime;
+      const overhangLen = overhangSeq.length;
+
+      if (onComplement) {
+        // Overhang on complement strand: append overhang to complement, append spaces to main
+        processedSeq = processedSeq + " ".repeat(overhangLen);
+        processedCompSeq = processedCompSeq + overhangSeq;
+      } else {
+        // Overhang on main strand: main strand unchanged, cut complement at end
+        processedCompSeq = processedCompSeq.slice(0, processedCompSeq.length - overhangLen) + " ".repeat(overhangLen);
+      }
+    }
+
+    return { processedSeq, processedCompSeq };
+  };
+
+  /**
    * Fix annotations to add unique ids, fix directionality, and modulo the start and end of each.
    */
   parseAnnotations = (annotations: AnnotationProp[] | null = null, seq = ""): Annotation[] =>
@@ -530,13 +596,17 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
 
   render() {
     const { highlights, primers, showComplement, showIndex, singleStrandAnnotations, style, zoom } = this.props;
-    const { compSeq, seq, seqType } = this.state;
-    const translations = generateTranslations(seq, seqType, this.props.translations);
-    const orfs = generateOrfs(seq, seqType, this.props.translations);
-    const separators = this.parseSeparators(this.props.separators, seq);
+    const { compSeq, seq, seqType, sequenceEdges } = this.state;
+    
+    // Process sequence edges (overhangs)
+    const { processedSeq, processedCompSeq } = this.processSequenceEdges(seq, compSeq, sequenceEdges);
+    
+    const translations = generateTranslations(processedSeq, seqType, this.props.translations);
+    const orfs = generateOrfs(processedSeq, seqType, this.props.translations);
+    const separators = this.parseSeparators(this.props.separators, processedSeq);
 
     // This is an unfortunate bit of seq checking. We could get a seq directly or from a file parsed to a part.
-    if (!seq) return <div className="la-vz-seqviz" />;
+    if (!processedSeq) return <div className="la-vz-seqviz" />;
 
     // Since all the props are optional, we need to parse them to defaults.
     const props = {
@@ -548,10 +618,10 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
         (h, i): Highlight => ({
           ...h,
           direction: 1,
-          end: h.end % (seq.length + 1),
+          end: h.end % (processedSeq.length + 1),
           id: `highlight-${i}-${h.start}-${h.end}`,
           name: "",
-          start: h.start % (seq.length + 1),
+          start: h.start % (processedSeq.length + 1),
         }),
       ),
       singleStrandAnnotations: (singleStrandAnnotations || []).map(
@@ -559,10 +629,10 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           ...annotation,
           color: annotation.color || colorByIndex(i, COLORS),
           direction: annotation.strand === -1 ? -1 : 1,
-          end: annotation.end % (seq.length + 1),
+          end: annotation.end % (processedSeq.length + 1),
           id: `single-strand-${i}-${annotation.start}-${annotation.end}`,
           name: annotation.name,
-          start: annotation.start % (seq.length + 1),
+          start: annotation.start % (processedSeq.length + 1),
           strand: annotation.strand === -1 ? -1 : 1,
         }),
       ),
@@ -575,14 +645,14 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       primers: primers.map((p, i) => ({ color: colorByIndex(i), id: `primer${p.name}${i}${p.start}${p.end}`, ...p })),
       orfs,
       rotateOnScroll: !!this.props.rotateOnScroll,
-      showComplement: (!!compSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
+      showComplement: (!!processedCompSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
       showIndex: !!showIndex,
       separators,
       translations: translations.map(
         (t, i): { direction: 1 | -1; end: number; start: number; color: string; id: string; name: string } => ({
           direction: t.direction ? (t.direction < 0 ? -1 : 1) : 1,
           end: seqType === "aa" ? t.end : t.start + Math.floor((t.end - t.start) / 3) * 3,
-          start: t.start % seq.length,
+          start: t.start % processedSeq.length,
           color: t.color || colorByIndex(i, COLORS),
           id: `translation${t.name}${i}${t.start}${t.end}`,
           name: t.name,
@@ -599,7 +669,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
 
     return (
       <div className="la-vz-seqviz" data-testid="la-vz-seqviz" style={{ height: "100%", width: "100%", ...style }}>
-        <SeqViewerContainer {...this.props} {...props} {...this.state} />
+        <SeqViewerContainer {...this.props} {...props} {...this.state} seq={processedSeq} compSeq={processedCompSeq} />
       </div>
     );
   }
