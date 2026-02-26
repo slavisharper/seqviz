@@ -1,6 +1,6 @@
-import { NameRange } from "../core/elements";
+import { CutSite, NameRange } from "../core/elements";
 import { randomID } from "../core/sequence";
-import { stackElements } from "./elementsToRows";
+import { createCutSiteRows, stackElements } from "./elementsToRows";
 
 describe("Elements to rows", () => {
   // https://github.com/Lattice-Automation/seqviz/issues/201
@@ -57,5 +57,24 @@ describe("Elements to rows", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveLength(2);
+  });
+
+  it("bins cut sites by cut coordinates even when recognition site is in another block", () => {
+    const cutSite: CutSite = {
+      direction: 1,
+      end: 20,
+      enzyme: { fcut: 15, name: "BaeI", rcut: 18, rseq: "NNNN" },
+      fcut: 29,
+      id: "cut-1",
+      name: "BaeI",
+      rcut: 31,
+      start: 16,
+    };
+
+    const rows = createCutSiteRows([cutSite], 25, 3);
+
+    expect(rows[0]).toHaveLength(1);
+    expect(rows[1]).toHaveLength(1);
+    expect(rows[1][0]).toBe(cutSite);
   });
 });

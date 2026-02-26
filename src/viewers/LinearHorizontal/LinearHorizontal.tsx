@@ -14,7 +14,7 @@ import {
   Size,
 } from "../../core/elements";
 import { createTranslations } from "../../core/sequence";
-import { createMultiRows, createSingleRows, stackElements } from "../../utils/elementsToRows";
+import { createCutSiteRows, createMultiRows, createSingleRows, stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { SeqBlock } from "../Linear/SeqBlock";
 import HorizontalInfiniteScroll from "./HorizontalInfiniteScroll";
@@ -82,9 +82,7 @@ export default class LinearHorizontal extends React.Component<LinearHorizontalPr
     let arrSize = Math.round(Math.ceil(seqLength / bpsPerBlock));
     if (arrSize === Number.POSITIVE_INFINITY) arrSize = 1;
 
-    const cutSiteRows = cutSites.length
-      ? createSingleRows(cutSites, bpsPerBlock, arrSize)
-      : new Array(arrSize).fill([]);
+    const cutSiteRows = cutSites.length ? createCutSiteRows(cutSites, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);
 
     function vetAnnotations<T extends NameRange>(anns: T[]): T[] {
       anns.forEach(ann => {

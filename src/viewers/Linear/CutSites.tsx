@@ -105,7 +105,6 @@ export const CutSites = (props: {
         const cutLineStyle = isHighlighted
           ? { ...cutSite, stroke: CUT_LINE_ACTIVE_COLOR, strokeWidth: CUT_LINE_ACTIVE_WIDTH }
           : cutSite;
-        const hasVisibleCutInBlock = c.top.render || c.bottom.render;
         return (
           <g
             key={`cut-site-${domId}-${firstBase}`}
@@ -113,7 +112,7 @@ export const CutSites = (props: {
             onMouseLeave={() => handleHoverChange(c.c, false)}
           >
             {/* outline showing the recognition site */}
-            {zoom > 10 && hasVisibleCutInBlock && isHighlighted && (
+            {zoom > 10 && c.highlight.render && isHighlighted && (
               <path
                 ref={inputRef(domId, {
                   clockwise: true,
@@ -382,6 +381,7 @@ type CutSiteEnhanced = {
     x: number;
   };
   highlight: {
+    render: boolean;
     width: number;
     x: number;
   };
@@ -454,6 +454,8 @@ const enhanceCutSites = (
     const { x: topX } = findXAndWidth(enhancedCutSite.fcut, enhancedCutSite.fcut);
     const { x: bottomX } = findXAndWidth(enhancedCutSite.rcut, enhancedCutSite.rcut);
 
+    const recognitionInBlock = recognitionOverlapsSeqBlock(c.start, c.end, firstBase, lastBase);
+
     return {
       bottom: {
         render: showBottomLine,
@@ -470,13 +472,26 @@ const enhanceCutSites = (
         showBottomLine,
         findXAndWidth,
       ),
-      highlight: calcHighlight(enhancedCutSite, firstBase, lastBase, findXAndWidth),
+      highlight: {
+        ...calcHighlight(enhancedCutSite, firstBase, lastBase, findXAndWidth),
+        render: recognitionInBlock,
+      },
       top: {
         render: showTopLine,
         x: topX,
       },
     };
   });
+
+const recognitionOverlapsSeqBlock = (start: number, end: number, firstBase: number, lastBase: number) => {
+  if (start === end) {
+    return true;
+  }
+  if (start < end) {
+    return start < lastBase && end > firstBase;
+  }
+  return start < lastBase || end > firstBase;
+};
 
 /**
  * calcHighlight returns the x and width of the enzyme recognition site's highlight block.
@@ -595,13 +610,19 @@ type CutSiteLabelled = CutSiteEnhanced & {
  * context: https://github.com/Lattice-Automation/seqviz/issues/104
  */
 const withLabels = (cutSites: CutSiteEnhanced[], size: Size): CutSiteLabelled[] => {
+  const labelXForCutSite = (c: CutSiteEnhanced) => {
+    if (c.top.render) return c.top.x + CUT_LINE_X_OFFSET;
+    if (c.bottom.render) return c.bottom.x + CUT_LINE_X_OFFSET;
+    return c.top.x + CUT_LINE_X_OFFSET;
+  };
+
   const unlabelled = cutSites
-    .filter(c => !c.top.render)
-    .map(c => ({ ...c, label: { render: false, text: c.c.name, x: c.top.x + CUT_LINE_X_OFFSET } }));
+    .filter(c => !c.top.render && !c.bottom.render)
+    .map(c => ({ ...c, label: { render: false, text: c.c.name, x: labelXForCutSite(c) } }));
   const labelled = cutSites
-    .filter(c => c.top.render)
-    .sort((a, b) => a.top.x - b.top.x)
-    .map(c => ({ ...c, label: { render: c.top.render, text: c.c.name, x: c.top.x + CUT_LINE_X_OFFSET } }));
+    .filter(c => c.top.render || c.bottom.render)
+    .sort((a, b) => labelXForCutSite(a) - labelXForCutSite(b))
+    .map(c => ({ ...c, label: { render: c.top.render || c.bottom.render, text: c.c.name, x: labelXForCutSite(c) } }));
 
   labelled.forEach(c => {
     const halfWidth = (c.label.text.length * CHAR_WIDTH) / 2;
@@ -665,10 +686,10 @@ const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Siz
       (max, item) => Math.max(max, item.label.x + (item.label.text.length * CHAR_WIDTH) / 2),
       Number.NEGATIVE_INFINITY,
     );
-    const maxCutX = sorted.reduce((max, item) => Math.max(max, item.top.x), Number.NEGATIVE_INFINITY);
+    const maxCutX = sorted.reduce((max, item) => Math.max(max, item.label.x), Number.NEGATIVE_INFINITY);
     const nextCutX = remainingAfterCut
-      .filter(item => !sorted.includes(item) && item.top.x > maxCutX)
-      .reduce((min, item) => Math.min(min, item.top.x), Number.POSITIVE_INFINITY);
+      .filter(item => !sorted.includes(item) && item.label.x > maxCutX)
+      .reduce((min, item) => Math.min(min, item.label.x), Number.POSITIVE_INFINITY);
     const noRoomOnRight =
       rightMost >= size.width - CHAR_WIDTH * 3 ||
       (Number.isFinite(nextCutX) && nextCutX - maxCutX < CHAR_WIDTH * 2);

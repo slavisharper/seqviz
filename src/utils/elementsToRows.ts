@@ -1,4 +1,4 @@
-import { NameRange, Range } from "../core/elements";
+import { CutSite, NameRange, Range } from "../core/elements";
 
 // utility funcs for stackElements
 const last = <T extends Range>(arr: T[]): T => arr[arr.length - 1];
@@ -193,4 +193,44 @@ export const createSingleRows = <T extends NameRange>(
   }
 
   return newArr;
+};
+
+/**
+ * Like `createSingleRows`, but ensures enzymes are also placed in any SeqBlock that
+ * contains one of their cut coordinates (`fcut` or `rcut`).
+ *
+ * This is needed for enzymes that cut outside their recognition sequence so the cut line
+ * and label are still rendered even when the recognition range lives in another block.
+ */
+export const createCutSiteRows = (cutSites: CutSite[], rowLength: number, rowCount: number): CutSite[][] => {
+  const rows = createSingleRows(cutSites, rowLength, rowCount);
+
+  const blockIndexFor = (position: number) => {
+    if (!Number.isFinite(position)) return 0;
+    if (position < 0) return 0;
+    if (position >= rowLength * rowCount) return rowCount - 1;
+    return Math.floor(position / rowLength);
+  };
+
+  cutSites.forEach(site => {
+    const cutBlocks = new Set([blockIndexFor(site.fcut), blockIndexFor(site.rcut)]);
+    cutBlocks.forEach(blockIndex => {
+      if (blockIndex < 0 || blockIndex >= rowCount) return;
+      const alreadyPresent = rows[blockIndex].some(existing => {
+        return (
+          existing.id === site.id &&
+          existing.start === site.start &&
+          existing.end === site.end &&
+          existing.fcut === site.fcut &&
+          existing.rcut === site.rcut &&
+          existing.direction === site.direction
+        );
+      });
+      if (!alreadyPresent) {
+        rows[blockIndex].push(site);
+      }
+    });
+  });
+
+  return rows;
 };

@@ -14,7 +14,7 @@ import {
   Size,
 } from "../../core/elements";
 import { createTranslations } from "../../core/sequence";
-import { createMultiRows, createSingleRows, stackElements } from "../../utils/elementsToRows";
+import { createCutSiteRows, createMultiRows, createSingleRows, stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { InfiniteScroll } from "./InfiniteScroll";
 import { SeqBlock } from "./SeqBlock";
@@ -114,9 +114,7 @@ export default class Linear extends React.Component<LinearProps> {
     const compSeqs = new Array(arrSize); // complements...
     const blockHeights = new Array(arrSize); // block heights...
 
-    const cutSiteRows = cutSites.length
-      ? createSingleRows(cutSites, bpsPerBlock, arrSize)
-      : new Array(arrSize).fill([]);
+    const cutSiteRows = cutSites.length ? createCutSiteRows(cutSites, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);
 
     /**
      * Mutate elements that start or end at zero index
