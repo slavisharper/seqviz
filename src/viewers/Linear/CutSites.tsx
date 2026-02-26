@@ -3,15 +3,14 @@ import * as React from "react";
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { CutSite, Size } from "../../core/elements";
-import { cutSite, cutSiteHighlight, svgText } from "../../style";
+import { cutSite, selection, svgText } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { FindXAndWidthType } from "./SeqBlock";
 
 const CUT_LINE_ACTIVE_COLOR = "rgb(255, 46, 99)";
 const CUT_LINE_ACTIVE_WIDTH = 1.5;
-const CUT_SITE_ACTIVE_FILL = "rgba(255, 239, 213, 0.2)";
-const CUT_SITE_ACTIVE_STROKE = "rgb(0, 0, 0)";
+const CUT_LINE_X_OFFSET = 1;
 
 /**
  * Renders enzyme cut sites on the linear viewer. This includes a few things:
@@ -74,6 +73,9 @@ export const CutSites = (props: {
       {labelledCutSites.map(c => {
         const domId = `${c.c.id}-${c.c.start}-${c.c.end}`;
         const labelKey = `${c.c.name}|${c.c.start}|${c.c.end}|${c.c.fcut}|${c.c.rcut}`;
+        const topLineX = c.top.x + CUT_LINE_X_OFFSET;
+        const bottomLineX = c.bottom.x + CUT_LINE_X_OFFSET;
+        const connectorStartX = c.connector.x + CUT_LINE_X_OFFSET;
         const canRenderLabel = c.label.render && !renderedLabelKeys.has(labelKey);
         if (canRenderLabel) {
           renderedLabelKeys.add(labelKey);
@@ -87,19 +89,11 @@ export const CutSites = (props: {
           fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
           textDecoration: isHighlighted ? "underline" : "none",
         } as React.CSSProperties;        
-        const baseHighlightStyle = c.c.color?.length ? { ...cutSiteHighlight, fill: c.c.color } : cutSiteHighlight;
-        const highlightStyle = isHighlighted
-          ? {
-              ...baseHighlightStyle,
-              fill: CUT_SITE_ACTIVE_FILL,
-              fillOpacity: 1,
-              stroke: CUT_SITE_ACTIVE_STROKE,
-              strokeWidth: CUT_LINE_ACTIVE_WIDTH,
-            }
-          : baseHighlightStyle;
+        const highlightStyle = selection;
         const cutLineStyle = isHighlighted
           ? { ...cutSite, stroke: CUT_LINE_ACTIVE_COLOR, strokeWidth: CUT_LINE_ACTIVE_WIDTH }
           : cutSite;
+        const hasVisibleCutInBlock = c.top.render || c.bottom.render;
         return (
           <g
             key={`cut-site-${domId}-${firstBase}`}
@@ -122,7 +116,7 @@ export const CutSites = (props: {
                 data-selection-type="ENZYME"
                 data-selection-viewer="LINEAR"
                 style={labelStyle}
-                textAnchor="start"
+                textAnchor="middle"
                 x={c.label.x}
                 y={yDiff}
                 onBlur={() => 0}
@@ -133,7 +127,7 @@ export const CutSites = (props: {
             )}
 
             {/* outline showing the recognition site */}
-            {zoom > 10 && (
+            {zoom > 10 && hasVisibleCutInBlock && isHighlighted && (
               <path
                 ref={inputRef(domId, {
                   clockwise: true,
@@ -160,22 +154,22 @@ export const CutSites = (props: {
             {c.top.render && (
               <path
                 className={`la-vz-cut-site ${c.c.id}`}
-                d={`M ${c.top.x} ${lineYDiff} L ${c.top.x} ${lineYDiff + lineHeight}`}
+                d={`M ${topLineX} ${lineYDiff} L ${topLineX} ${lineYDiff + lineHeight}`}
                 style={cutLineStyle}
               />
             )}
             {c.connector.render && zoom > 10 && (
               <path
                 className={`la-vz-cut-site ${c.c.id}`}
-                d={`M ${c.connector.x} ${lineYDiff + lineHeight}
-                    L ${c.connector.x + c.connector.width} ${lineYDiff + lineHeight}`}
+                d={`M ${connectorStartX} ${lineYDiff + lineHeight}
+                    L ${connectorStartX + c.connector.width} ${lineYDiff + lineHeight}`}
                 style={cutLineStyle}
               />
             )}
             {c.bottom.render && zoom > 10 && (
               <path
                 className={`la-vz-cut-site ${c.c.id}`}
-                d={`M ${c.bottom.x} ${lineYDiff + lineHeight} L ${c.bottom.x} ${lineYDiff + 2 * lineHeight}`}
+                d={`M ${bottomLineX} ${lineYDiff + lineHeight} L ${bottomLineX} ${lineYDiff + 2 * lineHeight}`}
                 style={cutLineStyle}
               />
             )}
@@ -413,27 +407,32 @@ type CutSiteLabelled = CutSiteEnhanced & {
 const withLabels = (cutSites: CutSiteEnhanced[], size: Size): CutSiteLabelled[] => {
   const unlabelled = cutSites
     .filter(c => !c.top.render)
-    .map(c => ({ ...c, label: { render: false, text: c.c.name, x: c.highlight.x } }));
+    .map(c => ({ ...c, label: { render: false, text: c.c.name, x: c.top.x + CUT_LINE_X_OFFSET } }));
   const labelled = cutSites
     .filter(c => c.top.render)
     .sort((a, b) => a.top.x - b.top.x)
-    .map(c => ({ ...c, label: { render: c.top.render, text: c.c.name, x: c.highlight.x } }));
+    .map(c => ({ ...c, label: { render: c.top.render, text: c.c.name, x: c.top.x + CUT_LINE_X_OFFSET } }));
 
-  // shift the labels left that will overflow to the right
+  // keep centered labels within viewport bounds
   const overflow = (c: CutSiteLabelled): boolean => {
-    return c.label.x + c.label.text.length * CHAR_WIDTH > size.width;
+    const halfWidth = (c.label.text.length * CHAR_WIDTH) / 2;
+    return c.label.x - halfWidth < 0 || c.label.x + halfWidth > size.width;
   };
 
   labelled.forEach(c => {
-    const width = c.label.text.length * CHAR_WIDTH;
-    if (overflow(c)) {
-      c.label.x = size.width - width;
+    const halfWidth = (c.label.text.length * CHAR_WIDTH) / 2;
+    if (c.label.x - halfWidth < 0) {
+      c.label.x = halfWidth;
+    } else if (c.label.x + halfWidth > size.width) {
+      c.label.x = size.width - halfWidth;
     }
   });
 
   // if two labels overlap, shift the righter most one to the right
   const overlap = (c1: CutSiteLabelled, c2: CutSiteLabelled): boolean => {
-    return c1.label.x + c1.label.text.length * CHAR_WIDTH > c2.label.x;
+    const c1Half = (c1.label.text.length * CHAR_WIDTH) / 2;
+    const c2Half = (c2.label.text.length * CHAR_WIDTH) / 2;
+    return c1.label.x + c1Half > c2.label.x - c2Half;
   };
 
   labelled.forEach((c, i) => {

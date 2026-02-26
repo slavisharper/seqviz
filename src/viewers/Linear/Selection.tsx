@@ -11,6 +11,7 @@ interface EdgesProps {
   fullSeq: string;
   lastBase: number;
   selectEdgeHeight: number;
+  selectY: number;
 }
 
 /**
@@ -26,7 +27,7 @@ class Edges extends React.PureComponent<EdgesProps> {
   id = randomID();
 
   render() {
-    const { findXAndWidth, firstBase, fullSeq, lastBase, selectEdgeHeight } = this.props;
+    const { findXAndWidth, firstBase, fullSeq, lastBase, selectEdgeHeight, selectY } = this.props;
     const { clockwise, end, ref, start } = this.context;
 
     if (typeof start === "undefined" || typeof end === "undefined") {
@@ -98,7 +99,7 @@ class Edges extends React.PureComponent<EdgesProps> {
             style={selectionEdge}
             width={1}
             x={startEdgeX ?? undefined}
-            y={-5}
+            y={selectY}
           />
         )}
         {shouldRenderLastEdge && (
@@ -111,7 +112,7 @@ class Edges extends React.PureComponent<EdgesProps> {
             style={selectionEdge}
             width={1}
             x={lastEdgeX ?? undefined}
-            y={-5}
+            y={selectY}
           />
         )}
       </g>
@@ -126,6 +127,7 @@ interface BlockProps {
   lastBase: number;
   onUnmount: (a: string) => void;
   selectHeight: number;
+  selectY: number;
 }
 
 /**
@@ -139,7 +141,7 @@ class Block extends React.PureComponent<BlockProps> {
   id = randomID();
 
   render() {
-    const { findXAndWidth, firstBase, fullSeq, lastBase, selectHeight } = this.props;
+    const { findXAndWidth, firstBase, fullSeq, lastBase, selectHeight, selectY } = this.props;
     const { clockwise, ref } = this.context;
     let { end, start } = this.context;
 
@@ -161,7 +163,7 @@ class Block extends React.PureComponent<BlockProps> {
       height: selectHeight,
       // keep selection fill consistent regardless of element color
       style: selection,
-      y: -5,
+      y: selectY,
     };
 
     let x: number | null = null;

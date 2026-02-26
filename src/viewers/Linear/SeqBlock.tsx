@@ -359,19 +359,28 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
 
     const indexRowYDiff = annYDiff + annHeight + elementGap;
 
-    // calc the height necessary for the sequence selection
-    // it starts 5 above the top of the SeqBlock
+    // calc the selection overlay region
+    // for nt sequences, start at the top of the sequence row (not above enzyme labels)
+    const selectionTopY = seqType === "aa" ? -5 : indexYDiff;
     const selectHeight =
-      primerFwdHeight +
-      cutSiteHeight +
-      indexHeight +
-      compHeight +
-      translationHeight +
-      fragmentsHeight +
-      annHeight +
-      primerRevHeight +
-      elementGap +
-      5;
+      seqType === "aa"
+        ? primerFwdHeight +
+          cutSiteHeight +
+          indexHeight +
+          compHeight +
+          translationHeight +
+          fragmentsHeight +
+          annHeight +
+          primerRevHeight +
+          elementGap +
+          5
+        : indexHeight +
+          compHeight +
+          translationHeight +
+          fragmentsHeight +
+          annHeight +
+          primerRevHeight +
+          elementGap;
     let selectEdgeHeight = selectHeight + 9; // +9 is the height of a tick + index row
 
     // needed because otherwise the selection height is very small
@@ -430,6 +439,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           fullSeq={fullSeq}
           lastBase={lastBase}
           selectHeight={selectHeight}
+          selectY={selectionTopY}
           onUnmount={onUnmount}
         />
         {primerFwdRows.length && (
@@ -448,6 +458,19 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             yDiff={primerFwdYDiff}
           />
         )}
+        {zoomed && (
+          <CutSites
+            cutSites={cutSiteRows}
+            findXAndWidth={this.findXAndWidth}
+            firstBase={firstBase}
+            inputRef={inputRef}
+            lastBase={lastBase}
+            lineHeight={lineHeight}
+            size={size}
+            yDiff={cutSiteYDiff - 3}
+            zoom={zoom}
+          />
+        )}
         <Highlights
           compYDiff={compYDiff - 3}
           findXAndWidth={this.findXAndWidthElement}
@@ -460,13 +483,6 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           lineHeight={lineHeight}
           listenerOnly={false}
           seqBlockRef={this}
-        />
-        <Selection.Edges
-          findXAndWidth={this.findXAndWidth}
-          firstBase={firstBase}
-          fullSeq={fullSeq}
-          lastBase={lastBase}
-          selectEdgeHeight={selectEdgeHeight}
         />
         <Find
           compYDiff={compYDiff - 3}
@@ -581,19 +597,6 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             {compSeq.split("").map(this.seqTextSpan)}
           </text>
         ) : null}
-        {zoomed && (
-          <CutSites
-            cutSites={cutSiteRows}
-            findXAndWidth={this.findXAndWidth}
-            firstBase={firstBase}
-            inputRef={inputRef}
-            lastBase={lastBase}
-            lineHeight={lineHeight}
-            size={size}
-            yDiff={cutSiteYDiff - 3}
-            zoom={zoom}
-          />
-        )}
         <SeparatorMarkers
           compYDiff={compYDiff}
           findXAndWidth={this.findXAndWidth}
@@ -642,6 +645,14 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           lineHeight={lineHeight}
           listenerOnly={true}
           seqBlockRef={this}
+        />
+        <Selection.Edges
+          findXAndWidth={this.findXAndWidth}
+          firstBase={firstBase}
+          fullSeq={fullSeq}
+          lastBase={lastBase}
+          selectEdgeHeight={selectEdgeHeight}
+          selectY={selectionTopY}
         />
       </svg>
     );
