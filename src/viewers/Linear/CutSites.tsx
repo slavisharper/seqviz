@@ -3,14 +3,27 @@ import * as React from "react";
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { CutSite, Size } from "../../core/elements";
-import { cutSite, selection, svgText } from "../../style";
+import { circularLabelLine, cutSite, selection, svgText } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { FindXAndWidthType } from "./SeqBlock";
 
 const CUT_LINE_ACTIVE_COLOR = "rgb(255, 46, 99)";
 const CUT_LINE_ACTIVE_WIDTH = 1.5;
-const CUT_LINE_X_OFFSET = 1;
+const CUT_LINE_X_OFFSET = 1.5;
+const LABEL_GROUP_RIGHT_ZONE_BP = 12;
+
+const getSelectionAttributes = (cutSite: CutSite, domId: string): Record<string, number | string> => ({
+  "data-selection-direction": cutSite.direction,
+  "data-selection-end": cutSite.end,
+  "data-selection-fcut": cutSite.fcut,
+  "data-selection-name": cutSite.name,
+  "data-selection-rcut": cutSite.rcut,
+  "data-selection-ref": domId,
+  "data-selection-start": cutSite.start,
+  "data-selection-type": "ENZYME",
+  "data-selection-viewer": "LINEAR",
+});
 
 /**
  * Renders enzyme cut sites on the linear viewer. This includes a few things:
@@ -41,6 +54,7 @@ export const CutSites = (props: {
     zoom: { linear: zoom },
   } = props;
   const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
+  const [hoveredGroupId, setHoveredGroupId] = React.useState<string | null>(null);
 
   const handleHoverChange = (cutSite: CutSite, hover: boolean) => {
     if (!cutSite?.name) return;
@@ -61,34 +75,21 @@ export const CutSites = (props: {
     lastBase,
     findXAndWidth,
   );
-  if (!enhancedCutSites.length) return null;
-
   // Set cut-site label positions
   const labelledCutSites = withLabels(enhancedCutSites, size);
+  const labelEntries = React.useMemo(() => buildCutSiteLabelEntries(labelledCutSites, size), [labelledCutSites, size]);
+  const hoveredGroup = labelEntries.find(entry => entry.grouped && entry.groupId === hoveredGroupId);
+  if (!enhancedCutSites.length) return null;
 
   const lineYDiff = yDiff + lineHeight;
-  const renderedLabelKeys = new Set<string>();
   return (
     <g className="la-vz-cut-sites">
       {labelledCutSites.map(c => {
         const domId = `${c.c.id}-${c.c.start}-${c.c.end}`;
-        const labelKey = `${c.c.name}|${c.c.start}|${c.c.end}|${c.c.fcut}|${c.c.rcut}`;
         const topLineX = c.top.x + CUT_LINE_X_OFFSET;
         const bottomLineX = c.bottom.x + CUT_LINE_X_OFFSET;
         const connectorStartX = c.connector.x + CUT_LINE_X_OFFSET;
-        const canRenderLabel = c.label.render && !renderedLabelKeys.has(labelKey);
-        if (canRenderLabel) {
-          renderedLabelKeys.add(labelKey);
-        }
         const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, c.c, highlightedEnzymes);
-        const labelStyle = {
-          ...svgText,
-          cursor: "pointer",
-          fontSize: 12,
-          fill: isHighlighted ? enzymeHoverColor : svgText.fill,
-          fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
-          textDecoration: isHighlighted ? "underline" : "none",
-        } as React.CSSProperties;        
         const highlightStyle = selection;
         const cutLineStyle = isHighlighted
           ? { ...cutSite, stroke: CUT_LINE_ACTIVE_COLOR, strokeWidth: CUT_LINE_ACTIVE_WIDTH }
@@ -100,32 +101,6 @@ export const CutSites = (props: {
             onMouseEnter={() => handleHoverChange(c.c, true)}
             onMouseLeave={() => handleHoverChange(c.c, false)}
           >
-            {/* enzyme name label above the cut-site */}
-            {canRenderLabel && (
-              <text
-                className={`la-vz-cut-site-text ${c.c.id}-label`}
-                dominantBaseline="hanging"
-                id={domId}
-                data-selection-end={c.c.end}
-                data-selection-name={c.c.name}
-                data-selection-fcut={c.c.fcut}
-                data-selection-rcut={c.c.rcut}
-                data-selection-ref={domId}
-                data-selection-direction={c.c.direction}
-                data-selection-start={c.c.start}
-                data-selection-type="ENZYME"
-                data-selection-viewer="LINEAR"
-                style={labelStyle}
-                textAnchor="middle"
-                x={c.label.x}
-                y={yDiff}
-                onBlur={() => 0}
-                onFocus={() => 0}
-              >
-                {c.label.text}
-              </text>
-            )}
-
             {/* outline showing the recognition site */}
             {zoom > 10 && hasVisibleCutInBlock && isHighlighted && (
               <path
@@ -176,6 +151,210 @@ export const CutSites = (props: {
           </g>
         );
       })}
+      <g className="la-vz-cut-site-labels" onMouseLeave={() => setHoveredGroupId(null)}>
+        {labelEntries.map(entry => {
+          const firstMember = entry.members[0];
+          const firstCutSite = firstMember.c;
+          const domId = `${firstCutSite.id}-${firstCutSite.start}-${firstCutSite.end}`;
+          const isGroupHighlighted = entry.members.some(member =>
+            matchesHoveredEnzyme(hoveredEnzyme, member.c, highlightedEnzymes),
+          );
+          const labelStyle = {
+            ...svgText,
+            cursor: "pointer",
+            fontSize: 12,
+            fill: isGroupHighlighted ? enzymeHoverColor : svgText.fill,
+            fontWeight: isGroupHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+            textDecoration: hoveredGroupId === entry.groupId ? "underline" : "none",
+          } as React.CSSProperties;
+
+          return (
+            <text
+              key={entry.groupId}
+              className={`la-vz-cut-site-text ${firstCutSite.id}-label`}
+              dominantBaseline="hanging"
+              id={entry.groupId}
+              {...(!entry.grouped ? getSelectionAttributes(firstCutSite, domId) : {})}
+              style={labelStyle}
+              textAnchor="middle"
+              x={entry.x}
+              y={yDiff}
+              onMouseEnter={() => {
+                if (entry.grouped) {
+                  setHoveredGroupId(entry.groupId);
+                } else {
+                  handleHoverChange(firstCutSite, true);
+                }
+              }}
+              onMouseLeave={() => {
+                if (!entry.grouped) {
+                  handleHoverChange(firstCutSite, false);
+                }
+              }}
+            >
+              {entry.text}
+            </text>
+          );
+        })}
+        {hoveredGroup && (
+          <CutSiteGroupOverlay
+            group={hoveredGroup}
+            lineHeight={lineHeight}
+            size={size}
+            yDiff={yDiff}
+            onHoverChange={handleHoverChange}
+          />
+        )}
+      </g>
+    </g>
+  );
+};
+
+type CutSiteLabelEntry = {
+  grouped: boolean;
+  groupId: string;
+  members: CutSiteLabelled[];
+  text: string;
+  x: number;
+};
+
+const CutSiteGroupOverlay = (props: {
+  group: CutSiteLabelEntry;
+  lineHeight: number;
+  onHoverChange: (cutSite: CutSite, hover: boolean) => void;
+  size: Size;
+  yDiff: number;
+}) => {
+  const { group, lineHeight, onHoverChange, size, yDiff } = props;
+  const { hoveredEnzyme, highlightedEnzymes } = React.useContext(HoveredEnzymeContext);
+  const [scrollY, setScrollY] = React.useState(0);
+  const paddingX = CHAR_WIDTH * 0.6;
+  const paddingY = lineHeight * 0.15;
+  const labelFontSize = 12;
+  const longestLabel = group.members.reduce((max, member) => Math.max(max, member.c.name.length), 0);
+  const triggerLabelWidth = Math.max(group.text.length * CHAR_WIDTH, 4 * CHAR_WIDTH);
+  const rectWidth = Math.max(longestLabel * CHAR_WIDTH, triggerLabelWidth) + paddingX * 2;
+  const fullRectHeight = group.members.length * lineHeight + paddingY * 2;
+
+  const overlayBottomLimit = yDiff + lineHeight - 2;
+  // allow the popover to extend above the visible SVG bounds so it can be taller
+  // while still ending before the sequence/cut location row
+  const overlayTopLimit = -Math.max(size.height, fullRectHeight);
+  const maxOverlayHeight = Math.max(lineHeight, overlayBottomLimit - overlayTopLimit);
+  const rectHeight = Math.min(fullRectHeight, maxOverlayHeight);
+  const visibleContentHeight = Math.max(lineHeight, rectHeight - paddingY * 2);
+  const fullContentHeight = group.members.length * lineHeight;
+  const maxScrollY = Math.max(0, fullContentHeight - visibleContentHeight);
+
+  const rectX = Math.max(CHAR_WIDTH, Math.min(group.x - rectWidth / 2, size.width - rectWidth - CHAR_WIDTH));
+  const rectY = Math.max(overlayTopLimit, overlayBottomLimit - rectHeight);
+  const textX = rectX + paddingX;
+  const textY = rectY + paddingY + lineHeight / 2;
+  const connectorStartY = yDiff + lineHeight * 0.75;
+  const connectorEndX = rectX + rectWidth / 2;
+  const connectorEndY = rectY + rectHeight;
+  const clipId = React.useMemo(() => `cut-site-group-clip-${group.groupId.replace(/[^a-zA-Z0-9_-]/g, "_")}`, [group.groupId]);
+  const displayedMembers = React.useMemo(() => [...group.members].reverse(), [group.members]);
+
+  React.useEffect(() => {
+    setScrollY(0);
+  }, [group.groupId]);
+
+  const handleWheel = (event: React.WheelEvent<SVGGElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (maxScrollY <= 0) {
+      return;
+    }
+    const delta = event.deltaY > 0 ? lineHeight : -lineHeight;
+    setScrollY(prev => Math.max(0, Math.min(maxScrollY, prev + delta)));
+  };
+
+  const hasScroll = maxScrollY > 0;
+  const scrollbarTrackWidth = 5;
+  const scrollbarX = rectX + rectWidth - scrollbarTrackWidth - 2;
+  const contentWidth = rectWidth - paddingX * 2 - (hasScroll ? scrollbarTrackWidth + 4 : 0);
+  const thumbHeight = hasScroll ? Math.max(lineHeight, (visibleContentHeight / fullContentHeight) * visibleContentHeight) : 0;
+  const thumbY = hasScroll
+    ? rectY + paddingY + (scrollY / maxScrollY) * (visibleContentHeight - thumbHeight)
+    : rectY + paddingY;
+
+  return (
+    <g className="la-vz-cut-site-group-overlay" onWheel={handleWheel}>
+      <path d={`M${group.x} ${connectorStartY} L${connectorEndX} ${connectorEndY}`} style={circularLabelLine} />
+      <rect fill="white" height={rectHeight} stroke="none" width={rectWidth} x={rectX} y={rectY} />
+      <defs>
+        <clipPath id={clipId}>
+          <rect height={visibleContentHeight} width={contentWidth} x={textX} y={rectY + paddingY} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        {displayedMembers.map((member, index) => {
+          const domId = `${member.c.id}-${member.c.start}-${member.c.end}`;
+          const rowTopY = rectY + paddingY + index * lineHeight - scrollY;
+          const rowTextY = textY + index * lineHeight - scrollY;
+          const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, member.c, highlightedEnzymes);
+          const itemStyle = {
+            ...svgText,
+            cursor: "pointer",
+            fontSize: labelFontSize,
+            fill: isHighlighted ? enzymeHoverColor : svgText.fill,
+            fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+          } as React.CSSProperties;
+          const selectionAttrs = getSelectionAttributes(member.c, domId);
+          return (
+            <g
+              key={`${group.groupId}-${domId}-${index}`}
+              onMouseEnter={() => onHoverChange(member.c, true)}
+              onMouseLeave={() => onHoverChange(member.c, false)}
+            >
+              <rect
+                {...selectionAttrs}
+                fill="transparent"
+                height={lineHeight}
+                style={{ cursor: "pointer" }}
+                width={contentWidth}
+                x={textX}
+                y={rowTopY}
+              />
+              <text
+                dominantBaseline="middle"
+                id={domId}
+                {...selectionAttrs}
+                style={itemStyle}
+                textAnchor="start"
+                x={textX}
+                y={rowTextY}
+              >
+                {member.c.name}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+      {hasScroll && (
+        <>
+          <rect
+            fill="rgba(0, 0, 0, 0.08)"
+            height={visibleContentHeight}
+            rx={2}
+            ry={2}
+            width={scrollbarTrackWidth}
+            x={scrollbarX}
+            y={rectY + paddingY}
+          />
+          <rect
+            fill="rgba(0, 0, 0, 0.45)"
+            height={thumbHeight}
+            rx={2}
+            ry={2}
+            width={scrollbarTrackWidth}
+            x={scrollbarX}
+            y={thumbY}
+          />
+        </>
+      )}
+      <rect fill="none" height={rectHeight} stroke="black" strokeWidth={1.5} width={rectWidth} x={rectX} y={rectY} />
     </g>
   );
 };
@@ -413,12 +592,6 @@ const withLabels = (cutSites: CutSiteEnhanced[], size: Size): CutSiteLabelled[] 
     .sort((a, b) => a.top.x - b.top.x)
     .map(c => ({ ...c, label: { render: c.top.render, text: c.c.name, x: c.top.x + CUT_LINE_X_OFFSET } }));
 
-  // keep centered labels within viewport bounds
-  const overflow = (c: CutSiteLabelled): boolean => {
-    const halfWidth = (c.label.text.length * CHAR_WIDTH) / 2;
-    return c.label.x - halfWidth < 0 || c.label.x + halfWidth > size.width;
-  };
-
   labelled.forEach(c => {
     const halfWidth = (c.label.text.length * CHAR_WIDTH) / 2;
     if (c.label.x - halfWidth < 0) {
@@ -428,29 +601,136 @@ const withLabels = (cutSites: CutSiteEnhanced[], size: Size): CutSiteLabelled[] 
     }
   });
 
-  // if two labels overlap, shift the righter most one to the right
-  const overlap = (c1: CutSiteLabelled, c2: CutSiteLabelled): boolean => {
-    const c1Half = (c1.label.text.length * CHAR_WIDTH) / 2;
-    const c2Half = (c2.label.text.length * CHAR_WIDTH) / 2;
-    return c1.label.x + c1Half > c2.label.x - c2Half;
+  return unlabelled.concat(labelled);
+};
+
+const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Size): CutSiteLabelEntry[] => {
+  const candidates = labelledCutSites.filter(c => c.label.render).sort((a, b) => a.label.x - b.label.x);
+  if (!candidates.length) {
+    return [];
+  }
+
+  const keyOf = (c: CutSiteLabelled) => `${c.c.id}|${c.c.start}|${c.c.end}|${c.c.fcut}|${c.c.rcut}`;
+  const dedupeMembers = (members: CutSiteLabelled[]) => {
+    const seen = new Set<string>();
+    return members.filter(member => {
+      const key = keyOf(member);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
 
-  labelled.forEach((c, i) => {
-    if (i == 0) return c;
-    const last = labelled[i - 1];
+  const consumed = new Set<string>();
+  const groups: CutSiteLabelled[][] = [];
 
-    while (overlap(last, c)) {
-      c.label.x += CHAR_WIDTH * 2;
+  const byCutLocation = new Map<string, CutSiteLabelled[]>();
+  candidates.forEach(c => {
+    const key = `${c.c.fcut}|${c.c.rcut}`;
+    const existing = byCutLocation.get(key) || [];
+    existing.push(c);
+    byCutLocation.set(key, existing);
+  });
+  byCutLocation.forEach(group => {
+    if (group.length > 1) {
+      groups.push(group);
+      group.forEach(member => consumed.add(keyOf(member)));
     }
-    return c;
   });
 
-  // remove labels that now overflow the right of the screen
-  labelled.forEach(c => {
-    if (overflow(c)) {
-      c.label.render = false;
+  const remainingAfterCut = candidates.filter(c => !consumed.has(keyOf(c)));
+  const byRecognitionLocation = new Map<string, CutSiteLabelled[]>();
+  remainingAfterCut.forEach(c => {
+    const key = `${c.c.start}|${c.c.end}`;
+    const existing = byRecognitionLocation.get(key) || [];
+    existing.push(c);
+    byRecognitionLocation.set(key, existing);
+  });
+
+  byRecognitionLocation.forEach(group => {
+    if (group.length < 2) return;
+    const sorted = [...group].sort((a, b) => a.label.x - b.label.x);
+    const rightMost = sorted.reduce(
+      (max, item) => Math.max(max, item.label.x + (item.label.text.length * CHAR_WIDTH) / 2),
+      Number.NEGATIVE_INFINITY,
+    );
+    const maxCutX = sorted.reduce((max, item) => Math.max(max, item.top.x), Number.NEGATIVE_INFINITY);
+    const nextCutX = remainingAfterCut
+      .filter(item => !sorted.includes(item) && item.top.x > maxCutX)
+      .reduce((min, item) => Math.min(min, item.top.x), Number.POSITIVE_INFINITY);
+    const noRoomOnRight =
+      rightMost >= size.width - CHAR_WIDTH * 3 ||
+      (Number.isFinite(nextCutX) && nextCutX - maxCutX < CHAR_WIDTH * 2);
+    if (noRoomOnRight) {
+      groups.push(sorted);
+      sorted.forEach(member => consumed.add(keyOf(member)));
     }
   });
 
-  return unlabelled.concat(labelled);
+  const remainingAfterRecognition = candidates.filter(c => !consumed.has(keyOf(c)));
+  const endZoneThreshold = size.width - CHAR_WIDTH * LABEL_GROUP_RIGHT_ZONE_BP;
+  const endZoneMembers = remainingAfterRecognition.filter(c => c.label.x >= endZoneThreshold);
+  if (endZoneMembers.length >= 2) {
+    groups.push(endZoneMembers);
+    endZoneMembers.forEach(member => consumed.add(keyOf(member)));
+  }
+
+  const singles = candidates.filter(c => !consumed.has(keyOf(c))).map(c => [c]);
+
+  const rawEntries: CutSiteLabelEntry[] = [...groups, ...singles].map((members, index) => {
+    const uniqueMembers = dedupeMembers(members);
+    const first = uniqueMembers[0];
+    const grouped = uniqueMembers.length > 1;
+    const text = grouped ? `${first.c.name},+${uniqueMembers.length - 1}` : first.label.text;
+    const x = uniqueMembers.reduce((sum, member) => sum + member.label.x, 0) / uniqueMembers.length;
+    return {
+      grouped,
+      groupId: `${keyOf(first)}-group-${index}`,
+      members: uniqueMembers,
+      text,
+      x,
+    };
+  });
+
+  const sortedEntries = rawEntries.sort((a, b) => a.x - b.x);
+  const placedEntries: CutSiteLabelEntry[] = [];
+  let overflowMembers: CutSiteLabelled[] = [];
+
+  for (let i = 0; i < sortedEntries.length; i += 1) {
+    const entry = sortedEntries[i];
+    const entryHalf = (entry.text.length * CHAR_WIDTH) / 2;
+    let x = Math.max(entryHalf, Math.min(entry.x, size.width - entryHalf));
+    const previous = placedEntries[placedEntries.length - 1];
+    if (previous) {
+      const previousHalf = (previous.text.length * CHAR_WIDTH) / 2;
+      const minX = previous.x + previousHalf + entryHalf + CHAR_WIDTH;
+      if (x < minX) {
+        x = minX;
+      }
+    }
+
+    if (x + entryHalf > size.width) {
+      overflowMembers = sortedEntries.slice(i).reduce((acc, overflowEntry) => acc.concat(overflowEntry.members), [] as CutSiteLabelled[]);
+      break;
+    }
+
+    placedEntries.push({ ...entry, x });
+  }
+
+  if (overflowMembers.length) {
+    overflowMembers = dedupeMembers(overflowMembers);
+    const first = overflowMembers[0];
+    const grouped = overflowMembers.length > 1;
+    const text = grouped ? `${first.c.name},+${overflowMembers.length - 1}` : first.label.text;
+    const half = (text.length * CHAR_WIDTH) / 2;
+    placedEntries.push({
+      grouped,
+      groupId: `${keyOf(first)}-overflow-group`,
+      members: overflowMembers,
+      text,
+      x: Math.max(half, size.width - half),
+    });
+  }
+
+  return placedEntries;
 };
