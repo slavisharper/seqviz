@@ -360,8 +360,10 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
     const indexRowYDiff = annYDiff + annHeight + elementGap;
 
     // calc the selection overlay region
-    // for nt sequences, start at the top of the sequence row (not above enzyme labels)
-    const selectionTopY = seqType === "aa" ? -5 : indexYDiff;
+    // for nt sequences, align with cut-site visuals and index ticks:
+    // - start at cut-site top line start (indexYDiff - 3)
+    // - end at index tick bottom (indexRowYDiff + 8)
+    const selectionTopY = seqType === "aa" ? -5 : indexYDiff - 3;
     const selectHeight =
       seqType === "aa"
         ? primerFwdHeight +
@@ -380,8 +382,9 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           fragmentsHeight +
           annHeight +
           primerRevHeight +
-          elementGap;
-    let selectEdgeHeight = selectHeight + 9; // +9 is the height of a tick + index row
+              elementGap +
+              11;
+            let selectEdgeHeight = seqType === "aa" ? selectHeight + 9 : selectHeight;
 
     // needed because otherwise the selection height is very small
     if (!zoomed && selectHeight <= elementHeight) {
@@ -419,6 +422,15 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
         onMouseMove={handleMouseEvent}
         onMouseUp={handleMouseEvent}
       >
+        <Selection.Block
+          findXAndWidth={this.findXAndWidth}
+          firstBase={firstBase}
+          fullSeq={fullSeq}
+          lastBase={lastBase}
+          selectHeight={selectHeight}
+          selectY={selectionTopY}
+          onUnmount={onUnmount}
+        />
         {showIndex && (
           <IndexRow
             charWidth={charWidth}
@@ -433,15 +445,6 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             zoom={zoom}
           />
         )}
-        <Selection.Block
-          findXAndWidth={this.findXAndWidth}
-          firstBase={firstBase}
-          fullSeq={fullSeq}
-          lastBase={lastBase}
-          selectHeight={selectHeight}
-          selectY={selectionTopY}
-          onUnmount={onUnmount}
-        />
         {primerFwdRows.length && (
           <PrimeRows
             bpsPerBlock={bpsPerBlock}
