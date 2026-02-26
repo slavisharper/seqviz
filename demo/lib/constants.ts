@@ -29,6 +29,8 @@ export const VIEWER_TYPE_OPTIONS = [
 
 export const DEFAULT_ENZYMES: string[] = [
   "AcuI",
+  "AceIII",
+  "ApyPI",
   "Acc16I",
   "Acc65I",
   "AccIII",

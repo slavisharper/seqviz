@@ -188,6 +188,19 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     };
   };
 
+  private getClockwiseFromDirection = (selection: Selection): boolean => {
+    const explicitDirection =
+      typeof selection.direction === "number" && Number.isFinite(selection.direction) && selection.direction !== 0
+        ? selection.direction
+        : typeof (selection as Selection & { strand?: number }).strand === "number" &&
+            Number.isFinite((selection as Selection & { strand?: number }).strand) &&
+            (selection as Selection & { strand?: number }).strand !== 0
+          ? (selection as Selection & { strand?: number }).strand
+          : undefined;
+
+    return explicitDirection ? explicitDirection === 1 : true;
+  };
+
   private selectionHasLength = (
     selection?: Selection | null,
   ): selection is Selection & { end: number; start: number } => {
@@ -440,13 +453,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       case "HIGHLIGHT":
       case "SINGLE_STRAND_ANNOTATION":
       case "AMINOACID": {
-        const inferredDirection =
-          typeof range.direction === "number"
-            ? range.direction
-            : typeof (range as any).strand === "number"
-              ? (range as any).strand
-              : 1;
-        const clockwise = inferredDirection === 1;
+        const clockwise = this.getClockwiseFromDirection(range);
         const selectionStart = clockwise ? normalizedRange.start : normalizedRange.end;
         const selectionEnd = clockwise ? normalizedRange.end : normalizedRange.start;
 
@@ -847,7 +854,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
         }
 
         // Annotation or find selection range
-        const clockwise = direction ? direction === 1 : true;
+        const clockwise = this.getClockwiseFromDirection(knownRange);
         const selectionStart = clockwise ? start : end;
         const selectionEnd = clockwise ? end : start;
 
@@ -865,7 +872,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       }
       case "AMINOACID": {
         // Annotation or find selection range
-        const clockwise = direction ? direction === 1 : true;
+        const clockwise = this.getClockwiseFromDirection(knownRange);
         const selectionStart = clockwise ? start : end;
         const selectionEnd = clockwise ? end : start;
 

@@ -79,17 +79,28 @@ export const CutSites = (props: {
   const labelledCutSites = withLabels(enhancedCutSites, size);
   const labelEntries = React.useMemo(() => buildCutSiteLabelEntries(labelledCutSites, size), [labelledCutSites, size]);
   const hoveredGroup = labelEntries.find(entry => entry.grouped && entry.groupId === hoveredGroupId);
+  const orderedCutSites = labelledCutSites
+    .map((item, index) => ({
+      index,
+      isHighlighted: matchesHoveredEnzyme(hoveredEnzyme, item.c, highlightedEnzymes),
+      item,
+    }))
+    .sort((a, b) => {
+      if (a.isHighlighted === b.isHighlighted) {
+        return a.index - b.index;
+      }
+      return a.isHighlighted ? 1 : -1;
+    });
   if (!enhancedCutSites.length) return null;
 
   const lineYDiff = yDiff + lineHeight;
   return (
     <g className="la-vz-cut-sites">
-      {labelledCutSites.map(c => {
+      {orderedCutSites.map(({ isHighlighted, item: c }) => {
         const domId = `${c.c.id}-${c.c.start}-${c.c.end}`;
         const topLineX = c.top.x + CUT_LINE_X_OFFSET;
         const bottomLineX = c.bottom.x + CUT_LINE_X_OFFSET;
         const connectorStartX = c.connector.x + CUT_LINE_X_OFFSET;
-        const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, c.c, highlightedEnzymes);
         const highlightStyle = selection;
         const cutLineStyle = isHighlighted
           ? { ...cutSite, stroke: CUT_LINE_ACTIVE_COLOR, strokeWidth: CUT_LINE_ACTIVE_WIDTH }

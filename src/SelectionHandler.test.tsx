@@ -114,3 +114,57 @@ describe("SelectionHandler amino acid selection", () => {
     expect(lastCall).toMatchObject({ start: 30, end: 33, length: 3, type: "AMINOACID" });
   });
 });
+
+describe("SelectionHandler context menu enzyme selection", () => {
+  it("keeps enzyme selection orientation consistent when direction is 0 in ref metadata", () => {
+    const setSelection = jest.fn();
+    const onContextMenu = jest.fn();
+
+    render(
+      <SelectionContext.Provider value={defaultSelection as Selection}>
+        <SelectionHandler
+          center={{ x: 0, y: 0 }}
+          centralIndex={0}
+          onContextMenu={onContextMenu}
+          seq={"A".repeat(200)}
+          setCentralIndex={() => {}}
+          setSelection={setSelection}
+          yDiff={0}
+        >
+          {(inputRef, _handleMouseEvent, _onUnmount, handleContextMenu) => (
+            <svg>
+              <g
+                data-testid="enzyme-context-target"
+                id="enzyme-context-target"
+                ref={node =>
+                  node &&
+                  inputRef("enzyme-context-target", {
+                    direction: 0,
+                    end: 20,
+                    start: 10,
+                    type: "ENZYME",
+                    viewer: "LINEAR",
+                  })
+                }
+                onContextMenu={handleContextMenu as unknown as React.MouseEventHandler<SVGGElement>}
+              />
+            </svg>
+          )}
+        </SelectionHandler>
+      </SelectionContext.Provider>,
+    );
+
+    const enzymeTarget = screen.getByTestId("enzyme-context-target");
+    fireEvent.contextMenu(enzymeTarget, { button: 2, clientX: 12, clientY: 12 });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    const payload = onContextMenu.mock.calls[0]?.[0];
+    expect(payload.selection).toMatchObject({
+      clockwise: true,
+      end: 20,
+      start: 10,
+      type: "ENZYME",
+    });
+    expect(payload.type).toBe("ENZYME");
+  });
+});
