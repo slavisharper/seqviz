@@ -807,7 +807,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       return;
     }
 
-    const { direction, end, scrollLinearOnSelect, start, viewer } = knownRange as Selection & {
+    const { end, scrollLinearOnSelect, start, viewer } = knownRange as Selection & {
       scrollLinearOnSelect?: boolean;
     };
 
