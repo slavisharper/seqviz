@@ -6,6 +6,7 @@ import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } 
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { LinearGroupLabelOverlay } from "./GroupLabelOverlay";
 import { LinearMapScale } from "./utils";
+import { ENZYME_LABEL_ROW_SPACING } from "./constants";
 import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 const ANNOTATION_HEIGHT_RATIO = 0.8;
@@ -244,7 +245,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
     return (
       <g className="la-vz-linear-map-labels" onMouseLeave={this.handleMouseLeave}>
         {labels.map(label => {
-          const textY = startY + label.row * lineHeight;
+          const textY = startY + label.row * ENZYME_LABEL_ROW_SPACING;
           const textId = label.groupId;
           const rawSourceY = typeof label.sourceY === "number" ? label.sourceY : null;
           const labelHeightRatio =
@@ -332,7 +333,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
         })}
         {overlayGroup && overlayGroup.grouped && overlayGroup.labels.length > 0 && (
           <LinearGroupLabelOverlay
-            group={{ ...overlayGroup, textY: startY + overlayGroup.row * lineHeight }}
+            group={{ ...overlayGroup, textY: startY + overlayGroup.row * ENZYME_LABEL_ROW_SPACING }}
             getSelectionAttributes={this.getSelectionAttributes}
             hoveredFeatures={hoveredFeatures}
             lineHeight={lineHeight}

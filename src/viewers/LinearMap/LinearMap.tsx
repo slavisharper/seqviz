@@ -29,10 +29,9 @@ import { OrfTrack } from "./components/OrfTrack";
 import { PrimerTrack } from "./components/PrimerTrack";
 import {
   ANNOTATION_HEIGHT_RATIO,
-  ENZYME_GROUP_THRESHOLD_PX,
   ENZYME_LABEL_MIN_WIDTH,
-  ENZYME_MAX_VISIBLE_PER_GROUP,
-  ENZYME_UNIFIED_LINE_THRESHOLD_PX,
+  ENZYME_LABEL_ROW_SPACING,
+  ENZYME_MAX_LABEL_ROWS,
   LABEL_GAP,
   LINE_HEIGHT,
   MIN_MAP_WIDTH,
@@ -362,7 +361,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       scale,
     );
     const enzymeLabelRowMax = enzymeLabels.reduce((acc, label) => Math.max(acc, label.row), -1);
-    const enzymeLabelsHeight = enzymeLabelRowMax >= 0 ? (enzymeLabelRowMax + 1) * LINE_HEIGHT : 0;
+    const enzymeLabelsHeight = enzymeLabelRowMax >= 0 ? enzymeLabelRowMax * ENZYME_LABEL_ROW_SPACING + LINE_HEIGHT : 0;
     const enzymeLabelsStartY = PADDING_TOP;
 
     let currentY = PADDING_TOP;
@@ -878,30 +877,30 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     };
   }
 
-  private assignLabelRows(labels: LinearLabelDatum[]): LinearLabelDatum[] {
-    if (!labels.length) return [];
-    const rows: LinearLabelDatum[][] = [];
-    const sorted = [...labels].sort((a, b) => a.left - b.left);
-
-    sorted.forEach(label => {
-      let rowIndex = 0;
-      while (rows[rowIndex] && rows[rowIndex][rows[rowIndex].length - 1].right + LABEL_GAP > label.left) {
-        rowIndex += 1;
-      }
-      label.row = rowIndex;
-      if (!rows[rowIndex]) {
-        rows[rowIndex] = [];
-      }
-      rows[rowIndex].push(label);
-    });
-
-    return rows.flat();
-  }
-
+  /**
+   * Multi-row cascade layout for enzyme labels.
+   *
+   * Algorithm (left-to-right by cut position):
+   *  1. Place the first enzyme on row 0.
+   *  2. For each subsequent enzyme, check against the *last individually-placed*
+   *     label ("lastVisible"):
+   *     a) No overlap → place on row 0, reset.
+   *     b) Overlaps the label text but NOT the connector line (anchorX) →
+   *        cascade one row down (up to ENZYME_MAX_LABEL_ROWS - 1).
+   *     c) Overlaps the connector line OR all rows exhausted → add to a "+N"
+   *        overflow group positioned after lastVisible on row lastVisible.row + 1.
+   *  3. When a non-overlapping enzyme is found, finalize any open group and
+   *     return to row 0.
+   *
+   * Because connectors from the baseline only reach up to the label's own row,
+   * a row-N connector never crosses through row-(N-1) label text. The anchorX
+   * check prevents placing a label where a higher-row connector would cross it.
+   */
   private layoutEnzymeLabels(rawLabels: RawLabel[], scale: LinearMapScale): LinearLabelDatum[] {
     if (!rawLabels.length) return [];
 
-    const positioned = rawLabels
+    // --- Step 1: Position each enzyme at its cut site ---
+    const positioned: LinearLabelDatum[] = rawLabels
       .filter(label => label.name && label.name.trim().length)
       .map(label => {
         const cutBase = typeof label.cutPosition === "number" ? label.cutPosition - 1 : label.start;
@@ -944,7 +943,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
           anchorX,
           displayName,
           groupId: label.id,
-          groupType: label.type,
+          groupType: label.type as "annotation" | "primer" | "enzyme",
           grouped: false,
           labels: labelItems.map(item => ({ ...item })),
           left,
@@ -957,76 +956,113 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       })
       .sort((a, b) => a.anchorX - b.anchorX);
 
-    const groups: { originX: number; labels: LinearLabelDatum[] }[] = [];
-    positioned.forEach(label => {
-      const lastGroup = groups[groups.length - 1];
-      if (!lastGroup || label.anchorX - lastGroup.originX > ENZYME_GROUP_THRESHOLD_PX) {
-        groups.push({ originX: label.anchorX, labels: [label] });
+    if (!positioned.length) return [];
+
+    // --- Step 2: Cascade placement ---
+    const result: LinearLabelDatum[] = [];
+    let lastVisible: LinearLabelDatum | null = null;
+    let openGroup: {
+      anchorX: number;
+      labels: LinearLabelDatum[];
+      row: number;
+      left: number;
+    } | null = null;
+    let groupCounter = 0;
+
+    const overlapsLabel = (enzyme: LinearLabelDatum, ref: LinearLabelDatum): boolean =>
+      enzyme.left < ref.right + LABEL_GAP;
+
+    const overlapsConnectorLine = (enzyme: LinearLabelDatum, ref: LinearLabelDatum): boolean =>
+      enzyme.left < ref.anchorX;
+
+    const finalizeGroup = () => {
+      if (!openGroup || !openGroup.labels.length) {
+        openGroup = null;
         return;
       }
-      lastGroup.labels.push(label);
-    });
-
-    const alignLabelToGroup = (label: LinearLabelDatum, anchorX: number): LinearLabelDatum => {
-      const textWidth = Math.max(label.textWidth, ENZYME_LABEL_MIN_WIDTH);
+      const count = openGroup.labels.reduce((n, l) => n + l.labels.length, 0);
+      const displayName = `+${count}`;
+      const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, ENZYME_LABEL_MIN_WIDTH);
       const maxLeft = scale.offsetX + scale.width - textWidth;
-      let left = anchorX - textWidth / 2;
+      let left = openGroup.left;
       left = clamp(left, scale.offsetX, maxLeft);
       const right = left + textWidth;
-      return {
-        ...label,
-        anchorX,
+      result.push({
+        anchorX: openGroup.anchorX,
+        displayName,
+        groupId: `enzyme-cascade-group-${groupCounter++}`,
+        groupType: "enzyme",
+        grouped: true,
+        labels: openGroup.labels.flatMap(l => l.labels.map(item => ({ ...item }))),
         left,
         right,
+        row: openGroup.row,
+        textAnchor: "middle",
         textWidth,
         textX: left + textWidth / 2,
-      };
+      });
+      openGroup = null;
     };
 
-    const flattened: LinearLabelDatum[] = [];
+    for (let i = 0; i < positioned.length; i++) {
+      const enzyme = positioned[i];
 
-    groups.forEach((group, groupIndex) => {
-      const sortedGroupLabels = [...group.labels].sort((a, b) => a.anchorX - b.anchorX);
-      const visible = sortedGroupLabels.slice(0, ENZYME_MAX_VISIBLE_PER_GROUP);
-      const hidden = sortedGroupLabels.slice(ENZYME_MAX_VISIBLE_PER_GROUP);
-
-      if (hidden.length) {
-        const displayName = `+${hidden.length}`;
-        const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, ENZYME_LABEL_MIN_WIDTH);
-        const maxLeft = scale.offsetX + scale.width - textWidth;
-        let left = group.originX - textWidth / 2;
-        left = clamp(left, scale.offsetX, maxLeft);
-        const right = left + textWidth;
-        flattened.push({
-          anchorX: group.originX,
-          displayName,
-          groupId: `enzyme-group-${groupIndex}-more`,
-          groupType: "enzyme",
-          grouped: true,
-          labels: hidden.flatMap(label => label.labels.map(item => ({ ...item }))),
-          left,
-          right,
-          row: 0,
-          textAnchor: "middle",
-          textWidth,
-          textX: left + textWidth / 2,
-        });
+      // First enzyme or no overlap with lastVisible → place on row 0, reset.
+      if (!lastVisible || !overlapsLabel(enzyme, lastVisible)) {
+        finalizeGroup();
+        const placed = { ...enzyme, row: 0 };
+        result.push(placed);
+        lastVisible = placed;
+        continue;
       }
 
-      let clusterAnchor = visible.length ? visible[0].anchorX : group.originX;
-      visible.forEach((label, index) => {
-        if (index === 0) {
-          flattened.push(alignLabelToGroup(label, clusterAnchor));
-          return;
-        }
-        const sharedAnchor = Math.abs(label.anchorX - clusterAnchor) <= ENZYME_UNIFIED_LINE_THRESHOLD_PX;
-        const anchorX = sharedAnchor ? clusterAnchor : label.anchorX;
-        clusterAnchor = anchorX;
-        flattened.push(alignLabelToGroup(label, anchorX));
-      });
-    });
+      // At this point lastVisible is guaranteed non-null.
+      const ref = lastVisible;
 
-    const sorted = [...flattened].sort((a, b) => a.anchorX - b.anchorX);
-    return this.assignLabelRows(sorted);
+      // Overlaps lastVisible's label text.
+      // Check if it also overlaps the connector line.
+      if (overlapsConnectorLine(enzyme, ref)) {
+        // Too close — add to overflow group, placed to the right of last visible's line, between rows.
+        const groupRow = ref.row + 0.5;
+        if (!openGroup) {
+          openGroup = {
+            anchorX: ref.anchorX,
+            labels: [],
+            row: groupRow,
+            // Place to the right of the previous visible enzyme's connector line.
+            left: ref.anchorX - 8,
+          };
+        }
+        openGroup.labels.push(enzyme);
+        continue;
+      }
+
+      // Overlaps label text but NOT connector line → cascade down one row.
+      const targetRow = ref.row + 1;
+      if (targetRow < ENZYME_MAX_LABEL_ROWS) {
+        finalizeGroup();
+        const placed = { ...enzyme, row: targetRow };
+        result.push(placed);
+        lastVisible = placed;
+      } else {
+        // All individual rows exhausted — add to group, placed to the right of last visible's line, between rows.
+        const groupRow = ref.row + 0.5;
+        if (!openGroup) {
+          openGroup = {
+            anchorX: ref.anchorX,
+            labels: [],
+            row: groupRow,
+            // Place to the right of the previous visible enzyme's connector line.
+            left: ref.anchorX - 8,
+          };
+        }
+        openGroup.labels.push(enzyme);
+      }
+    }
+
+    // Finalize any trailing group.
+    finalizeGroup();
+
+    return result;
   }
 }

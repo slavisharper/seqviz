@@ -33,3 +33,9 @@ export const ENZYME_GROUP_THRESHOLD_PX = 25;
 export const ENZYME_MAX_VISIBLE_PER_GROUP = 5;
 
 export const ENZYME_UNIFIED_LINE_THRESHOLD_PX = 5;
+
+/** Maximum number of individual enzyme label rows before overflow groups. */
+export const ENZYME_MAX_LABEL_ROWS = 5;
+
+/** Vertical spacing per enzyme label row: text height + one row gap + padding. */
+export const ENZYME_LABEL_ROW_SPACING = LINE_HEIGHT * 2 + ROW_GAP;
