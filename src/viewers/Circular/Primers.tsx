@@ -13,6 +13,7 @@ interface PrimersProps {
   getRotation: (index: number) => string;
   inputRef: InputRefFunc;
   lineHeight: number;
+  onFeatureHover?: (featureId: string, hover: boolean) => void;
   radius: number;
   seqLength: number;
   /** How many annotation rows to skip inward so primers render inside features */
@@ -48,6 +49,7 @@ export const Primers = React.memo((props: PrimersProps) => {
                   genArc={props.genArc}
                   getRotation={props.getRotation}
                   inputRef={props.inputRef}
+                  onFeatureHover={props.onFeatureHover}
                   seqLength={props.seqLength}
                   innerRadius={currTRadius}
                   outerRadius={currBRadius}
@@ -68,12 +70,22 @@ interface PrimerArcProps {
   genArc: GenArcFunc;
   getRotation: (index: number) => string;
   inputRef: InputRefFunc;
+  onFeatureHover?: (featureId: string, hover: boolean) => void;
   seqLength: number;
   innerRadius: number;
   outerRadius: number;
 }
 
-const PrimerArc = ({ primer, genArc, getRotation, inputRef, seqLength, innerRadius, outerRadius }: PrimerArcProps) => {
+const PrimerArc = ({
+  primer,
+  genArc,
+  getRotation,
+  inputRef,
+  onFeatureHover,
+  seqLength,
+  innerRadius,
+  outerRadius,
+}: PrimerArcProps) => {
   let primerLength = primer.end >= primer.start ? primer.end - primer.start : seqLength - primer.start + primer.end;
   primerLength = primerLength === 0 ? seqLength - 0.1 : primerLength;
 
@@ -119,6 +131,8 @@ const PrimerArc = ({ primer, genArc, getRotation, inputRef, seqLength, innerRadi
         fill={color}
         stroke={neonStroke || border}
         style={{ ...annotation, strokeWidth }}
+        onMouseEnter={() => onFeatureHover?.(primer.id, true)}
+        onMouseLeave={() => onFeatureHover?.(primer.id, false)}
       />
     </g>
   );

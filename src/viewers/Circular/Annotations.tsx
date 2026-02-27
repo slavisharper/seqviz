@@ -14,6 +14,7 @@ interface AnnotationsProps {
   inlinedAnnotations: string[];
   inputRef: InputRefFunc;
   lineHeight: number;
+  onFeatureHover?: (featureId: string, hover: boolean) => void;
   radius: number;
   rowsToSkip: number;
   seqLength: number;
@@ -73,6 +74,7 @@ export class Annotations extends React.PureComponent<AnnotationsProps> {
                     inlinedAnnotations={this.props.inlinedAnnotations}
                     inputRef={this.props.inputRef}
                     lineHeight={lineHeight}
+                    onFeatureHover={this.props.onFeatureHover}
                     seqLength={this.props.seqLength}
                   />
                 )),
@@ -98,6 +100,7 @@ interface SingleAnnotationProps {
   inlinedAnnotations: string[];
   inputRef: InputRefFunc;
   lineHeight: number;
+  onFeatureHover?: (featureId: string, hover: boolean) => void;
   seqLength: number;
 }
 
@@ -117,6 +120,7 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
     inlinedAnnotations,
     inputRef,
     lineHeight,
+    onFeatureHover,
     seqLength,
   } = props;
 
@@ -189,6 +193,8 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
         }}
         onMouseOut={() => hoverAnnotation(a.id, "0.7")}
         onMouseOver={() => hoverAnnotation(a.id, "1.0")}
+        onMouseEnter={() => onFeatureHover?.(a.id, true)}
+        onMouseLeave={() => onFeatureHover?.(a.id, false)}
       />
       {inlinedAnnotations.includes(a.id) && (
         <text
@@ -207,6 +213,8 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
           }}
           onMouseOut={() => hoverAnnotation(a.id, "0.7")}
           onMouseOver={() => hoverAnnotation(a.id, "1.0")}
+          onMouseEnter={() => onFeatureHover?.(a.id, true)}
+          onMouseLeave={() => onFeatureHover?.(a.id, false)}
         >
           <textPath
             className="la-vz-annotation-label"

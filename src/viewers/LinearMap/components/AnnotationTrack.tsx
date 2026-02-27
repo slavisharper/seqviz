@@ -9,7 +9,6 @@ import { LinearMapScale } from "../utils";
 
 type HoverHandler = (featureId: string, hover: boolean) => void;
 type HoverCheck = (featureId: string) => boolean;
-type LabelCheck = (featureId: string) => boolean;
 
 type AnnotationTrackProps = {
   rows: Annotation[][];
@@ -19,7 +18,6 @@ type AnnotationTrackProps = {
   rowSpacing: number;
   inlineAnnotationIds: Set<string>;
   inputRef: InputRefFunc;
-  hasLabel: LabelCheck;
   onFeatureHover: HoverHandler;
   isFeatureHovered: HoverCheck;
 };
@@ -32,7 +30,6 @@ export const AnnotationTrack: React.FC<AnnotationTrackProps> = ({
   rowSpacing,
   inlineAnnotationIds,
   inputRef,
-  hasLabel,
   onFeatureHover,
   isFeatureHovered,
 }) => {
@@ -54,7 +51,6 @@ export const AnnotationTrack: React.FC<AnnotationTrackProps> = ({
                 isFeatureHovered={isFeatureHovered}
                 onFeatureHover={onFeatureHover}
                 scale={scale}
-                hasLabel={hasLabel}
               />
             ))}
           </g>
@@ -70,7 +66,6 @@ type AnnotationFeatureProps = {
   featureHeight: number;
   inlineAnnotationIds: Set<string>;
   inputRef: InputRefFunc;
-  hasLabel: LabelCheck;
   onFeatureHover: HoverHandler;
   isFeatureHovered: HoverCheck;
 };
@@ -81,7 +76,6 @@ const AnnotationFeature: React.FC<AnnotationFeatureProps> = ({
   featureHeight,
   inlineAnnotationIds,
   inputRef,
-  hasLabel,
   onFeatureHover,
   isFeatureHovered,
 }) => {
@@ -90,7 +84,7 @@ const AnnotationFeature: React.FC<AnnotationFeatureProps> = ({
   const textX = scale.offsetX + midpoint * scale.pxPerBase;
   const strokeColor = feature.color ? COLOR_BORDER_MAP[feature.color] || darkerColor(feature.color) : "gray";
   const inline = inlineAnnotationIds.has(feature.id);
-  const interactive = hasLabel(feature.id) || inline;
+  const interactive = !!feature.name;
   const hovered = isFeatureHovered(feature.id);
   const baseStyle = {
     ...annotationStyle,

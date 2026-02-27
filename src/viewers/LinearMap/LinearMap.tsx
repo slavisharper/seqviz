@@ -16,13 +16,13 @@ import {
 } from "../../core/elements";
 import CentralIndexContext from "../../state/centralIndexContext";
 import { Selection as SelectionState } from "../../state/selectionContext";
-import { circularLabelLine, separatorLine, viewerCircular } from "../../style";
+import { circularLabel, circularLabelLine, separatorLine, viewerCircular } from "../../style";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { Find } from "./Find";
 import { Index } from "./Index";
-import { Labels, LinearLabelDatum, LinearLabelItem } from "./Labels";
+import { Labels, LinearLabelDatum } from "./Labels";
 import { Selection } from "./Selection";
 import { AnnotationTrack } from "./components/AnnotationTrack";
 import { OrfTrack } from "./components/OrfTrack";
@@ -231,6 +231,8 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
   private selectedFeatureIds = new Set<string>();
   private previousSelectionIds = new Set<string>();
 
+  private FEATURE_CALLOUT_TEXT_GAP = LINE_HEIGHT * 1.1;
+
   shouldComponentUpdate(nextProps: LinearMapProps, nextState: LinearMapState) {
     return !isEqual(nextProps, this.props) || !isEqual(nextState, this.state);
   }
@@ -353,7 +355,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const annotationFeatureHeight = LINE_HEIGHT * ANNOTATION_HEIGHT_RATIO;
 
     const allAnnotations = fragments.concat(annotations);
-    const { enzymeLabels, featureLabels, inlineAnnotationIds, inlinePrimerIds } = this.computeLabelLayout(
+    const { enzymeLabels, inlineAnnotationIds, inlinePrimerIds } = this.computeLabelLayout(
       allAnnotations,
       primers,
       cutSites,
@@ -361,8 +363,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     );
     const enzymeLabelRowMax = enzymeLabels.reduce((acc, label) => Math.max(acc, label.row), -1);
     const enzymeLabelsHeight = enzymeLabelRowMax >= 0 ? (enzymeLabelRowMax + 1) * LINE_HEIGHT : 0;
-    const featureLabelRowMax = featureLabels.reduce((acc, label) => Math.max(acc, label.row), -1);
-    const featureLabelsHeight = featureLabelRowMax >= 0 ? (featureLabelRowMax + 1) * LINE_HEIGHT : 0;
     const enzymeLabelsStartY = PADDING_TOP;
 
     let currentY = PADDING_TOP;
@@ -436,15 +436,8 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       sourceY: this.getLabelSourceY(label, labelSourceContext),
     }));
 
-    const featureLabelsWithSource = featureLabels.map(label => ({
-      ...label,
-      sourceY: this.getLabelSourceY(label, labelSourceContext),
-    }));
-
-    const labelsWithSource = [...enzymeLabelsWithSource, ...featureLabelsWithSource];
-
     const featureLabelLookup = new Map<string, LinearLabelDatum>();
-    labelsWithSource.forEach(label => {
+    enzymeLabelsWithSource.forEach(label => {
       label.labels.forEach(item => {
         featureLabelLookup.set(item.id, label);
       });
@@ -460,12 +453,64 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       return acc;
     }, {});
 
-    const featureLabelsStartY = featureAreaBottom + (featureLabelsHeight ? LABEL_GAP : 0);
-    if (featureLabelsHeight) {
-      currentY = featureLabelsStartY + featureLabelsHeight;
-    } else {
-      currentY = featureAreaBottom;
-    }
+    currentY = featureAreaBottom;
+
+    const hiddenFeatureMetaById = new Map<string, { name: string; x: number; y: number }>();
+    const calloutYGap = this.FEATURE_CALLOUT_TEXT_GAP;
+
+    const addHiddenFeatureMeta = (
+      id: string,
+      name: string | undefined,
+      midpoint: number,
+      rowTopY: number,
+    ) => {
+      if (!id || !name) return;
+      const x = clamp(scale.offsetX + midpoint * scale.pxPerBase, scale.offsetX, scale.offsetX + scale.width);
+      const y = rowTopY - calloutYGap;
+      hiddenFeatureMetaById.set(id, { name, x, y });
+    };
+
+    combinedAnnotationRows.forEach((row, rowIndex) => {
+      const rowTopY = annotationStartY + rowIndex * annotationRowHeight;
+      row.forEach(annotation => {
+        if (inlineAnnotationIds.has(annotation.id)) return;
+        const midpoint = rangeMidpoint(annotation.start, annotation.end, scale.seqLength);
+        addHiddenFeatureMeta(annotation.id, annotation.name, midpoint, rowTopY);
+      });
+    });
+
+    primerForwardRows.forEach((row, rowIndex) => {
+      const rowTopY = primerForwardY + rowIndex * primerRowHeight;
+      row.forEach(primer => {
+        if (inlinePrimerIds.has(primer.id)) return;
+        const midpoint = rangeMidpoint(primer.start, primer.end, scale.seqLength);
+        addHiddenFeatureMeta(primer.id, primer.name, midpoint, rowTopY);
+      });
+    });
+
+    primerReverseRows.forEach((row, rowIndex) => {
+      const rowTopY = primerReverseY + rowIndex * primerRowHeight;
+      row.forEach(primer => {
+        if (inlinePrimerIds.has(primer.id)) return;
+        const midpoint = rangeMidpoint(primer.start, primer.end, scale.seqLength);
+        addHiddenFeatureMeta(primer.id, primer.name, midpoint, rowTopY);
+      });
+    });
+
+    orfRows.forEach((row, rowIndex) => {
+      const rowTopY = orfStartY + rowIndex * orfRowHeight;
+      row.forEach(orf => {
+        const orfName = this.stripOrfMeta(orf).name;
+        if (!orfName) return;
+        const midpoint = rangeMidpoint(orf.start, orf.end, scale.seqLength);
+        addHiddenFeatureMeta(this.getOrfId(orf), orfName, midpoint, rowTopY);
+      });
+    });
+
+    const activeCallouts = Array.from(hiddenFeatureMetaById.entries())
+      .filter(([id]) => !!mergedHoveredFeatures[id])
+      .map(([id, meta]) => ({ id, ...meta }))
+      .sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 
     const totalHeight = Math.max(size.height || 0, Math.max(currentY, mapBottom) + PADDING_BOTTOM);
     const totalWidth = Math.max(baseWidth || 0, mapWidth + 2 * PADDING_X);
@@ -512,7 +557,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         />
         <AnnotationTrack
           featureHeight={annotationFeatureHeight}
-          hasLabel={id => this.labelLookup.has(id)}
           inlineAnnotationIds={inlineAnnotationIds}
           inputRef={inputRef}
           isFeatureHovered={this.isFeatureHovered}
@@ -524,7 +568,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         />
         <PrimerTrack
           featureHeight={primerFeatureHeight}
-          hasLabel={id => this.labelLookup.has(id)}
           inlinePrimerIds={inlinePrimerIds}
           inputRef={inputRef}
           isFeatureHovered={this.isFeatureHovered}
@@ -536,7 +579,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         />
         <PrimerTrack
           featureHeight={primerFeatureHeight}
-          hasLabel={id => this.labelLookup.has(id)}
           inlinePrimerIds={inlinePrimerIds}
           inputRef={inputRef}
           isFeatureHovered={this.isFeatureHovered}
@@ -586,17 +628,36 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
             onHoverFeatures={this.handleLabelHoverFeatures}
           />
         )}
-        {!!featureLabelsWithSource.length && (
-          <Labels
-            connectorY={mapBottom}
-            hoveredFeatures={mergedHoveredFeatures}
-            labels={featureLabelsWithSource}
-            lineHeight={LINE_HEIGHT}
-            scale={scale}
-            selectedFeatures={selectedFeaturesMap}
-            startY={featureLabelsStartY}
-            onHoverFeatures={this.handleLabelHoverFeatures}
-          />
+        {!!activeCallouts.length && (
+          <g className="la-vz-linear-map-feature-callouts" style={{ pointerEvents: "none" }}>
+            {activeCallouts.map(callout => {
+              const textWidth = Math.max((callout.name.length + 1) * CHAR_WIDTH, CHAR_WIDTH * 3);
+              const horizontalPadding = CHAR_WIDTH * 0.9;
+              const verticalPadding = LINE_HEIGHT * 0.4;
+              const rectWidth = textWidth + horizontalPadding * 2;
+              const rectHeight = LINE_HEIGHT + verticalPadding * 2;
+              const maxRectX = scale.offsetX + scale.width - rectWidth;
+              const rectX = clamp(callout.x - rectWidth / 2, scale.offsetX, maxRectX);
+              const rectY = Math.max(0, callout.y - rectHeight / 2);
+              const textX = rectX + rectWidth / 2;
+
+              return (
+                <g key={`feature-callout-${callout.id}`} style={{ pointerEvents: "none" }}>
+                  <rect fill="white" height={rectHeight} stroke="black" strokeWidth={1} width={rectWidth} x={rectX} y={rectY} />
+                  <text
+                    className="la-vz-linear-map-feature-callout-label"
+                    dominantBaseline="middle"
+                    style={circularLabel}
+                    textAnchor="middle"
+                    x={textX}
+                    y={callout.y}
+                  >
+                    {callout.name}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
         )}
       </svg>
     );
@@ -747,7 +808,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
   private computeLabelLayout(annotations: Annotation[], primers: Primer[], cutSites: CutSite[], scale: LinearMapScale) {
     const inlineAnnotationIds = new Set<string>();
     const inlinePrimerIds = new Set<string>();
-    const featureLabels: RawLabel[] = [];
     const enzymeLabels: RawLabel[] = [];
     const seenEnzymeLabelKeys = new Set<string>();
 
@@ -757,27 +817,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       const textWidth = (annotation.name.length + 2) * CHAR_WIDTH;
       if (lengthPx >= textWidth) {
         inlineAnnotationIds.add(annotation.id);
-      } else {
-        featureLabels.push({
-          end: annotation.end,
-          id: annotation.id,
-          items: [
-            createLabelItemWithSelection(
-              {
-                direction: annotation.direction === 1 || annotation.direction === -1 ? annotation.direction : undefined,
-                end: annotation.end,
-                id: annotation.id,
-                name: annotation.name,
-                start: annotation.start,
-                type: "annotation",
-              },
-              "ANNOTATION",
-            ),
-          ],
-          name: annotation.name,
-          start: annotation.start,
-          type: "annotation",
-        });
       }
     });
 
@@ -787,28 +826,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       const textWidth = (primer.name.length + 2) * CHAR_WIDTH;
       if (lengthPx >= textWidth) {
         inlinePrimerIds.add(primer.id);
-      } else {
-        featureLabels.push({
-          direction: primer.direction,
-          end: primer.end,
-          id: primer.id,
-          items: [
-            createLabelItemWithSelection(
-              {
-                direction: primer.direction,
-                end: primer.end,
-                id: primer.id,
-                name: primer.name,
-                start: primer.start,
-                type: "primer",
-              },
-              "PRIMER",
-            ),
-          ],
-          name: primer.name,
-          start: primer.start,
-          type: "primer",
-        });
       }
     });
 
@@ -852,73 +869,13 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       });
     });
 
-    const arrangedFeatures = this.layoutLabels(featureLabels, scale);
     const arrangedEnzymes = this.layoutEnzymeLabels(enzymeLabels, scale);
 
     return {
       enzymeLabels: arrangedEnzymes,
-      featureLabels: arrangedFeatures,
       inlineAnnotationIds,
       inlinePrimerIds,
     };
-  }
-
-  private buildGroupedDisplayName(labels: LinearLabelItem[], fallback: string) {
-    const firstName = labels[0]?.name?.trim() || fallback || "";
-    const rest = Math.max(0, labels.length - 1);
-    return rest > 0 ? `${firstName},+${rest}` : firstName;
-  }
-
-  private groupLinearLabels(positioned: LinearLabelDatum[], scale: LinearMapScale): LinearLabelDatum[] {
-    if (!positioned.length) return [];
-
-    const sorted = [...positioned].sort((a, b) => a.left - b.left);
-    const grouped: LinearLabelDatum[] = [];
-
-    const groupKey = (label: LinearLabelDatum) => {
-      const primary = label.labels[0];
-      if (label.groupType === "primer") {
-        const dir = primary?.direction === -1 ? "rev" : primary?.direction === 1 ? "fwd" : "any";
-        return `${label.groupType}-${dir}`;
-      }
-      return label.groupType;
-    };
-
-    sorted.forEach(label => {
-      const last = grouped[grouped.length - 1];
-      const overlapAllowed = last && groupKey(last) === groupKey(label) && label.left <= last.right + LABEL_GAP;
-      if (!overlapAllowed || !last) {
-        grouped.push(label);
-        return;
-      }
-
-      const mergedLabels = [...last.labels, ...label.labels];
-      const displayName = this.buildGroupedDisplayName(mergedLabels, last.displayName);
-      const anchorX = clamp(
-        (last.anchorX * last.labels.length + label.anchorX * label.labels.length) / mergedLabels.length,
-        scale.offsetX,
-        scale.offsetX + scale.width,
-      );
-      const minWidth = label.groupType === "enzyme" ? ENZYME_LABEL_MIN_WIDTH : CHAR_WIDTH * 3;
-      const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, minWidth);
-      const maxLeft = scale.offsetX + scale.width - textWidth;
-      const left = clamp(anchorX - textWidth / 2, scale.offsetX, maxLeft);
-      const right = left + textWidth;
-
-      grouped[grouped.length - 1] = {
-        ...last,
-        anchorX,
-        displayName,
-        grouped: true,
-        labels: mergedLabels,
-        left,
-        right,
-        textWidth,
-        textX: left + textWidth / 2,
-      };
-    });
-
-    return grouped;
   }
 
   private assignLabelRows(labels: LinearLabelDatum[]): LinearLabelDatum[] {
@@ -939,73 +896,6 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     });
 
     return rows.flat();
-  }
-
-  private layoutLabels(rawLabels: RawLabel[], scale: LinearMapScale): LinearLabelDatum[] {
-    if (!rawLabels.length) return [];
-
-    const sorted = rawLabels
-      .filter(label => label.name && label.name.trim().length)
-      .sort((a, b) => {
-        const aMid = rangeMidpoint(a.start, a.end, scale.seqLength);
-        const bMid = rangeMidpoint(b.start, b.end, scale.seqLength);
-        return aMid - bMid;
-      });
-
-    const positioned: LinearLabelDatum[] = sorted.map(label => {
-      const midpoint = rangeMidpoint(label.start, label.end, scale.seqLength);
-      const anchorX = clamp(scale.offsetX + midpoint * scale.pxPerBase, scale.offsetX, scale.offsetX + scale.width);
-      const labelItems =
-        label.items && label.items.length
-          ? label.items
-          : [
-              createLabelItemWithSelection(
-                {
-                  direction: label.direction,
-                  end: label.end,
-                  id: label.id,
-                  name: label.name,
-                  start: label.start,
-                  type: label.type,
-                },
-                getSelectionTypeForLabel(label.type),
-                { scrollLinearOnSelect: label.type === "enzyme" },
-              ),
-            ];
-      const uniqueNames = Array.from(
-        new Set(
-          labelItems.map(item => item.name).filter((value): value is string => !!value && value.trim().length > 0),
-        ),
-      );
-      const baseName = uniqueNames.length ? uniqueNames.join("+") : label.name;
-      const displayName =
-        label.type === "enzyme" && typeof label.cutPosition === "number"
-          ? `${baseName}(${label.cutPosition})`
-          : baseName;
-      const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, CHAR_WIDTH * 3);
-      const maxLeft = scale.offsetX + scale.width - textWidth;
-      let left = anchorX - textWidth / 2;
-      left = clamp(left, scale.offsetX, maxLeft);
-      const right = left + textWidth;
-
-      return {
-        anchorX,
-        displayName,
-        groupId: label.id,
-        groupType: label.type,
-        grouped: false,
-        labels: labelItems.map(item => ({ ...item })),
-        left,
-        right,
-        row: 0,
-        textAnchor: "middle" as const,
-        textWidth,
-        textX: left + textWidth / 2,
-      };
-    });
-
-    const grouped = this.groupLinearLabels(positioned, scale);
-    return this.assignLabelRows(grouped);
   }
 
   private layoutEnzymeLabels(rawLabels: RawLabel[], scale: LinearMapScale): LinearLabelDatum[] {

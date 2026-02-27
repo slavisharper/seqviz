@@ -10,6 +10,7 @@ interface OrfsProps {
   getRotation: (index: number) => string;
   inputRef: InputRefFunc;
   lineHeight: number;
+  onFeatureHover?: (featureId: string, hover: boolean) => void;
   orfs: TranslationProp[];
   radius: number;
   seqLength: number;
@@ -25,7 +26,16 @@ export const getOrfRingDimensions = (lineHeight: number) => {
 };
 
 /** Render ORF arcs between the index ring and the annotation stack. */
-export const Orfs = ({ genArc, getRotation, inputRef, lineHeight, orfs, radius, seqLength }: OrfsProps) => {
+export const Orfs = ({
+  genArc,
+  getRotation,
+  inputRef,
+  lineHeight,
+  onFeatureHover,
+  orfs,
+  radius,
+  seqLength,
+}: OrfsProps) => {
   if (!orfs.length || radius <= 0 || seqLength <= 0) {
     return null;
   }
@@ -89,6 +99,8 @@ export const Orfs = ({ genArc, getRotation, inputRef, lineHeight, orfs, radius, 
             stroke="rgba(0, 0, 0, 0.25)"
             strokeWidth={0.75}
             transform={getRotation(normalizedStart)}
+            onMouseEnter={() => onFeatureHover?.(id, true)}
+            onMouseLeave={() => onFeatureHover?.(id, false)}
           />
         );
       })}

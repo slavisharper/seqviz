@@ -15,8 +15,9 @@ import {
   TranslationProp,
 } from "../../core/elements";
 import CentralIndexContext from "../../state/centralIndexContext";
+import SelectionContext from "../../state/selectionContext";
 import type { Selection as SelectionRange } from "../../state/selectionContext";
-import { separatorLine, viewerCircularTouchRotate } from "../../style";
+import { circularLabel, separatorLine, viewerCircularTouchRotate } from "../../style";
 import { stackElements } from "../../utils/elementsToRows";
 import { isEqual } from "../../utils/isEqual";
 import { Annotations } from "./Annotations";
@@ -88,6 +89,7 @@ export interface CircularProps {
 
 interface CircularState {
   annotationsInRows: Annotation[][];
+  hoveredFeatures: Record<string, boolean>;
   inlinedLabels: string[];
   lineHeight: number;
   outerLabels: ILabel[];
@@ -111,6 +113,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
 
     this.state = {
       annotationsInRows: [],
+      hoveredFeatures: {},
       inlinedLabels: [],
       lineHeight: 0,
       outerLabels: [],
@@ -119,7 +122,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     };
   }
 
-  static getDerivedStateFromProps = (nextProps: CircularProps): CircularState => {
+  static getDerivedStateFromProps = (nextProps: CircularProps, prevState: CircularState): CircularState => {
     const lineHeight = 14;
     const fragmentRows = stackElements(nextProps.fragments || [], nextProps.seq.length);
     const annotationRows = stackElements(nextProps.annotations, nextProps.seq.length);
@@ -154,21 +157,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         if (annNameLengthPixels < annLengthPixels) {
           inlinedLabels.push(ann.id);
         } else {
-          const { end, id, name, start } = ann;
-          const type = "annotation";
-          outerLabels.push({
-            end,
-            id,
-            name,
-            selectionEnd: end,
-            selectionName: name,
-            selectionScrollLinearOnSelect: true,
-            selectionStart: start,
-            selectionType: "ANNOTATION",
-            selectionViewer: "CIRCULAR",
-            start,
-            type,
-          });
+          // hidden feature labels are shown as compact callouts on hover/selection
         }
       });
       innerRadius -= lineHeight;
@@ -201,6 +190,7 @@ export default class Circular extends React.Component<CircularProps, CircularSta
 
     return {
       annotationsInRows: annotationsInRows,
+      hoveredFeatures: prevState.hoveredFeatures,
       inlinedLabels: inlinedLabels,
       lineHeight: lineHeight,
       outerLabels: outerLabels,
@@ -212,7 +202,25 @@ export default class Circular extends React.Component<CircularProps, CircularSta
   /**
    * Deep equality comparison
    */
-  shouldComponentUpdate = (nextProps: CircularProps) => !isEqual(nextProps, this.props);
+  shouldComponentUpdate = (nextProps: CircularProps, nextState: CircularState) =>
+    !isEqual(nextProps, this.props) || !isEqual(nextState, this.state);
+
+  private setFeatureHoverState = (featureId: string, hover: boolean) => {
+    if (!featureId) return;
+    this.setState(prevState => {
+      const hoveredFeatures = { ...prevState.hoveredFeatures };
+      const isHovered = !!hoveredFeatures[featureId];
+      if (hover && !isHovered) {
+        hoveredFeatures[featureId] = true;
+        return { hoveredFeatures };
+      }
+      if (!hover && isHovered) {
+        delete hoveredFeatures[featureId];
+        return { hoveredFeatures };
+      }
+      return null;
+    });
+  };
 
   /**
    * Return the SVG rotation transformation needed to put a child element in the
@@ -492,6 +500,68 @@ export default class Circular extends React.Component<CircularProps, CircularSta
       seqLength,
     };
 
+    const hiddenFeatureCallouts = new Map<string, { name: string; x: number; y: number }>();
+    const calloutOffset = lineHeight * 1.8;
+    const rowGap = 3;
+
+    const addFeatureCallout = (featureId: string, featureName: string | undefined, centerIndex: number, outerRadius: number) => {
+      if (!featureId || !featureName || seqLength <= 0) return;
+      const normalizedCenter = ((centerIndex % seqLength) + seqLength) % seqLength;
+      const coor = findCoor(normalizedCenter, outerRadius + calloutOffset, true);
+      hiddenFeatureCallouts.set(featureId, { name: featureName, x: coor.x, y: coor.y });
+    };
+
+    let annOuterRadius = radius - (lineHeight * 2 + 3);
+    annotationsInRows.forEach((row, rowIndex) => {
+      if (rowIndex > 0) {
+        annOuterRadius -= lineHeight + rowGap;
+      }
+      row.forEach(annotation => {
+        if (inlinedLabels.includes(annotation.id) || !annotation.name) {
+          return;
+        }
+        const annLength =
+          annotation.end >= annotation.start ? annotation.end - annotation.start : seqLength - annotation.start + annotation.end;
+        const centerIndex = annotation.start + annLength / 2;
+        addFeatureCallout(annotation.id, annotation.name, centerIndex, annOuterRadius);
+      });
+    });
+
+    const primerThickness = Math.max(6, Math.round(lineHeight * 0.7));
+    let primerOuterRadius = radius - lineHeight * 2 - 3 - lineHeight * annotationsInRows.length - 4;
+    primerRows.forEach((row, rowIndex) => {
+      if (rowIndex > 0) {
+        primerOuterRadius -= primerThickness + rowGap;
+      }
+      row.forEach(primer => {
+        if (!primer.name) {
+          return;
+        }
+        const primerLength = primer.end >= primer.start ? primer.end - primer.start : seqLength - primer.start + primer.end;
+        const centerIndex = primer.start + primerLength / 2;
+        addFeatureCallout(primer.id, primer.name, centerIndex, primerOuterRadius);
+      });
+    });
+
+    if (orfs.length) {
+      const orfDimensions = getOrfRingDimensions(lineHeight);
+      const orfOuterRadius = Math.max(radius - orfDimensions.ringOffset, orfDimensions.ringThickness);
+      orfs.forEach((orf, idx) => {
+        if (!orf.name) {
+          return;
+        }
+        const normalizedStart = ((orf.start % seqLength) + seqLength) % seqLength;
+        let adjustedEnd = orf.end;
+        if (adjustedEnd < normalizedStart) {
+          adjustedEnd += seqLength;
+        }
+        const length = Math.abs(adjustedEnd - normalizedStart);
+        const centerIndex = normalizedStart + length / 2;
+        const id = `orf-${idx}-${normalizedStart}-${adjustedEnd}`;
+        addFeatureCallout(id, orf.name, centerIndex, orfOuterRadius);
+      });
+    }
+
     // calculate the selection row height based on number of annotation + primer rows
     const totalRows = 4 + annotationsInRows.length + primerRows.length;
     const plasmidId = `la-vz-${name}-viewer-circular`;
@@ -558,9 +628,78 @@ export default class Circular extends React.Component<CircularProps, CircularSta
             search={search}
             seqLength={props.seqLength}
           />
-          <Annotations {...props} annotations={annotationsInRows} inlinedAnnotations={inlinedLabels} rowsToSkip={0} />
-          <Primers {...props} primers={primerRows} rowsToSkip={annotationsInRows.length} />
+          <Annotations
+            {...props}
+            annotations={annotationsInRows}
+            inlinedAnnotations={inlinedLabels}
+            rowsToSkip={0}
+            onFeatureHover={this.setFeatureHoverState}
+          />
+          <Primers
+            {...props}
+            primers={primerRows}
+            rowsToSkip={annotationsInRows.length}
+            onFeatureHover={this.setFeatureHoverState}
+          />
+          <Orfs {...props} orfs={orfs} onFeatureHover={this.setFeatureHoverState} />
           <Labels {...props} labels={outerLabels} size={size} yDiff={yDiff} zoom={zoom} />
+          <SelectionContext.Consumer>
+            {selection => {
+              const selectedId =
+                selection &&
+                (selection.type === "ANNOTATION" || selection.type === "PRIMER" || selection.type === "TRANSLATION")
+                  ? selection.ref || selection.id || ""
+                  : "";
+              const activeCallouts = Array.from(hiddenFeatureCallouts.entries())
+                .filter(([id]) => !!this.state.hoveredFeatures[id] || (!!selectedId && selectedId === id))
+                .map(([id, value]) => ({ id, ...value }));
+
+              if (!activeCallouts.length) {
+                return null;
+              }
+
+              return (
+                <g className="la-vz-circular-feature-callouts" style={{ pointerEvents: "none" }}>
+                  {activeCallouts.map(callout => {
+                    const horizontalPadding = CHAR_WIDTH * 0.9;
+                    const verticalPadding = lineHeight * 0.4;
+                    const textWidth = Math.max((callout.name.length + 1) * CHAR_WIDTH, CHAR_WIDTH * 3);
+                    const rectWidth = textWidth + horizontalPadding * 2;
+                    const rectHeight = lineHeight + verticalPadding * 2;
+                    const rectX = callout.x - rectWidth / 2;
+                    const rectY = callout.y - rectHeight / 2;
+                    const textX = rectX + rectWidth / 2;
+
+                    return (
+                      <g key={`circular-feature-callout-${callout.id}`} style={{ pointerEvents: "none" }}>
+                        <rect
+                          fill="white"
+                          height={rectHeight}
+                          rx={2}
+                          ry={2}
+                          stroke="black"
+                          strokeWidth={1}
+                          width={rectWidth}
+                          x={rectX}
+                          y={rectY}
+                        />
+                        <text
+                          className="la-vz-circular-feature-callout-label"
+                          dominantBaseline="middle"
+                          style={circularLabel}
+                          textAnchor="middle"
+                          x={textX}
+                          y={callout.y}
+                        >
+                          {callout.name}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            }}
+          </SelectionContext.Consumer>
         </g>
       </svg>
     );

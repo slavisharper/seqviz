@@ -9,7 +9,6 @@ import { LinearMapScale } from "../utils";
 
 type HoverHandler = (featureId: string, hover: boolean) => void;
 type HoverCheck = (featureId: string) => boolean;
-type LabelCheck = (featureId: string) => boolean;
 
 type PrimerTrackProps = {
   rows: Primer[][];
@@ -19,7 +18,6 @@ type PrimerTrackProps = {
   rowSpacing: number;
   inlinePrimerIds: Set<string>;
   inputRef: InputRefFunc;
-  hasLabel: LabelCheck;
   onFeatureHover: HoverHandler;
   isFeatureHovered: HoverCheck;
 };
@@ -32,7 +30,6 @@ export const PrimerTrack: React.FC<PrimerTrackProps> = ({
   rowSpacing,
   inlinePrimerIds,
   inputRef,
-  hasLabel,
   onFeatureHover,
   isFeatureHovered,
 }) => {
@@ -54,7 +51,6 @@ export const PrimerTrack: React.FC<PrimerTrackProps> = ({
                 isFeatureHovered={isFeatureHovered}
                 onFeatureHover={onFeatureHover}
                 scale={scale}
-                hasLabel={hasLabel}
               />
             ))}
           </g>
@@ -70,7 +66,6 @@ type PrimerFeatureProps = {
   featureHeight: number;
   inlinePrimerIds: Set<string>;
   inputRef: InputRefFunc;
-  hasLabel: LabelCheck;
   onFeatureHover: HoverHandler;
   isFeatureHovered: HoverCheck;
 };
@@ -81,7 +76,6 @@ const PrimerFeature: React.FC<PrimerFeatureProps> = ({
   featureHeight,
   inlinePrimerIds,
   inputRef,
-  hasLabel,
   onFeatureHover,
   isFeatureHovered,
 }) => {
@@ -92,7 +86,7 @@ const PrimerFeature: React.FC<PrimerFeatureProps> = ({
   const neonStroke = feature.isPhosphorylated ? "#39ff14" : undefined;
   const strokeWidth = feature.isPhosphorylated ? 2 : (annotationStyle.strokeWidth as number | undefined);
   const inline = inlinePrimerIds.has(feature.id);
-  const interactive = hasLabel(feature.id) || inline;
+  const interactive = !!feature.name;
   const hovered = isFeatureHovered(feature.id);
   const baseStyle = {
     ...annotationStyle,
