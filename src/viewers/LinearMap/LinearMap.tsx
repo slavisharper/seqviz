@@ -980,6 +980,15 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         openGroup = null;
         return;
       }
+
+      // If only 1 enzyme in the group, render it directly instead of a "+1" label.
+      if (openGroup.labels.length === 1) {
+        const solo = openGroup.labels[0];
+        result.push({ ...solo, row: openGroup.row });
+        openGroup = null;
+        return;
+      }
+
       const count = openGroup.labels.reduce((n, l) => n + l.labels.length, 0);
       const displayName = `+${count}`;
       const textWidth = Math.max((displayName.length + 2) * CHAR_WIDTH, ENZYME_LABEL_MIN_WIDTH);
