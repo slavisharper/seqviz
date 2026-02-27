@@ -415,8 +415,8 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const selectionHighlightTop = mapBottom + 1;
     const selectionHighlightBottom = Math.max(featureAreaBottom, selectionHighlightTop + selectionHeight);
     const selectionHighlightHeight = selectionHighlightBottom - selectionHighlightTop;
-    const segmentLineTop = Math.max(0, PADDING_TOP * 0.5);
-    const segmentLineBottom = selectionHighlightBottom;
+    const segmentLineTop = mapBottom;
+    const segmentLineBottom = Math.max(featureAreaBottom, mapBottom);
 
     const labelSourceContext = {
       annotationRowHeight,
