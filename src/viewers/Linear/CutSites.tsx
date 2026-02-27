@@ -209,6 +209,7 @@ export const CutSites = (props: {
         {hoveredGroup && (
           <CutSiteGroupOverlay
             group={hoveredGroup}
+            isFirstSeqBlock={firstBase === 0}
             lineHeight={lineHeight}
             size={size}
             yDiff={yDiff}
@@ -230,12 +231,13 @@ type CutSiteLabelEntry = {
 
 const CutSiteGroupOverlay = (props: {
   group: CutSiteLabelEntry;
+  isFirstSeqBlock: boolean;
   lineHeight: number;
   onHoverChange: (cutSite: CutSite, hover: boolean) => void;
   size: Size;
   yDiff: number;
 }) => {
-  const { group, lineHeight, onHoverChange, size, yDiff } = props;
+  const { group, isFirstSeqBlock, lineHeight, onHoverChange, size, yDiff } = props;
   const { hoveredEnzyme, highlightedEnzymes } = React.useContext(HoveredEnzymeContext);
   const [scrollY, setScrollY] = React.useState(0);
   const paddingX = CHAR_WIDTH * 0.6;
@@ -249,7 +251,7 @@ const CutSiteGroupOverlay = (props: {
   const overlayBottomLimit = yDiff + lineHeight - 2;
   // allow the popover to extend above the visible SVG bounds so it can be taller
   // while still ending before the sequence/cut location row
-  const overlayTopLimit = -Math.max(size.height, fullRectHeight);
+  const overlayTopLimit = isFirstSeqBlock ? 0 : -Math.max(size.height, fullRectHeight);
   const maxOverlayHeight = Math.max(lineHeight, overlayBottomLimit - overlayTopLimit);
   const rectHeight = Math.min(fullRectHeight, maxOverlayHeight);
   const visibleContentHeight = Math.max(lineHeight, rectHeight - paddingY * 2);
@@ -264,7 +266,10 @@ const CutSiteGroupOverlay = (props: {
   const connectorEndX = rectX + rectWidth / 2;
   const connectorEndY = rectY + rectHeight;
   const clipId = React.useMemo(() => `cut-site-group-clip-${group.groupId.replace(/[^a-zA-Z0-9_-]/g, "_")}`, [group.groupId]);
-  const displayedMembers = React.useMemo(() => [...group.members].reverse(), [group.members]);
+  const displayedMembers = React.useMemo(
+    () => (isFirstSeqBlock ? [...group.members] : [...group.members].reverse()),
+    [group.members, isFirstSeqBlock],
+  );
 
   React.useEffect(() => {
     setScrollY(0);
