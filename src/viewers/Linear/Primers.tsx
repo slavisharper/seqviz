@@ -241,7 +241,7 @@ const SingleNamedElement = (props: {
         onFocus={() => {
           // do nothing
         }}
-        onMouseOut={() => hoverOtherPrimerRows(element.id, 0.7)}
+        onMouseOut={() => hoverOtherPrimerRows(element.id, 0.85)}
         onMouseOver={() => hoverOtherPrimerRows(element.id, 1.0)}
       />
       <text
@@ -260,7 +260,7 @@ const SingleNamedElement = (props: {
         onFocus={() => {
           // do nothing
         }}
-        onMouseOut={() => hoverOtherPrimerRows(element.id, 0.7)}
+        onMouseOut={() => hoverOtherPrimerRows(element.id, 0.85)}
         onMouseOver={() => hoverOtherPrimerRows(element.id, 1.0)}
       >
         {displayName}
@@ -275,7 +275,7 @@ const SingleNamedElement = (props: {
           textAnchor={direction === 1 ? "start" : "end"}
           x={phosphoX}
           y={height / 2 + 1}
-          onMouseOut={() => hoverOtherPrimerRows(element.id, 0.7)}
+          onMouseOut={() => hoverOtherPrimerRows(element.id, 0.85)}
           onMouseOver={() => hoverOtherPrimerRows(element.id, 1.0)}
         >
           P

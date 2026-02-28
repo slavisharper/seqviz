@@ -642,7 +642,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
 
               return (
                 <g key={`feature-callout-${callout.id}`} style={{ pointerEvents: "none" }}>
-                  <rect fill="white" height={rectHeight} stroke="black" strokeWidth={1} width={rectWidth} x={rectX} y={rectY} />
+                  <rect fill="white" filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} width={rectWidth} x={rectX} y={rectY} />
                   <text
                     className="la-vz-linear-map-feature-callout-label"
                     dominantBaseline="middle"

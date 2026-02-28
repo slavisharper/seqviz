@@ -74,6 +74,8 @@ export class Selection extends React.PureComponent<LinearSelectionProps> {
               key={`selection-edge-${edge}`}
               className="la-vz-selection-edge"
               height={height}
+              shapeRendering="crispEdges"
+              strokeWidth={0}
               style={selectionEdge}
               width={1}
               x={positionToX(scale, edge)}

@@ -128,7 +128,7 @@ const SingleNamedElement = (props: {
   const topRight = endFWD ? `L ${width - 2 * cW} 0` : `L ${width} 0`;
 
   let linePath = "";
-  let bottomRight = `L ${width} ${height}`; // flat right edge
+  let bottomRight = `L ${width} ${height}`;
   if ((overflowRight && width > 2 * cW) || crossZero) {
     bottomRight = `
         L ${width - cW} ${cH}
@@ -141,7 +141,7 @@ const SingleNamedElement = (props: {
         L ${width - Math.min(2 * cW, w)} ${height}`; // arrow forward
   }
 
-  let bottomLeft = `L 0 ${height} L 0 0`; // flat left edge
+  let bottomLeft = `L 0 ${height} L 0 0`;
   if (overflowLeft && width > 2 * cW) {
     bottomLeft = `
         L 0 ${height}
@@ -224,7 +224,7 @@ const SingleNamedElement = (props: {
         onFocus={() => {
           // do nothing
         }}
-        onMouseOut={() => hoverOtherAnnotationRows(element.id, 0.7)}
+        onMouseOut={() => hoverOtherAnnotationRows(element.id, 0.85)}
         onMouseOver={() => hoverOtherAnnotationRows(element.id, 1.0)}
       />
       <text
@@ -243,7 +243,7 @@ const SingleNamedElement = (props: {
         onFocus={() => {
           // do nothing
         }}
-        onMouseOut={() => hoverOtherAnnotationRows(element.id, 0.7)}
+        onMouseOut={() => hoverOtherAnnotationRows(element.id, 0.85)}
         onMouseOver={() => hoverOtherAnnotationRows(element.id, 1.0)}
       >
         {displayName}

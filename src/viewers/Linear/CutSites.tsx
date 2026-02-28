@@ -175,7 +175,7 @@ export const CutSites = (props: {
             fontSize: 12,
             fill: isGroupHighlighted ? enzymeHoverColor : svgText.fill,
             fontWeight: isGroupHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
-            textDecoration: hoveredGroupId === entry.groupId ? "underline" : "none",
+            ...(hoveredGroupId === entry.groupId ? { textDecoration: "underline" } : {}),
           } as React.CSSProperties;
 
           return (
@@ -240,6 +240,7 @@ const CutSiteGroupOverlay = (props: {
   const { group, isFirstSeqBlock, lineHeight, onHoverChange, size, yDiff } = props;
   const { hoveredEnzyme, highlightedEnzymes } = React.useContext(HoveredEnzymeContext);
   const [scrollY, setScrollY] = React.useState(0);
+  const [hoveredItemIndex, setHoveredItemIndex] = React.useState<number | null>(null);
   const paddingX = CHAR_WIDTH * 0.6;
   const paddingY = lineHeight * 0.15;
   const labelFontSize = 12;
@@ -297,7 +298,7 @@ const CutSiteGroupOverlay = (props: {
   return (
     <g className="la-vz-cut-site-group-overlay" onWheel={handleWheel}>
       <path d={`M${group.x} ${connectorStartY} L${connectorEndX} ${connectorEndY}`} style={circularLabelLine} />
-      <rect fill="white" height={rectHeight} stroke="none" width={rectWidth} x={rectX} y={rectY} />
+      <rect fill="white" height={rectHeight} rx={4} ry={4} stroke="none" width={rectWidth} x={rectX} y={rectY} />
       <defs>
         <clipPath id={clipId}>
           <rect height={visibleContentHeight} width={contentWidth} x={textX} y={rectY + paddingY} />
@@ -309,19 +310,27 @@ const CutSiteGroupOverlay = (props: {
           const rowTopY = rectY + paddingY + index * lineHeight - scrollY;
           const rowTextY = textY + index * lineHeight - scrollY;
           const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, member.c, highlightedEnzymes);
+          const isItemHovered = hoveredItemIndex === index;
           const itemStyle = {
             ...svgText,
             cursor: "pointer",
             fontSize: labelFontSize,
             fill: isHighlighted ? enzymeHoverColor : svgText.fill,
-            fontWeight: isHighlighted ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+            fontWeight: isHighlighted || isItemHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+            textDecoration: isItemHovered ? "underline" : "none",
           } as React.CSSProperties;
           const selectionAttrs = getSelectionAttributes(member.c, domId);
           return (
             <g
               key={`${group.groupId}-${domId}-${index}`}
-              onMouseEnter={() => onHoverChange(member.c, true)}
-              onMouseLeave={() => onHoverChange(member.c, false)}
+              onMouseEnter={() => {
+                setHoveredItemIndex(index);
+                onHoverChange(member.c, true);
+              }}
+              onMouseLeave={() => {
+                setHoveredItemIndex(prev => (prev === index ? null : prev));
+                onHoverChange(member.c, false);
+              }}
             >
               <rect
                 {...selectionAttrs}
@@ -369,7 +378,7 @@ const CutSiteGroupOverlay = (props: {
           />
         </>
       )}
-      <rect fill="none" height={rectHeight} stroke="black" strokeWidth={1.5} width={rectWidth} x={rectX} y={rectY} />
+      <rect fill="none" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }} width={rectWidth} x={rectX} y={rectY} />
     </g>
   );
 };

@@ -22,10 +22,11 @@ declare module "csstype" {
 
 export const svgText: CSS.Properties = {
   MozUserSelect: "none",
+  WebkitFontSmoothing: "antialiased",
   WebkitUserSelect: "none",
   background: "none",
   fill: "rgb(42, 42, 42)",
-  fontFamily: "Roboto Mono, Monaco, monospace",
+  fontFamily: "JetBrains Mono, Fira Code, Roboto Mono, Monaco, monospace",
   msUserSelect: "none",
   userSelect: "none",
 };
@@ -33,24 +34,26 @@ export const svgText: CSS.Properties = {
 
 export const search: CSS.Properties = {
   cursor: "pointer",
-  fill: "rgba(255, 251, 7, 0.5)",
+  fill: "rgba(250, 204, 21, 0.35)",
 };
 
 export const highlight: CSS.Properties = {
   cursor: "pointer",
-  fill: "rgba(255, 251, 7, 0.25)",
+  fill: "rgba(250, 204, 21, 0.2)",
   strokeWidth: "1",
 };
 
 export const selection: CSS.Properties = {
-  fill: "rgb(222, 246, 255)",
+  fill: "rgba(59, 130, 246, 0.15)",
   shapeRendering: "auto",
+  stroke: "rgba(59, 130, 246, 0.3)",
+  strokeWidth: "0.5",
 };
 
 export const selectionEdge: CSS.Properties = {
-  fill: "black",
+  fill: "rgba(59, 130, 246, 0.8)",
   shapeRendering: "geometricPrecision",
-  stroke: "black",
+  stroke: "rgba(59, 130, 246, 0.8)",
 };
 
 export const separatorLine: CSS.Properties = {
@@ -75,45 +78,46 @@ export const separatorConnectorLine: CSS.Properties = {
 export const cutSite: CSS.Properties = {
   fill: "transparent",
   shapeRendering: "auto",
-  stroke: "rgb(115, 119, 125)",
+  stroke: "rgb(160, 165, 170)",
   strokeWidth: "1",
 };
 
 export const cutSiteHighlight: CSS.Properties = {
   cursor: "pointer",
-  fill: "rgb(255, 251, 7)",
+  fill: "rgb(250, 204, 21)",
   fillOpacity: 0,
   shapeRendering: "auto",
-  stroke: "rgb(115, 119, 125)",
+  stroke: "rgb(160, 165, 170)",
   strokeWidth: "1",
 };
 
 export const indexLine: CSS.Properties = {
   fill: "transparent",
   shapeRendering: "geometricPrecision",
-  stroke: "rgb(115, 119, 125)",
-  strokeWidth: "1",
+  stroke: "rgb(190, 195, 200)",
+  strokeWidth: "0.75",
 };
 
 export const indexTick: CSS.Properties = {
   fill: "transparent",
   shapeRendering: "geometricPrecision",
-  stroke: "rgb(115, 119, 125)",
-  strokeWidth: "1",
+  stroke: "rgb(190, 195, 200)",
+  strokeWidth: "0.75",
 };
 
 export const indexTickLabel: CSS.Properties = {
   ...svgText,
-  fill: "rgb(115, 119, 125)",
+  fill: "rgb(150, 155, 160)",
   fontSize: "12",
-  fontWeight: 300,
+  fontWeight: 400,
   textRendering: "optimizeLegibility",
 };
 
 export const annotation: CSS.Properties = {
-  fillOpacity: "0.7",
+  fillOpacity: "0.85",
   shapeRendering: "geometricPrecision",
-  strokeWidth: "0.5",
+  strokeWidth: "1",
+  transition: "fill-opacity 0.15s ease, stroke-width 0.15s ease",
 };
 
 export const annotationLabel: CSS.Properties = {
@@ -126,9 +130,10 @@ export const annotationLabel: CSS.Properties = {
 };
 
 export const translationHandle: CSS.Properties = {
-  fillOpacity: "0.7",
+  fillOpacity: "0.85",
   shapeRendering: "geometricPrecision",
-  strokeWidth: "0.5",
+  strokeWidth: "1",
+  transition: "fill-opacity 0.15s ease, stroke-width 0.15s ease",
 };
 
 export const translationHandleLabel: CSS.Properties = {
@@ -151,7 +156,7 @@ export const translationAminoAcidLabel: CSS.Properties = {
 export const viewerCircular: CSS.Properties = {
   cursor: "text",
   fontSize: "12",
-  fontWeight: 300,
+  fontWeight: 400,
   margin: "auto",
 };
 
@@ -173,8 +178,8 @@ export const circularLabelHover: CSS.Properties = {
 
 export const circularLabelLine: CSS.Properties = {
   fill: "none",
-  stroke: "rgb(158, 170, 184)",
-  strokeWidth: "1",
+  stroke: "rgb(190, 195, 200)",
+  strokeWidth: "0.75",
 };
 
 export const circularLabelLineHover: CSS.Properties = {
@@ -184,7 +189,7 @@ export const circularLabelLineHover: CSS.Properties = {
 
 export const linearScroller: CSS.Properties = {
   cursor: "text",
-  fontWeight: 300,
+  fontWeight: 400,
   height: "100%",
   outline: "none !important",
   overflowX: "hidden",
@@ -201,7 +206,7 @@ export const seqBlock: CSS.Properties = {
 
 export const linearHorizontalScroller: CSS.Properties = {
   cursor: "text",
-  fontWeight: 300,
+  fontWeight: 400,
   height: "100%",
   outline: "none !important",
   overflowX: "scroll",

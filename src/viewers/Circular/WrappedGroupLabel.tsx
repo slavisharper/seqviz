@@ -88,7 +88,11 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
   }, []);
 
   // find the grouping's height and width (max row width)
-  const groupHeight = labelRows.length * lineHeight;
+  const MAX_VISIBLE_ROWS = 15;
+  const totalRows = labelRows.length;
+  const visibleRows = Math.min(totalRows, MAX_VISIBLE_ROWS);
+  const groupHeight = visibleRows * lineHeight;
+  const needsScroll = totalRows > MAX_VISIBLE_ROWS;
   const groupWidth = labelRows.reduce(
     (max, row, i) => Math.max(max, calcRowWidth(row) - (i === labelRows.length - 1 ? CHAR_WIDTH : 0)), // no comma on last row, correct
     0,
@@ -139,55 +143,110 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
       }}
     >
       <path className="la-vz-label-line" d={linePath} />
-      <rect fill="white" height={rectHeight} stroke="none" width={rectWidth} {...rectCoor} />
-      <text {...groupCoor} style={svgText}>
-        {labelRows.map((r, i) => (
-          // turn each group of label rows into a text span
-          // that's vertically spaced from the row above it
-          // add a comma to all but the last label
-          <tspan key={`${key}_${i}`} dominantBaseline="middle" x={groupCoor.x} y={groupCoor.y + (i + 0.5) * lineHeight}>
-            {r.map((l, i2) => {
-              const hoverKey = l.id ?? `${group.name}-${i}-${i2}`;
-              const isLocallyHovered = hoveredLabelId === hoverKey;
-              const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, l, highlightedEnzymes);
-              const labelStyle = {
-                ...circularLabel,
-                fill: isHighlighted ? enzymeHoverColor : circularLabel.fill,
-                fontWeight:
-                  isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
-                textDecoration: isLocallyHovered ? "underline" : "none",
-              } as React.CSSProperties;
-              return (
-                <React.Fragment key={l.id}>
-                  <tspan
-                    className="la-vz-circular-label"
-                    dominantBaseline="middle"
-                    id={l.id}
-                    {...getSelectionAttributes(l)}
-                    style={labelStyle}
-                    tabIndex={-1}
-                    y={groupCoor.y + (i + 0.5) * lineHeight}
-                    onMouseLeave={() => {
-                      setHoveredLabelId(prev => (prev === hoverKey ? null : prev));
-                      setHoveredLabelUnderline(l.id || "", false);
-                      handleLabelHover(l, false);
-                    }}
-                    onMouseOver={() => {
-                      setHoveredLabelId(hoverKey);
-                      setHoveredLabelUnderline(l.id || "", true);
-                      handleLabelHover(l, true);
-                    }}
-                  >
-                    {l.name}
-                  </tspan>
-                  {i2 < r.length - 1 || i !== labelRows.length - 1 ? "," : ""}
-                </React.Fragment>
-              );
-            })}
-          </tspan>
-        ))}
-      </text>
-      <rect fill="none" height={rectHeight} stroke="black" strokeWidth={1.5} width={rectWidth} {...rectCoor} />
+      <rect fill="white" height={rectHeight} rx={4} ry={4} stroke="none" width={rectWidth} {...rectCoor} />
+      {needsScroll ? (
+        <foreignObject x={rectCoor.x} y={rectCoor.y} width={rectWidth} height={rectHeight}>
+          <div
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore xmlns is required for foreignObject HTML content
+            xmlns="http://www.w3.org/1999/xhtml"
+            style={{
+              width: rectWidth,
+              height: rectHeight,
+              overflowY: "auto",
+              overflowX: "hidden",
+              boxSizing: "border-box",
+              padding: `${CHAR_WIDTH}px`,
+            }}
+          >
+            {labelRows.map((r, i) => (
+              <div key={`${key}_${i}`} style={{ height: lineHeight, lineHeight: `${lineHeight}px`, whiteSpace: "nowrap" }}>
+                {r.map((l, i2) => {
+                  const hoverKey = l.id ?? `${group.name}-${i}-${i2}`;
+                  const isLocallyHovered = hoveredLabelId === hoverKey;
+                  const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, l, highlightedEnzymes);
+                  return (
+                    <React.Fragment key={l.id}>
+                      <span
+                        className="la-vz-circular-label"
+                        id={l.id}
+                        {...getSelectionAttributes(l)}
+                        style={{
+                          fontSize: circularLabel.fontSize || svgText.fontSize || 12,
+                          fontFamily: (circularLabel.fontFamily as string) || (svgText.fontFamily as string) || "inherit",
+                          cursor: "pointer",
+                          color: isHighlighted ? enzymeHoverColor : (circularLabel.fill as string) || "black",
+                          fontWeight: isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+                          textDecoration: isLocallyHovered ? "underline" : "none",
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredLabelId(prev => (prev === hoverKey ? null : prev));
+                          setHoveredLabelUnderline(l.id || "", false);
+                          handleLabelHover(l, false);
+                        }}
+                        onMouseOver={() => {
+                          setHoveredLabelId(hoverKey);
+                          setHoveredLabelUnderline(l.id || "", true);
+                          handleLabelHover(l, true);
+                        }}
+                      >
+                        {l.name}
+                      </span>
+                      {i2 < r.length - 1 || i !== labelRows.length - 1 ? "," : ""}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </foreignObject>
+      ) : (
+        <text {...groupCoor} style={svgText}>
+          {labelRows.map((r, i) => (
+            <tspan key={`${key}_${i}`} dominantBaseline="middle" x={groupCoor.x} y={groupCoor.y + (i + 0.5) * lineHeight}>
+              {r.map((l, i2) => {
+                const hoverKey = l.id ?? `${group.name}-${i}-${i2}`;
+                const isLocallyHovered = hoveredLabelId === hoverKey;
+                const isHighlighted = matchesHoveredEnzyme(hoveredEnzyme, l, highlightedEnzymes);
+                const labelStyle = {
+                  ...circularLabel,
+                  fill: isHighlighted ? enzymeHoverColor : circularLabel.fill,
+                  fontWeight:
+                    isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+                  textDecoration: isLocallyHovered ? "underline" : "none",
+                } as React.CSSProperties;
+                return (
+                  <React.Fragment key={l.id}>
+                    <tspan
+                      className="la-vz-circular-label"
+                      dominantBaseline="middle"
+                      id={l.id}
+                      {...getSelectionAttributes(l)}
+                      style={labelStyle}
+                      tabIndex={-1}
+                      y={groupCoor.y + (i + 0.5) * lineHeight}
+                      onMouseLeave={() => {
+                        setHoveredLabelId(prev => (prev === hoverKey ? null : prev));
+                        setHoveredLabelUnderline(l.id || "", false);
+                        handleLabelHover(l, false);
+                      }}
+                      onMouseOver={() => {
+                        setHoveredLabelId(hoverKey);
+                        setHoveredLabelUnderline(l.id || "", true);
+                        handleLabelHover(l, true);
+                      }}
+                    >
+                      {l.name}
+                    </tspan>
+                    {i2 < r.length - 1 || i !== labelRows.length - 1 ? "," : ""}
+                  </React.Fragment>
+                );
+              })}
+            </tspan>
+          ))}
+        </text>
+      )}
+      <rect fill="none" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }} width={rectWidth} {...rectCoor} />
     </g>
   );
 };

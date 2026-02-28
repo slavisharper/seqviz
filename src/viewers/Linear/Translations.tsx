@@ -262,8 +262,9 @@ class SingleNamedElementAminoacids extends React.PureComponent<SingleNamedElemen
                 stroke={borderColorByIndex(a.charCodeAt(0))}
                 style={{
                   cursor: "pointer",
-                  opacity: 0.7,
+                  opacity: 0.85,
                   strokeWidth: 0.8,
+                  transition: "opacity 0.15s ease",
                 }}
               />
 
@@ -376,7 +377,7 @@ const SingleNamedElementHandle = (props: {
           onFocus={() => {
             // do nothing
           }}
-          onMouseOut={() => hoverOtherTranslationHandleRows(element.id, 0.7)}
+          onMouseOut={() => hoverOtherTranslationHandleRows(element.id, 0.85)}
           onMouseOver={() => hoverOtherTranslationHandleRows(element.id, 1.0)}
         />
         <text
@@ -395,7 +396,7 @@ const SingleNamedElementHandle = (props: {
           onFocus={() => {
             // do nothing
           }}
-          onMouseOut={() => hoverOtherTranslationHandleRows(element.id, 0.7)}
+          onMouseOut={() => hoverOtherTranslationHandleRows(element.id, 0.85)}
           onMouseOver={() => hoverOtherTranslationHandleRows(element.id, 1.0)}
         >
           {displayName}

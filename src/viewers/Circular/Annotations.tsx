@@ -191,7 +191,7 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
         onFocus={() => {
           // do nothing
         }}
-        onMouseOut={() => hoverAnnotation(a.id, "0.7")}
+        onMouseOut={() => hoverAnnotation(a.id, "0.85")}
         onMouseOver={() => hoverAnnotation(a.id, "1.0")}
         onMouseEnter={() => onFeatureHover?.(a.id, true)}
         onMouseLeave={() => onFeatureHover?.(a.id, false)}
@@ -211,7 +211,7 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
           onFocus={() => {
             // do nothing
           }}
-          onMouseOut={() => hoverAnnotation(a.id, "0.7")}
+          onMouseOut={() => hoverAnnotation(a.id, "0.85")}
           onMouseOver={() => hoverAnnotation(a.id, "1.0")}
           onMouseEnter={() => onFeatureHover?.(a.id, true)}
           onMouseLeave={() => onFeatureHover?.(a.id, false)}

@@ -675,10 +675,11 @@ export default class Circular extends React.Component<CircularProps, CircularSta
                         <rect
                           fill="white"
                           height={rectHeight}
-                          rx={2}
-                          ry={2}
-                          stroke="black"
+                          rx={4}
+                          ry={4}
+                          stroke="#e5e7eb"
                           strokeWidth={1}
+                          style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }}
                           width={rectWidth}
                           x={rectX}
                           y={rectY}
