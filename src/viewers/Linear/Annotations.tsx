@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import { COLOR_BORDER_MAP, darkerColor } from "../../core/colors";
+import { COLOR_BORDER_MAP, contrastText, darkerColor } from "../../core/colors";
 import { NameRange } from "../../core/elements";
 import { annotation, annotationLabel } from "../../style";
 import { FindXAndWidthElementType } from "./SeqBlock";
@@ -233,7 +233,7 @@ const SingleNamedElement = (props: {
         dominantBaseline="middle"
         fontSize={fontSize}
         id={element.id}
-        style={annotationLabel}
+        style={{ ...annotationLabel, fill: contrastText(color) }}
         textAnchor="middle"
         x={width / 2}
         y={height / 2 + 1}

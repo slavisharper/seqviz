@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../../SelectionHandler";
-import { COLOR_BORDER_MAP, darkerColor } from "../../../core/colors";
+import { COLOR_BORDER_MAP, contrastText, darkerColor } from "../../../core/colors";
 import { Annotation } from "../../../core/elements";
 import { annotationLabel, annotation as annotationStyle } from "../../../style";
 import { createSegments, rangeMidpoint } from "../utils";
@@ -93,13 +93,15 @@ const AnnotationFeature: React.FC<AnnotationFeatureProps> = ({
     stroke: strokeColor,
   } as React.CSSProperties;
   const hoverStyle = hovered ? { ...baseStyle, fillOpacity: 1 } : baseStyle;
+  const contrastFill = contrastText(feature.color);
   const textHoverStyle =
     inline && feature.name
       ? {
           ...annotationLabel,
+          fill: contrastFill,
           textDecoration: hovered ? "underline" : "none",
         }
-      : annotationLabel;
+      : { ...annotationLabel, fill: contrastFill };
 
   return (
     <g className="la-vz-linear-map-annotation">

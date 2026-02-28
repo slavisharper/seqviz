@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
-import { COLOR_BORDER_MAP, darkerColor } from "../../core/colors";
+import { COLOR_BORDER_MAP, contrastText, darkerColor } from "../../core/colors";
 import { Annotation } from "../../core/elements";
 import CentralIndexContext from "../../state/centralIndexContext";
 import { annotation, annotationLabel, svgText } from "../../style";
@@ -223,7 +223,7 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
             fontSize={12}
             id={a.id}
             startOffset={bottomHalf ? "25%" : "75%"}
-            style={annotationLabel}
+            style={{ ...annotationLabel, fill: contrastText(a.color) }}
             textAnchor="middle"
             xlinkHref={`#${circAnnID}`}
           >

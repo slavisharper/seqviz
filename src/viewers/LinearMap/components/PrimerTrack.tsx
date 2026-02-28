@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { InputRefFunc } from "../../../SelectionHandler";
-import { COLOR_BORDER_MAP, darkerColor } from "../../../core/colors";
+import { COLOR_BORDER_MAP, contrastText, darkerColor } from "../../../core/colors";
 import { Primer } from "../../../core/elements";
 import { annotationLabel, annotation as annotationStyle } from "../../../style";
 import { createSegments, rangeMidpoint } from "../utils";
@@ -104,13 +104,15 @@ const PrimerFeature: React.FC<PrimerFeatureProps> = ({
     strokeWidth,
   } as React.CSSProperties;
   const arrowStyle = hovered ? { ...arrowBaseStyle, fillOpacity: 1 } : arrowBaseStyle;
+  const contrastFill = contrastText(feature.color);
   const textHoverStyle =
     inline && feature.name
       ? {
           ...annotationLabel,
+          fill: contrastFill,
           textDecoration: hovered ? "underline" : "none",
         }
-      : annotationLabel;
+      : { ...annotationLabel, fill: contrastFill };
 
   return (
     <g className="la-vz-linear-map-primer">
