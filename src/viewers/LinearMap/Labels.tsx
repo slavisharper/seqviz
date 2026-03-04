@@ -53,6 +53,7 @@ interface LinearLabelsProps {
   selectedFeatures?: Record<string, boolean>;
   scale: LinearMapScale;
   startY: number;
+  viewerBottomY: number;
 }
 
 interface LinearLabelsState {
@@ -235,7 +236,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
   };
 
   render() {
-    const { connectorY, hoveredFeatures, labels, lineHeight, scale, selectedFeatures, startY } = this.props;
+    const { connectorY, hoveredFeatures, labels, lineHeight, scale, selectedFeatures, startY, viewerBottomY } = this.props;
     const { overlayGroupId } = this.state;
     const { hoveredEnzyme, highlightedEnzymes } = this.context;
     if (!labels.length) return null;
@@ -313,15 +314,14 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
                 onPointerDown={e => {
                   // remember the last pointer type (mouse vs touch) to gate click behavior
                   // pointerType is supported on PointerEvents; default to mouse when absent
-                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore PointerEvent on nativeEvent when dispatched from pointer
-                  this.lastPointerType = (e.nativeEvent && (e.nativeEvent as any).pointerType) || "mouse";
+                  this.lastPointerType = e.nativeEvent.pointerType || "mouse";
                 }}
                 onMouseEnter={() => this.handleLabelEnter(label)}
                 onClick={e => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const pointerType = (e.nativeEvent as any)?.pointerType || this.lastPointerType;
+                  const nativeEvent = e.nativeEvent as MouseEvent & { pointerType?: string };
+                  const pointerType = nativeEvent.pointerType || this.lastPointerType;
                   if (pointerType !== "touch") return; // only toggle on touch to avoid mouse flicker
                   this.handleLabelClick(label);
                 }}
@@ -338,6 +338,7 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
             hoveredFeatures={hoveredFeatures}
             lineHeight={lineHeight}
             scale={scale}
+            viewerBottomY={viewerBottomY}
             onRequestClose={this.closeOverlay}
             onGroupLeave={featureIds => {
               this.closeOverlay();

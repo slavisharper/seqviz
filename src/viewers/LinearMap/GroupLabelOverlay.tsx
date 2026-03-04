@@ -17,6 +17,7 @@ interface LinearGroupLabelOverlayProps {
   onHoverFeature?: (featureId: string, hover: boolean) => void;
   onRequestClose?: () => void;
   scale: LinearMapScale;
+  viewerBottomY: number;
 }
 
 export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = ({
@@ -28,6 +29,7 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   onHoverFeature,
   onRequestClose,
   scale,
+  viewerBottomY,
 }) => {
   const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
   const paddingX = CHAR_WIDTH;
@@ -50,7 +52,9 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
   const maxX = scale.offsetX + scale.width - rectWidth - CHAR_WIDTH;
   const preferredLeft = group.textX - rectWidth / 2;
   const rectX = clamp(preferredLeft, minX, maxX);
-  const rectY = group.textY - paddingY - lineHeight / 2;
+  const preferredRectY = group.textY - paddingY - lineHeight / 2;
+  const overflowBottom = preferredRectY + rectHeight - viewerBottomY;
+  const rectY = overflowBottom > 0 ? preferredRectY - overflowBottom : preferredRectY;
 
   const connectorStartX = group.textX;
   const connectorStartY = group.textY;
@@ -86,7 +90,8 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
       onClick={e => {
         e.preventDefault();
         e.stopPropagation();
-        const pointerType = (e.nativeEvent as any)?.pointerType || "mouse";
+        const nativeEvent = e.nativeEvent as MouseEvent & { pointerType?: string };
+        const pointerType = nativeEvent.pointerType || "mouse";
         if (pointerType === "touch") {
           onRequestClose?.();
         }

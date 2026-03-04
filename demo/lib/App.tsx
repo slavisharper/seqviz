@@ -80,6 +80,9 @@ const buildDefaultPresetState = () => ({
   customSelectionStart: 0,
   customSelectionEnd: 100,
   showComplement: true,
+  showFeatures: true,
+  showFragments: true,
+  showPrimers: true,
   showIndex: true,
   showSelectionMeta: false,
   seqType: "dna" as SupportedSeqType,
@@ -120,6 +123,9 @@ interface AppState {
   separators: SeparatorProp[];
   sequenceEdges?: SequenceEdges;
   showComplement: boolean;
+  showFeatures: boolean;
+  showFragments: boolean;
+  showPrimers: boolean;
   showIndex: boolean;
   showSelectionMeta: boolean;
   showSidebar: boolean;
@@ -449,6 +455,21 @@ export default class App extends React.Component<Record<string, never>, AppState
               set={(showIndex: boolean) => this.setState({ showIndex })}
             />
             <CheckboxInput
+              checked={this.state.showFeatures}
+              label="Show features"
+              set={(showFeatures: boolean) => this.setState({ showFeatures })}
+            />
+            <CheckboxInput
+              checked={this.state.showFragments}
+              label="Show fragments"
+              set={(showFragments: boolean) => this.setState({ showFragments })}
+            />
+            <CheckboxInput
+              checked={this.state.showPrimers}
+              label="Show primers"
+              set={(showPrimers: boolean) => this.setState({ showPrimers })}
+            />
+            <CheckboxInput
               checked={this.state.disableCircularMap}
               label="Disable circular viewer"
               set={(disableCircularMap: boolean) => this.setState({ disableCircularMap })}
@@ -584,8 +605,8 @@ export default class App extends React.Component<Record<string, never>, AppState
                 <SeqViz
                   seqType={this.state.seqType}
                   key={`${this.state.viewer}${this.state.exampleId}`}
-                  annotations={this.state.annotations}
-                  fragments={this.state.fragments}
+                  annotations={this.state.showFeatures ? this.state.annotations : []}
+                  fragments={this.state.showFragments ? this.state.fragments : []}
                   disableCircularMap={this.state.disableCircularMap}
                   disableLinearMap={this.state.disableLinearMap}
                   disableLinearSequence={this.state.disableLinearSequence}
@@ -593,7 +614,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                   highlightedEnzymes={this.state.highlightedEnzymes}
                   highlights={[{ end: 10, start: 0 }]}
                   name={this.state.name}
-                  primers={this.state.primers}
+                  primers={this.state.showPrimers ? this.state.primers : []}
                   refs={{ circular: this.circularRef, linear: this.linearRef }}
                   search={this.state.search}
                   sequenceEdges={this.state.sequenceEdges}

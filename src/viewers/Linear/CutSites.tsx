@@ -32,6 +32,7 @@ const getSelectionAttributes = (cutSite: CutSite, domId: string): Record<string,
  * - a label above the cut-site
  */
 export const CutSites = (props: {
+  blockHeight: number;
   cutSites: CutSite[];
   findXAndWidth: FindXAndWidthType;
   firstBase: number;
@@ -43,6 +44,7 @@ export const CutSites = (props: {
   zoom: { linear: number };
 }) => {
   const {
+    blockHeight,
     cutSites,
     findXAndWidth,
     firstBase,
@@ -208,8 +210,9 @@ export const CutSites = (props: {
         })}
         {hoveredGroup && (
           <CutSiteGroupOverlay
+            blockHeight={blockHeight}
+            clampToSvgTop={firstBase === 0}
             group={hoveredGroup}
-            isFirstSeqBlock={firstBase === 0}
             lineHeight={lineHeight}
             size={size}
             yDiff={yDiff}
@@ -230,14 +233,15 @@ type CutSiteLabelEntry = {
 };
 
 const CutSiteGroupOverlay = (props: {
+  blockHeight: number;
+  clampToSvgTop: boolean;
   group: CutSiteLabelEntry;
-  isFirstSeqBlock: boolean;
   lineHeight: number;
   onHoverChange: (cutSite: CutSite, hover: boolean) => void;
   size: Size;
   yDiff: number;
 }) => {
-  const { group, isFirstSeqBlock, lineHeight, onHoverChange, size, yDiff } = props;
+  const { blockHeight, clampToSvgTop, group, lineHeight, onHoverChange, size, yDiff } = props;
   const { hoveredEnzyme, highlightedEnzymes } = React.useContext(HoveredEnzymeContext);
   const [scrollY, setScrollY] = React.useState(0);
   const [hoveredItemIndex, setHoveredItemIndex] = React.useState<number | null>(null);
@@ -250,26 +254,45 @@ const CutSiteGroupOverlay = (props: {
   const fullRectHeight = group.members.length * lineHeight + paddingY * 2;
 
   const overlayBottomLimit = yDiff + lineHeight - 2;
-  // allow the popover to extend above the visible SVG bounds so it can be taller
-  // while still ending before the sequence/cut location row
-  const overlayTopLimit = isFirstSeqBlock ? 0 : -Math.max(size.height, fullRectHeight);
-  const maxOverlayHeight = Math.max(lineHeight, overlayBottomLimit - overlayTopLimit);
-  const rectHeight = Math.min(fullRectHeight, maxOverlayHeight);
+  let rectHeight = fullRectHeight;
+  let rectY = overlayBottomLimit - rectHeight;
+  let renderBelowLabel = false;
+
+  if (clampToSvgTop) {
+    if (rectY < 0) {
+      // In the first block, if there is no room above the cut-site label,
+      // render the overlay below it instead of collapsing to a single row.
+      renderBelowLabel = true;
+      const overlayTopWhenBelow = yDiff - paddingY;
+      const maxHeightBelow = Math.max(lineHeight, blockHeight - overlayTopWhenBelow);
+      rectHeight = Math.min(fullRectHeight, maxHeightBelow);
+      rectY = Math.max(0, overlayTopWhenBelow);
+    } else {
+      rectY = Math.max(0, rectY);
+    }
+  } else {
+    // For non-first blocks, keep existing behavior that allows extending
+    // above the current SVG to avoid crowding around the sequence rows.
+    const overlayTopLimit = -Math.max(size.height, fullRectHeight);
+    const maxOverlayHeight = Math.max(lineHeight, overlayBottomLimit - overlayTopLimit);
+    rectHeight = Math.min(fullRectHeight, maxOverlayHeight);
+    rectY = Math.max(overlayTopLimit, overlayBottomLimit - rectHeight);
+  }
+
   const visibleContentHeight = Math.max(lineHeight, rectHeight - paddingY * 2);
   const fullContentHeight = group.members.length * lineHeight;
   const maxScrollY = Math.max(0, fullContentHeight - visibleContentHeight);
 
   const rectX = Math.max(CHAR_WIDTH, Math.min(group.x - rectWidth / 2, size.width - rectWidth - CHAR_WIDTH));
-  const rectY = Math.max(overlayTopLimit, overlayBottomLimit - rectHeight);
   const textX = rectX + paddingX;
   const textY = rectY + paddingY + lineHeight / 2;
   const connectorStartY = yDiff + lineHeight * 0.75;
   const connectorEndX = rectX + rectWidth / 2;
-  const connectorEndY = rectY + rectHeight;
+  const connectorEndY = renderBelowLabel ? rectY : rectY + rectHeight;
   const clipId = React.useMemo(() => `cut-site-group-clip-${group.groupId.replace(/[^a-zA-Z0-9_-]/g, "_")}`, [group.groupId]);
   const displayedMembers = React.useMemo(
-    () => (isFirstSeqBlock ? [...group.members] : [...group.members].reverse()),
-    [group.members, isFirstSeqBlock],
+    () => (!renderBelowLabel ? [...group.members].reverse() : group.members),
+    [group.members, renderBelowLabel],
   );
 
   React.useEffect(() => {
@@ -651,6 +674,7 @@ const withLabels = (cutSites: CutSiteEnhanced[], size: Size): CutSiteLabelled[] 
 };
 
 const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Size): CutSiteLabelEntry[] => {
+  const groupedTextRightPadding = CHAR_WIDTH * 4;
   const candidates = labelledCutSites.filter(c => c.label.render).sort((a, b) => a.label.x - b.label.x);
   if (!candidates.length) {
     return [];
@@ -744,8 +768,10 @@ const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Siz
 
   for (let i = 0; i < sortedEntries.length; i += 1) {
     const entry = sortedEntries[i];
+    const rightPadding = entry.grouped ? groupedTextRightPadding : 0;
     const entryHalf = (entry.text.length * CHAR_WIDTH) / 2;
-    let x = Math.max(entryHalf, Math.min(entry.x, size.width - entryHalf));
+    const maxCenterX = Math.max(entryHalf, size.width - rightPadding - entryHalf);
+    let x = Math.max(entryHalf, Math.min(entry.x, maxCenterX));
     const previous = placedEntries[placedEntries.length - 1];
     if (previous) {
       const previousHalf = (previous.text.length * CHAR_WIDTH) / 2;
@@ -755,7 +781,7 @@ const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Siz
       }
     }
 
-    if (x + entryHalf > size.width) {
+    if (x + entryHalf > size.width - rightPadding) {
       overflowMembers = sortedEntries.slice(i).reduce((acc, overflowEntry) => acc.concat(overflowEntry.members), [] as CutSiteLabelled[]);
       break;
     }
@@ -769,12 +795,13 @@ const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Siz
     const grouped = overflowMembers.length > 1;
     const text = grouped ? `${first.c.name},+${overflowMembers.length - 1}` : first.label.text;
     const half = (text.length * CHAR_WIDTH) / 2;
+    const rightPadding = grouped ? groupedTextRightPadding : 0;
     placedEntries.push({
       grouped,
       groupId: `${keyOf(first)}-overflow-group`,
       members: overflowMembers,
       text,
-      x: Math.max(half, size.width - half),
+      x: Math.max(half, size.width - rightPadding - half),
     });
   }
 

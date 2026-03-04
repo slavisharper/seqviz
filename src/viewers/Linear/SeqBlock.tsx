@@ -461,19 +461,6 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             yDiff={primerFwdYDiff}
           />
         )}
-        {zoomed && (
-          <CutSites
-            cutSites={cutSiteRows}
-            findXAndWidth={this.findXAndWidth}
-            firstBase={firstBase}
-            inputRef={inputRef}
-            lastBase={lastBase}
-            lineHeight={lineHeight}
-            size={size}
-            yDiff={cutSiteYDiff - 3}
-            zoom={zoom}
-          />
-        )}
         <Highlights
           compYDiff={compYDiff - 3}
           findXAndWidth={this.findXAndWidthElement}
@@ -657,6 +644,20 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           selectEdgeHeight={selectEdgeHeight}
           selectY={selectionTopY}
         />
+        {zoomed && (
+          <CutSites
+            blockHeight={blockHeight}
+            cutSites={cutSiteRows}
+            findXAndWidth={this.findXAndWidth}
+            firstBase={firstBase}
+            inputRef={inputRef}
+            lastBase={lastBase}
+            lineHeight={lineHeight}
+            size={size}
+            yDiff={cutSiteYDiff - 3}
+            zoom={zoom}
+          />
+        )}
       </svg>
     );
   }

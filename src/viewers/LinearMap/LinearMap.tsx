@@ -624,6 +624,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
             scale={scale}
             selectedFeatures={selectedFeaturesMap}
             startY={enzymeLabelsStartY}
+            viewerBottomY={totalHeight}
             onHoverFeatures={this.handleLabelHoverFeatures}
           />
         )}

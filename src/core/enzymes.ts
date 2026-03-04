@@ -24,6 +24,18 @@ import { Enzyme } from "./elements";
  * ```
  */
 const enzymes: { [key: string]: Enzyme } = {
+  vspi: {
+    fcut: 2,
+    name: "VspI",
+    rcut: 4,
+    rseq: "ATTAAT",
+  },
+  pshbi: {
+    fcut: 2,
+    name: "PshBI",
+    rcut: 4,
+    rseq: "ATTAAT",
+  },
   aceiii: {
     fcut: 13,
     name: "AceIII",
