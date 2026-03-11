@@ -141,7 +141,7 @@ export class InfiniteScroll extends React.PureComponent<InfiniteScrollProps, Inf
         top = totalHeight - height;
       }
       blockHeights.reduce((total, h, i) => {
-        if (total >= top && total <= bottom) {
+        if (total < bottom && total + h > top) {
           newVisibleBlocks.push(i);
         }
         return total + h;
@@ -207,9 +207,12 @@ export class InfiniteScroll extends React.PureComponent<InfiniteScrollProps, Inf
     top = Math.max(0, top); // don't go too high
     top = Math.min(totalHeight - height, top); // don't go too low
     const bottom = top + height;
-    top -= 2 * blockHeights[0]; // add two blocks padding on top
+    // Extend the top boundary upward by two nominal block heights as a preload buffer.
+    // Use the correct overlap test: a block is visible when its range [blockTop, blockTop+h)
+    // intersects [paddedTop, bottom). This handles arbitrarily tall blocks correctly.
+    const paddedTop = top - 2 * blockHeights[0];
     blockHeights.reduce((total, h, i) => {
-      if (total >= top && total <= bottom) {
+      if (total < bottom && total + h > paddedTop) {
         newVisibleBlocks.push(i);
       }
       return total + h;

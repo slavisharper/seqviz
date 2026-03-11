@@ -60,6 +60,9 @@ export interface SeqVizProps {
   /** nucleotides keyed by symbol or index and the color to apply to it */
   bpColors?: { [key: number | string]: string };
 
+  /** clamp the visible sequence to [start, end]. Only features/enzymes that fit entirely within this range are shown. */
+  clamp?: { start: number; end: number };
+
   /** Custom children to render within the SeqViz component. This is useful for when custom rendering the positioning of children viewers (Linear, Circular). */
   children?: (props: CustomChildrenProps) => React.ReactNode;
 
@@ -597,62 +600,117 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
   render() {
     const { highlights, primers, showComplement, showIndex, singleStrandAnnotations, style, zoom } = this.props;
     const { compSeq, seq, seqType, sequenceEdges } = this.state;
-    
+
     // Process sequence edges (overhangs)
     const { processedSeq, processedCompSeq } = this.processSequenceEdges(seq, compSeq, sequenceEdges);
-    
-    const translations = generateTranslations(processedSeq, seqType, this.props.translations);
-    const orfs = generateOrfs(processedSeq, seqType, this.props.translations);
-    const separators = this.parseSeparators(this.props.separators, processedSeq);
+
+    // Apply clamping if specified
+    const clampProp = this.props.clamp;
+    let clampedSeq = processedSeq;
+    let clampedCompSeq = processedCompSeq;
+    let clampOffset = 0;
+
+    if (clampProp) {
+      const cs = Math.max(0, Math.floor(clampProp.start));
+      const ce = Math.min(processedSeq.length, Math.floor(clampProp.end));
+      if (cs < ce) {
+        clampOffset = cs;
+        clampedSeq = processedSeq.slice(cs, ce);
+        clampedCompSeq = processedCompSeq.slice(cs, ce);
+      } else {
+        clampedSeq = "";
+        clampedCompSeq = "";
+      }
+    }
+
+    const clampEnd = clampOffset + clampedSeq.length;
+
+    // Filter items to those entirely within the clamped range and remap positions to 0-based
+    const filterAndRemap = <T extends { start: number; end: number }>(items: T[]): T[] => {
+      if (!clampProp) return items;
+      return items
+        .filter(item => item.start >= clampOffset && item.end <= clampEnd)
+        .map(item => ({ ...item, start: item.start - clampOffset, end: item.end - clampOffset }));
+    };
+
+    // For user-specified translation arrays, filter and remap before generation
+    let translationsInput = this.props.translations;
+    if (clampProp && Array.isArray(translationsInput)) {
+      translationsInput = translationsInput
+        .filter(t => t.start >= clampOffset && t.end <= clampEnd)
+        .map(t => ({ ...t, start: t.start - clampOffset, end: t.end - clampOffset }));
+    }
+
+    const translations = generateTranslations(clampedSeq, seqType, translationsInput);
+    const orfs = generateOrfs(clampedSeq, seqType, translationsInput);
+    const allSeparators = this.parseSeparators(this.props.separators, processedSeq);
+    const separators = clampProp
+      ? allSeparators
+          .filter(sep => sep.index >= clampOffset && sep.index < clampEnd)
+          .map(sep => ({
+            ...sep,
+            index: sep.index - clampOffset,
+            complementIndex:
+              sep.complementIndex !== undefined && sep.complementIndex >= clampOffset && sep.complementIndex < clampEnd
+                ? sep.complementIndex - clampOffset
+                : undefined,
+          }))
+      : allSeparators;
 
     // This is an unfortunate bit of seq checking. We could get a seq directly or from a file parsed to a part.
-    if (!processedSeq) return <div className="la-vz-seqviz" />;
+    if (!clampedSeq) return <div className="la-vz-seqviz" />;
 
     // Since all the props are optional, we need to parse them to defaults.
     const props = {
       bpColors: this.props.bpColors || {},
       copyEvent: this.props.copyEvent || (() => false),
       selectAllEvent: this.props.selectAllEvent || (() => false),
-      cutSites: this.state.cutSites,
-      highlights: (highlights || []).map(
-        (h, i): Highlight => ({
-          ...h,
-          direction: 1,
-          end: h.end % (processedSeq.length + 1),
-          id: `highlight-${i}-${h.start}-${h.end}`,
-          name: "",
-          start: h.start % (processedSeq.length + 1),
-        }),
+      cutSites: filterAndRemap(this.state.cutSites),
+      highlights: filterAndRemap(
+        (highlights || []).map(
+          (h, i): Highlight => ({
+            ...h,
+            direction: 1,
+            end: h.end % (processedSeq.length + 1),
+            id: `highlight-${i}-${h.start}-${h.end}`,
+            name: "",
+            start: h.start % (processedSeq.length + 1),
+          }),
+        ),
       ),
-      singleStrandAnnotations: (singleStrandAnnotations || []).map(
-        (annotation, i): SingleStrandAnnotation => ({
-          ...annotation,
-          color: annotation.color || colorByIndex(i, COLORS),
-          direction: annotation.strand === -1 ? -1 : 1,
-          end: annotation.end % (processedSeq.length + 1),
-          id: `single-strand-${i}-${annotation.start}-${annotation.end}`,
-          name: annotation.name,
-          start: annotation.start % (processedSeq.length + 1),
-          strand: annotation.strand === -1 ? -1 : 1,
-        }),
+      singleStrandAnnotations: filterAndRemap(
+        (singleStrandAnnotations || []).map(
+          (annotation, i): SingleStrandAnnotation => ({
+            ...annotation,
+            color: annotation.color || colorByIndex(i, COLORS),
+            direction: annotation.strand === -1 ? -1 : 1,
+            end: annotation.end % (processedSeq.length + 1),
+            id: `single-strand-${i}-${annotation.start}-${annotation.end}`,
+            name: annotation.name,
+            start: annotation.start % (processedSeq.length + 1),
+            strand: annotation.strand === -1 ? -1 : 1,
+          }),
+        ),
       ),
-      fragments: this.state.fragments,
+      fragments: filterAndRemap(this.state.fragments),
       onSelection:
         this.props.onSelection ||
         (() => {
           // do nothing
         }),
-      primers: primers.map((p, i) => ({ color: colorByIndex(i), id: `primer${p.name}${i}${p.start}${p.end}`, ...p })),
+      primers: filterAndRemap(
+        primers.map((p, i) => ({ color: colorByIndex(i), id: `primer${p.name}${i}${p.start}${p.end}`, ...p })),
+      ),
       orfs,
       rotateOnScroll: !!this.props.rotateOnScroll,
-      showComplement: (!!processedCompSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
+      showComplement: (!!clampedCompSeq && (typeof showComplement !== "undefined" ? showComplement : true)) || false,
       showIndex: !!showIndex,
       separators,
       translations: translations.map(
         (t, i): { direction: 1 | -1; end: number; start: number; color: string; id: string; name: string } => ({
           direction: t.direction ? (t.direction < 0 ? -1 : 1) : 1,
           end: seqType === "aa" ? t.end : t.start + Math.floor((t.end - t.start) / 3) * 3,
-          start: t.start % processedSeq.length,
+          start: t.start % clampedSeq.length,
           color: t.color || colorByIndex(i, COLORS),
           id: `translation${t.name}${i}${t.start}${t.end}`,
           name: t.name,
@@ -669,7 +727,17 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
 
     return (
       <div className="la-vz-seqviz" data-testid="la-vz-seqviz" style={{ height: "100%", width: "100%", ...style }}>
-        <SeqViewerContainer {...this.props} {...props} {...this.state} seq={processedSeq} compSeq={processedCompSeq} />
+        <SeqViewerContainer
+          {...this.props}
+          {...props}
+          {...this.state}
+          seq={clampedSeq}
+          compSeq={clampedCompSeq}
+          annotations={filterAndRemap(this.state.annotations)}
+          cutSites={filterAndRemap(this.state.cutSites)}
+          fragments={filterAndRemap(this.state.fragments)}
+          search={filterAndRemap(this.state.search)}
+        />
       </div>
     );
   }

@@ -97,6 +97,12 @@ const buildDefaultPresetState = () => ({
   linearMapZoom: 0,
   zoomPopoverOpen: false,
   translationPopoverOpen: true,
+  customSelectionPopoverOpen: false,
+  highlightedEnzymesPopoverOpen: false,
+  clampPopoverOpen: false,
+  clampEnabled: false,
+  clampStart: 0,
+  clampEnd: 100,
 });
 
 interface AppState {
@@ -138,6 +144,12 @@ interface AppState {
   linearMapZoom: number;
   zoomPopoverOpen: boolean;
   translationPopoverOpen: boolean;
+  customSelectionPopoverOpen: boolean;
+  highlightedEnzymesPopoverOpen: boolean;
+  clampPopoverOpen: boolean;
+  clampEnabled: boolean;
+  clampStart: number;
+  clampEnd: number;
 }
 
 export default class App extends React.Component<Record<string, never>, AppState> {
@@ -185,6 +197,18 @@ export default class App extends React.Component<Record<string, never>, AppState
 
   toggleTranslationPopover = () => {
     this.setState(prev => ({ translationPopoverOpen: !prev.translationPopoverOpen }));
+  };
+
+  toggleCustomSelectionPopover = () => {
+    this.setState(prev => ({ customSelectionPopoverOpen: !prev.customSelectionPopoverOpen }));
+  };
+
+  toggleHighlightedEnzymesPopover = () => {
+    this.setState(prev => ({ highlightedEnzymesPopoverOpen: !prev.highlightedEnzymesPopoverOpen }));
+  };
+
+  toggleClampPopover = () => {
+    this.setState(prev => ({ clampPopoverOpen: !prev.clampPopoverOpen }));
   };
 
   private clampZoom = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
@@ -536,54 +560,114 @@ export default class App extends React.Component<Record<string, never>, AppState
                 </div>
               )}
             </div>
-            <div className="option custom-selection">
-              <span>Custom selection (bp)</span>
-              <div className="custom-selection-inputs">
-                <label htmlFor="custom-selection-start">
-                  <span>Start</span>
-                  <input
-                    id="custom-selection-start"
-                    min={0}
-                    max={this.state.seq.length}
-                    type="number"
-                    value={this.state.customSelectionStart}
-                    onChange={this.handleCustomSelectionStartInput}
-                  />
-                </label>
-                <label htmlFor="custom-selection-end">
-                  <span>End</span>
-                  <input
-                    id="custom-selection-end"
-                    min={0}
-                    max={this.state.seq.length}
-                    type="number"
-                    value={this.state.customSelectionEnd}
-                    onChange={this.handleCustomSelectionEndInput}
-                  />
-                </label>
-              </div>
-              <button disabled={!this.state.seq} type="button" onClick={this.applyCustomSelection}>
-                Apply selection
+            <div className="option custom-selection-popover">
+              <button
+                className={`toggle-button ${this.state.customSelectionPopoverOpen ? "active" : ""}`}
+                type="button"
+                onClick={this.toggleCustomSelectionPopover}
+              >
+                Custom selection
               </button>
+              {this.state.customSelectionPopoverOpen && (
+                <div className="popover">
+                  <div className="custom-selection-inputs">
+                    <label htmlFor="custom-selection-start">
+                      <span>Start</span>
+                      <input
+                        id="custom-selection-start"
+                        min={0}
+                        max={this.state.seq.length}
+                        type="number"
+                        value={this.state.customSelectionStart}
+                        onChange={this.handleCustomSelectionStartInput}
+                      />
+                    </label>
+                    <label htmlFor="custom-selection-end">
+                      <span>End</span>
+                      <input
+                        id="custom-selection-end"
+                        min={0}
+                        max={this.state.seq.length}
+                        type="number"
+                        value={this.state.customSelectionEnd}
+                        onChange={this.handleCustomSelectionEndInput}
+                      />
+                    </label>
+                  </div>
+                  <button disabled={!this.state.seq} type="button" onClick={this.applyCustomSelection}>
+                    Apply selection
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="option highlighted-enzymes">
-              <span>Highlighted enzymes</span>
-              <span className="highlighted-enzymes-note">Comma-separated names that stay highlighted.</span>
-              <div className="highlighted-enzymes-input">
-                <input
-                  aria-label="Comma separated list of enzyme names to highlight"
-                  placeholder="EcoRI, BamHI"
-                  type="text"
-                  value={this.state.highlightedEnzymesInput}
-                  onChange={this.handleHighlightedEnzymesInputChange}
-                />
-                <button type="button" onClick={this.applyHighlightedEnzymes}>
-                  Apply
-                </button>
-              </div>
-              {this.state.highlightedEnzymes.length > 0 && (
-                <div className="highlighted-enzymes-active">
-                  Active: {this.state.highlightedEnzymes.join(", ")}
+            <div className="option highlighted-enzymes-popover">
+              <button
+                className={`toggle-button ${this.state.highlightedEnzymesPopoverOpen ? "active" : ""}`}
+                type="button"
+                onClick={this.toggleHighlightedEnzymesPopover}
+              >
+                Highlighted enzymes
+              </button>
+              {this.state.highlightedEnzymesPopoverOpen && (
+                <div className="popover">
+                  <span className="highlighted-enzymes-note">Comma-separated names that stay highlighted.</span>
+                  <div className="highlighted-enzymes-input">
+                    <input
+                      aria-label="Comma separated list of enzyme names to highlight"
+                      placeholder="EcoRI, BamHI"
+                      type="text"
+                      value={this.state.highlightedEnzymesInput}
+                      onChange={this.handleHighlightedEnzymesInputChange}
+                    />
+                    <button type="button" onClick={this.applyHighlightedEnzymes}>
+                      Apply
+                    </button>
+                  </div>
+                  {this.state.highlightedEnzymes.length > 0 && (
+                    <div className="highlighted-enzymes-active">
+                      Active: {this.state.highlightedEnzymes.join(", ")}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="option clamp-popover">
+              <button
+                className={`toggle-button ${this.state.clampPopoverOpen ? "active" : ""}`}
+                type="button"
+                onClick={this.toggleClampPopover}
+              >
+                Clamp settings
+              </button>
+              {this.state.clampPopoverOpen && (
+                <div className="popover">
+                  <CheckboxInput
+                    checked={this.state.clampEnabled}
+                    label="Enable clamp"
+                    set={(clampEnabled: boolean) => this.setState({ clampEnabled })}
+                  />
+                  <label className="option" id="clamp-start">
+                    <span>Start (bp)</span>
+                    <input
+                      disabled={!this.state.clampEnabled}
+                      min={0}
+                      max={this.state.seq.length}
+                      type="number"
+                      value={this.state.clampStart}
+                      onChange={e => this.setState({ clampStart: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="option" id="clamp-end">
+                    <span>End (bp)</span>
+                    <input
+                      disabled={!this.state.clampEnabled}
+                      min={0}
+                      max={this.state.seq.length}
+                      type="number"
+                      value={this.state.clampEnd}
+                      onChange={e => this.setState({ clampEnd: Number(e.target.value) })}
+                    />
+                  </label>
                 </div>
               )}
             </div>
@@ -637,6 +721,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                     this.setState({ selection, fragmentSelection: fragmentSelection || null });
                   }}
                   onContextMenu={event => this.handleContextMenuEvent(event, "Context Menu")}
+                  clamp={this.state.clampEnabled ? { start: this.state.clampStart, end: this.state.clampEnd } : undefined}
                   onDoubleClick={event => this.handleContextMenuEvent(event, "Double Click")}
                 ></SeqViz>
               )}
