@@ -28,6 +28,14 @@ const Header = ({ selection, fragmentSelection, sequenceUnitLabel, showSelection
 
 export default Header;
 
+const formatSelectionRange = (start: number, end: number) => {
+  if (start === end) {
+    return `${start + 1}`;
+  }
+
+  return `${start + 1} - ${end}`;
+};
+
 const SelectionMetaRow = ({ selection, fragmentSelection, sequenceUnitLabel }) => {
   const { end, name, type, length, start } = selection;
 
@@ -51,9 +59,7 @@ const SelectionMetaRow = ({ selection, fragmentSelection, sequenceUnitLabel }) =
         {start !== end && (
           <div className="meta-datum">
             <p id="field">RANGE</p>
-            <p id="value">
-              {start + 1} - {end + 1}
-            </p>
+            <p id="value">{formatSelectionRange(start, end)}</p>
           </div>
         )}
         {start === end && (
@@ -65,17 +71,13 @@ const SelectionMetaRow = ({ selection, fragmentSelection, sequenceUnitLabel }) =
         {fragmentSelection?.firstSelection && (
           <div className="meta-datum">
             <p id="field">First Selection</p>
-            <p id="value">
-              {fragmentSelection.firstSelection.start + 1} - {fragmentSelection.firstSelection.end + 1}
-            </p>
+            <p id="value">{formatSelectionRange(fragmentSelection.firstSelection.start, fragmentSelection.firstSelection.end)}</p>
           </div>
         )}
         {fragmentSelection?.secondSelection && (
           <div className="meta-datum">
             <p id="field">Second Selection</p>
-            <p id="value">
-              {fragmentSelection.secondSelection.start + 1} - {fragmentSelection.secondSelection.end + 1}
-            </p>
+            <p id="value">{formatSelectionRange(fragmentSelection.secondSelection.start, fragmentSelection.secondSelection.end)}</p>
           </div>
         )}
       </div>

@@ -13,12 +13,19 @@ export interface ContextInfo {
 
 interface ContextInfoPanelProps {
   info: ContextInfo | null;
-  onCopySequence: () => void;
   onDismiss: () => void;
   sequenceUnitLabel: string;
 }
 
-const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }: ContextInfoPanelProps) => {
+const formatSelectionRange = (start: number, end: number) => {
+  if (start === end) {
+    return `${start + 1}`;
+  }
+
+  return `${start + 1} - ${end}`;
+};
+
+const ContextInfoPanel = ({ info, onDismiss, sequenceUnitLabel }: ContextInfoPanelProps) => {
   if (!info) {
     return null;
   }
@@ -68,9 +75,7 @@ const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }
         <dl className="context-info-stats">
           <div>
             <dt>Range</dt>
-            <dd>
-              {start} – {end}
-            </dd>
+            <dd>{formatSelectionRange(start, end)}</dd>
           </div>
           <div>
             <dt>Clockwise</dt>
@@ -80,7 +85,7 @@ const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }
             <div>
               <dt>First Selection</dt>
               <dd>
-                {fragmentSelection.firstSelection.start} – {fragmentSelection.firstSelection.end} ({fragmentSelection.firstSelection.type || "SEQ"})
+                {formatSelectionRange(fragmentSelection.firstSelection.start, fragmentSelection.firstSelection.end)} ({fragmentSelection.firstSelection.type || "SEQ"})
               </dd>
             </div>
           )}
@@ -88,7 +93,7 @@ const ContextInfoPanel = ({ info, onCopySequence, onDismiss, sequenceUnitLabel }
             <div>
               <dt>Second Selection</dt>
               <dd>
-                {fragmentSelection.secondSelection.start} – {fragmentSelection.secondSelection.end} ({fragmentSelection.secondSelection.type || "SEQ"})
+                {formatSelectionRange(fragmentSelection.secondSelection.start, fragmentSelection.secondSelection.end)} ({fragmentSelection.secondSelection.type || "SEQ"})
               </dd>
             </div>
           )}

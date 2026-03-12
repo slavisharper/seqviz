@@ -424,7 +424,7 @@ export default class App extends React.Component<Record<string, never>, AppState
     this.setState({
       contextInfo: {
         fragmentSelection: null,
-        name: `${label} (position ${index})`,
+        name: `${label} (position ${index + 1})`,
         selection: {
           ...defaultSelection,
           end: index,
@@ -729,7 +729,6 @@ export default class App extends React.Component<Record<string, never>, AppState
             <ContextInfoPanel
               info={this.state.contextInfo}
               sequenceUnitLabel={sequenceUnitLabel}
-              onCopySequence={this.copyContextSequence}
               onDismiss={this.dismissContextInfo}
             />
           </div>
