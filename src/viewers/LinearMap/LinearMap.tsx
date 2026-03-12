@@ -377,7 +377,12 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       currentY += LINE_HEIGHT + 2;
     }
 
-    const postIndexGap = orfAreaHeight ? ORF_INDEX_GAP : TRACK_GAP;
+    const hasRowsBelowIndex =
+      orfRows.length > 0 ||
+      combinedAnnotationRows.length > 0 ||
+      primerForwardRows.length > 0 ||
+      primerReverseRows.length > 0;
+    const postIndexGap = hasRowsBelowIndex ? ORF_INDEX_GAP : TRACK_GAP;
     currentY += postIndexGap;
 
     const orfStartY = currentY;
