@@ -781,8 +781,8 @@ const renderViewerPanels = ({
     flex: isLinearMapLinear || isLinearMapHorizontal ? "0 0 auto" : isLinearMapOnly ? "1 1 auto" : undefined,
     overflowY: isLinearMapLinear || isLinearMapHorizontal || isLinearMapOnly ? "auto" : undefined,
     overflowX: mapZoom > 0 ? (isLinearMapLinear || isLinearMapHorizontal || isLinearMapOnly ? "auto" : undefined) : "hidden",
-    maxHeight: isLinearMapLinear || isLinearMapHorizontal ? "50%" : undefined,
-    minHeight: isLinearMapLinear || isLinearMapHorizontal ? "14rem" : undefined,
+    maxHeight: isLinearMapLinear || isLinearMapHorizontal ? "45%" : undefined,
+    minHeight: isLinearMapLinear || isLinearMapHorizontal ? "10rem" : undefined,
     height: isLinearMapOnly ? "100%" : undefined,
     minWidth: 0,
   };

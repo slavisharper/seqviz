@@ -511,7 +511,11 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       .map(([id, meta]) => ({ id, ...meta }))
       .sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 
-    const totalHeight = Math.max(size.height || 0, Math.max(currentY, mapBottom) + PADDING_BOTTOM);
+    // When showIndex is true the tick labels render below mapBottom.
+    // Ensure the SVG is tall enough to contain them even when no features
+    // are present (e.g. in linear_map_linear mode where size.height is 0).
+    const indexLabelBottomY = showIndex ? mapBottom + Math.min(8, LINE_HEIGHT) + 10 + 4 : 0;
+    const totalHeight = Math.max(size.height || 0, Math.max(currentY, mapBottom, indexLabelBottomY) + PADDING_BOTTOM);
     const totalWidth = Math.max(baseWidth || 0, mapWidth + 2 * PADDING_X);
 
     const mapSlug = name ? name.replace(/[^a-zA-Z0-9_-]+/g, "-") : "map";
@@ -604,7 +608,14 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
         />
         <Selection height={selectionHighlightHeight} scale={scale} showFill={false} y={selectionHighlightTop} />
         {showIndex ? (
-          <Index lineHeight={LINE_HEIGHT} scale={scale} seqLength={seqLength} showIndex={showIndex} y={indexY} />
+          <Index
+            lineHeight={LINE_HEIGHT}
+            scale={scale}
+            seqLength={seqLength}
+            showIndex={showIndex}
+            viewportWidth={mapWidthBase}
+            y={indexY}
+          />
         ) : (
           <line
             className="la-vz-linear-map-baseline"
