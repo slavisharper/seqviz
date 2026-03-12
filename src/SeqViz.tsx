@@ -629,7 +629,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     const filterAndRemap = <T extends { start: number; end: number }>(items: T[]): T[] => {
       if (!clampProp) return items;
       return items
-        .filter(item => item.start >= clampOffset && item.end <= clampEnd)
+        .filter(item => item.start < item.end && item.start >= clampOffset && item.end <= clampEnd)
         .map(item => ({ ...item, start: item.start - clampOffset, end: item.end - clampOffset }));
     };
 
@@ -637,7 +637,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     let translationsInput = this.props.translations;
     if (clampProp && Array.isArray(translationsInput)) {
       translationsInput = translationsInput
-        .filter(t => t.start >= clampOffset && t.end <= clampEnd)
+        .filter(t => t.start < t.end && t.start >= clampOffset && t.end <= clampEnd)
         .map(t => ({ ...t, start: t.start - clampOffset, end: t.end - clampOffset }));
     }
 

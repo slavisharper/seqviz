@@ -101,8 +101,8 @@ const buildDefaultPresetState = () => ({
   highlightedEnzymesPopoverOpen: false,
   clampPopoverOpen: false,
   clampEnabled: false,
-  clampStart: 0,
-  clampEnd: 100,
+  clampStart: 26,
+  clampEnd: 600,
 });
 
 interface AppState {
