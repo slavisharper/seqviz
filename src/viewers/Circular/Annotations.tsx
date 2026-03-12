@@ -127,8 +127,8 @@ const SingleAnnotation = (props: SingleAnnotationProps) => {
   // if it crosses the zero index, correct for actual length
   let annLength = a.end >= a.start ? a.end - a.start : seqLength - a.start + a.end;
 
-  // can't make an arc from a full circle
-  annLength = annLength === 0 ? seqLength - 0.1 : annLength;
+  // can't make an arc from a full circle (start === end, or feature spans entire clamped sequence)
+  annLength = annLength === 0 || annLength >= seqLength ? seqLength - 0.1 : annLength;
 
   // how many degrees should it be rotated?
   const rotation = getRotation(a.start);
