@@ -38,6 +38,7 @@ import {
   ORF_FEATURE_GAP,
   ORF_HEIGHT_RATIO,
   ORF_INDEX_GAP,
+  ORF_ROW_GAP,
   PADDING_BOTTOM,
   PADDING_TOP,
   PADDING_X,
@@ -348,7 +349,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const findHeight = selectionHeight * 0.55;
     const annotationRowHeight = LINE_HEIGHT + ROW_GAP;
     const primerRowHeight = LINE_HEIGHT + ROW_GAP;
-    const orfRowHeight = LINE_HEIGHT + ROW_GAP;
+    const orfRowHeight = LINE_HEIGHT + ORF_ROW_GAP;
     const primerFeatureHeight = LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
     const orfFeatureHeight = LINE_HEIGHT * ORF_HEIGHT_RATIO;
     const annotationFeatureHeight = LINE_HEIGHT * ANNOTATION_HEIGHT_RATIO;
@@ -371,9 +372,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
 
     const indexY = showIndex ? currentY : 0;
     const mapBottom = showIndex ? indexY + LINE_HEIGHT / 2 : currentY;
-    const orfAreaHeight = orfRows.length ? orfRows.length * orfRowHeight - ROW_GAP : 0;
+    const orfAreaHeight = orfRows.length ? orfRows.length * orfRowHeight - ORF_ROW_GAP : 0;
     if (showIndex) {
-      currentY += LINE_HEIGHT;
+      currentY += LINE_HEIGHT + 2;
     }
 
     const postIndexGap = orfAreaHeight ? ORF_INDEX_GAP : TRACK_GAP;

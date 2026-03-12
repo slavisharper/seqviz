@@ -1,8 +1,10 @@
 export const LINE_HEIGHT = 14;
 
-export const TRACK_GAP = 12;
+export const TRACK_GAP = 6;
 
-export const ROW_GAP = 4;
+export const ROW_GAP = 3;
+
+export const ORF_ROW_GAP = -1;
 
 export const PADDING_X = 30;
 
@@ -24,7 +26,7 @@ export const SELECTION_HEIGHT_RATIO = 0.85;
 
 export const ORF_INDEX_GAP = 15;
 
-export const ORF_FEATURE_GAP = 2;
+export const ORF_FEATURE_GAP = 3;
 
 export const ENZYME_LABEL_MIN_WIDTH = 50;
 
