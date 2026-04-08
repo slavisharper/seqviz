@@ -90,6 +90,9 @@ export interface SeqVizProps {
   /** prevents the linear sequence viewer from rendering */
   disableLinearSequence?: boolean;
 
+  /** prevents the user from making a selection and hides all selection visualization */
+  disableSelection?: boolean;
+
   /** a list of enzymes or enzyme names to digest the sequence with. see seqviz.Enzymes */
   enzymes?: (Enzyme | string)[];
 
@@ -284,11 +287,12 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       if (!this.props.disableExternalFonts) {
         // Fetch Roboto Mono, the only font used by SeqViz (at the time of writing)
         // https://github.com/typekit/webfontloader/issues/383#issuecomment-389627920
-        /* eslint-disable */
-        require("webfontloader").load({
-          google: {
-            families: ["Roboto Mono:300,400,500"],
-          },
+        import("webfontloader").then(WebFont => {
+          WebFont.load({
+            google: {
+              families: ["Roboto Mono:300,400,500"],
+            },
+          });
         });
       }
     }
@@ -466,7 +470,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       return { search: this.state.search };
     }
 
-    onSearch && onSearch(results);
+    if (onSearch) onSearch(results);
     return { search: results };
   };
 
