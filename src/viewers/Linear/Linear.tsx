@@ -7,6 +7,7 @@ import {
   Highlight,
   NameRange,
   Primer,
+  PrimerTailSegment,
   Separator,
   SeparatorClickEvent,
   SeqType,
@@ -138,6 +139,56 @@ export default class Linear extends React.Component<LinearProps> {
       arrSize,
     );
 
+    // Build a map from primer id -> row index (0-based within fwd or rev rows)
+    const primerRowIndexMap = new Map<string, number>();
+    for (let i = 0; i < arrSize; i++) {
+      for (let r = 0; r < primerFwdRows[i].length; r++) {
+        primerFwdRows[i][r].forEach(p => { if (!primerRowIndexMap.has(p.id)) primerRowIndexMap.set(p.id, r); });
+      }
+      for (let r = 0; r < primerRevRows[i].length; r++) {
+        primerRevRows[i][r].forEach(p => { if (!primerRowIndexMap.has(p.id)) primerRowIndexMap.set(p.id, r); });
+      }
+    }
+
+    // Compute per-block tail segments for primers that have a tail sequence
+    const primerTailRows: PrimerTailSegment[][] = new Array(arrSize).fill(null).map(() => []);
+    primers
+      .filter(p => p.tail && p.tail.length > 0)
+      .forEach(p => {
+        const rowIndex = primerRowIndexMap.get(p.id) ?? 0;
+        const tailLen = p.tail!.length;
+        let tailStart: number;
+        let tailEnd: number;
+        if (p.direction === 1) {
+          // forward: tail is to the left of the primer body
+          tailStart = Math.max(0, p.start - tailLen);
+          tailEnd = p.start;
+        } else {
+          // reverse: tail is to the right of the primer body
+          tailStart = p.end;
+          tailEnd = Math.min(seqLength, p.end + tailLen);
+        }
+        for (let i = 0; i < arrSize; i++) {
+          const blockStart = i * bpsPerBlock;
+          const blockEnd = blockStart + bpsPerBlock;
+          if (tailEnd > blockStart && tailStart < blockEnd) {
+            const visStart = Math.max(tailStart, blockStart);
+            const visEnd = Math.min(tailEnd, blockEnd);
+            const seqOffset = visStart - tailStart;
+            const visibleSeq = p.tail!.slice(seqOffset, seqOffset + (visEnd - visStart));
+            primerTailRows[i].push({
+              primerId: p.id,
+              start: tailStart,
+              end: tailEnd,
+              color: p.color,
+              direction: p.direction,
+              rowIndex,
+              sequence: visibleSeq,
+            });
+          }
+        }
+      });
+
     const annotationRows = createMultiRows(
       stackElements(vetAnnotations(annotations), seq.length),
       bpsPerBlock,
@@ -180,11 +231,19 @@ export default class Linear extends React.Component<LinearProps> {
       if (zoomed) {
         blockHeight += showComplement ? lineHeight : 0; // double for complement + 2px margin
       }
-      if (primerFwdRows[i].length) {
-        blockHeight += primerFwdRows[i].length * lineHeight;
+      const fwdTailMaxRow = primerTailRows[i]
+        .filter(t => t.direction === 1)
+        .reduce((max, t) => Math.max(max, t.rowIndex), -1);
+      const revTailMaxRow = primerTailRows[i]
+        .filter(t => t.direction === -1)
+        .reduce((max, t) => Math.max(max, t.rowIndex), -1);
+      const effectiveFwdRows = Math.max(primerFwdRows[i].length, fwdTailMaxRow + 1);
+      const effectiveRevRows = Math.max(primerRevRows[i].length, revTailMaxRow + 1);
+      if (effectiveFwdRows) {
+        blockHeight += effectiveFwdRows * lineHeight;
       }
-      if (primerRevRows[i].length) {
-        blockHeight += primerRevRows[i].length * lineHeight;
+      if (effectiveRevRows) {
+        blockHeight += effectiveRevRows * lineHeight;
       }
       if (showIndex) {
         blockHeight += lineHeight; // another for index row
@@ -230,6 +289,7 @@ export default class Linear extends React.Component<LinearProps> {
           lineHeight={lineHeight}
           primerFwdRows={primerFwdRows[i]}
           primerRevRows={primerRevRows[i]}
+          primerTailRows={primerTailRows[i]}
           searchRows={searchRows[i]}
           singleStrandAnnotations={singleStrandAnnotationRows[i]}
           seq={seqs[i]}

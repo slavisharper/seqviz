@@ -182,6 +182,24 @@ export const createDefaultPrimers = (): Primer[] => [
     name: "LtetO-1 rev primer",
     start: 512,
   },
+  {
+    color: chooseRandomColor(),
+    direction: 1,
+    end: 230,
+    id: "tail-fwd-primer-001",
+    name: "Fwd primer + tail",
+    start: 210,
+    tail: "CAATGGGTGGAGTAT",
+  },
+  {
+    color: chooseRandomColor(),
+    direction: -1,
+    end: 810,
+    id: "tail-rev-primer-001",
+    name: "Rev primer + tail",
+    start: 790,
+    tail: "AGGGAAACCAGAG",
+  },
 ];
 
 export const createDefaultSingleStrandAnnotations = (): SingleStrandAnnotationProp[] => [

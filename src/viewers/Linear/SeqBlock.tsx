@@ -7,6 +7,7 @@ import {
   Highlight,
   NameRange,
   Primer,
+  PrimerTailSegment,
   Range,
   Separator,
   SeparatorClickEvent,
@@ -69,6 +70,7 @@ interface SeqBlockProps {
   onUnmount: (a: string) => void;
   primerFwdRows: Primer[][];
   primerRevRows: Primer[][];
+  primerTailRows?: PrimerTailSegment[];
   searchRows: Range[];
   singleStrandAnnotations: SingleStrandAnnotation[];
   seq: string;
@@ -270,6 +272,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
       onUnmount,
       primerFwdRows: primerFwdRows,
       primerRevRows: primerRevRows,
+      primerTailRows = [],
       searchRows,
       singleStrandAnnotations,
       seq,
@@ -305,10 +308,14 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
 
     // height and yDiff of forward primers
     const primerFwdYDiff = 0;
+    const fwdTailMaxRow = primerTailRows
+      .filter(t => t.direction === 1)
+      .reduce((max, t) => Math.max(max, t.rowIndex), -1);
+    const effectiveFwdRowCount = Math.max(primerFwdRows.length, fwdTailMaxRow + 1);
     const primerFwdHeight = useGlobalHeights
       ? globalMaxHeights.primerFwdHeight
-      : primerFwdRows.length
-        ? elementHeight * primerFwdRows.length
+      : effectiveFwdRowCount
+        ? elementHeight * effectiveFwdRowCount
         : 0;
 
     // height and yDiff of cut sites
@@ -326,10 +333,14 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
 
     // height and yDiff of reverse primers
     const primerRevYDiff = compYDiff + compHeight;
+    const revTailMaxRow = primerTailRows
+      .filter(t => t.direction === -1)
+      .reduce((max, t) => Math.max(max, t.rowIndex), -1);
+    const effectiveRevRowCount = Math.max(primerRevRows.length, revTailMaxRow + 1);
     const primerRevHeight = useGlobalHeights
       ? globalMaxHeights.primerRevHeight
-      : primerRevRows.length
-        ? elementHeight * primerRevRows.length
+      : effectiveRevRowCount
+        ? elementHeight * effectiveRevRowCount
         : 0;
 
     // height and yDiff of translations
@@ -587,6 +598,48 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             {compSeq.split("").map(this.seqTextSpan)}
           </text>
         ) : null}
+        {primerTailRows.map(tail => {
+          const baseY = tail.direction === 1 ? primerFwdYDiff : primerRevYDiff;
+          const { x, width } = this.findXAndWidth(tail.start, tail.end);
+          if (width <= 0) return null;
+          // match the exact y/height of SingleNamedElement's primer rect:
+          // PrimerRow sets y = yDiff + elementHeight * rowIndex
+          // SingleNamedElement transforms by (x, 0.1 * height) where height = elementHeight * 0.7
+          const rectY = baseY + tail.rowIndex * elementHeight + 0.07 * elementHeight;
+          const rectH = elementHeight * 0.7;
+          const visibleStart = Math.max(tail.start, firstBase);
+          return (
+            <g key={`primer-tail-${tail.primerId}-${firstBase}-${tail.direction}`} className="la-vz-primer-tail">
+              <rect
+                fill="none"
+                height={rectH}
+                rx={2}
+                stroke={tail.color}
+                strokeWidth={1.5}
+                width={width}
+                x={x}
+                y={rectY}
+              />
+              <text
+                dominantBaseline="middle"
+                fill="#000000"
+                fontSize={seqFontSize - 4}
+                style={{ pointerEvents: "none", userSelect: "none" }}
+                textAnchor="start"
+                transform={`translate(0, ${rectY + rectH / 2 + 1})`}
+              >
+                {tail.sequence.split("").map((bp, j) => (
+                  <tspan
+                    key={j}
+                    x={(visibleStart + j - firstBase) * charWidth + charWidth * 0.2}
+                  >
+                    {bp}
+                  </tspan>
+                ))}
+              </text>
+            </g>
+          );
+        })}
         <SeparatorMarkers
           compYDiff={compYDiff}
           findXAndWidth={this.findXAndWidth}

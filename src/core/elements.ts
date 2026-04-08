@@ -61,6 +61,8 @@ export interface PrimerProp {
   isPhosphorylated?: boolean;
   name: string;
   start: number;
+  /** optional tail sequence (5'→3') rendered as a bordered box adjacent to the primer body */
+  tail?: string;
 }
 
 /** Primer is a single primer for PCR. */
@@ -69,6 +71,25 @@ export interface Primer extends NameRange {
   direction: 1 | -1;
   /** mark primer as phosphorylated for display */
   isPhosphorylated?: boolean;
+  /** optional tail sequence (5'→3') rendered as a bordered box adjacent to the primer body */
+  tail?: string;
+}
+
+/** A per-block segment representing part (or all) of a primer's tail region for rendering. */
+export interface PrimerTailSegment {
+  /** id of the originating primer */
+  primerId: string;
+  /** absolute sequence start of this tail segment */
+  start: number;
+  /** absolute sequence end of this tail segment */
+  end: number;
+  /** border/stroke color (matches primer color) */
+  color: string;
+  direction: 1 | -1;
+  /** 0-based row index within the forward or reverse primer rows */
+  rowIndex: number;
+  /** the portion of the tail sequence string visible in this block */
+  sequence: string;
 }
 
 /** Processed single-strand annotation for rendering. */
