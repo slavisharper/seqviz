@@ -26,6 +26,7 @@ import SelectionContext, {
   ExternalSelection,
   FragmentSelection,
   Selection,
+  SelectionContextValue,
   SelectionEventMeta,
   defaultSelection,
 } from "./state/selectionContext";
@@ -645,7 +646,7 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
       >
         <style>{`.la-vz-hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; } .la-vz-hide-scrollbar::-webkit-scrollbar { display: none; } .la-vz-annotation-label:hover, .la-vz-primer-label:hover, .la-vz-handle-label:hover, .la-vz-cut-site-text:hover { text-decoration: underline; cursor: pointer; }`}</style>
         <CentralIndexContext.Provider value={centralIndex}>
-          <SelectionContext.Provider value={mergedSelection}>
+          <SelectionContext.Provider value={{ ...mergedSelection, disableSelection: !!this.props.disableSelection }}>
             <HoveredEnzymeContext.Provider
               value={{
                 hoveredEnzyme: this.state.hoveredEnzyme,

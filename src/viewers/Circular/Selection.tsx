@@ -31,7 +31,9 @@ export class Selection extends React.PureComponent<CircularSelectionProps> {
 
   render() {
     const { findCoor, genArc, getRotation, lineHeight, radius, seq, seqLength, totalRows } = this.props;
-    const { clockwise, end, ref, start } = this.context;
+    const { clockwise, disableSelection, end, ref, start } = this.context;
+
+    if (disableSelection) return null;
 
     if (typeof start === "undefined" || typeof end === "undefined") {
       return;

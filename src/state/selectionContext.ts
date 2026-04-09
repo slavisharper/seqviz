@@ -68,8 +68,13 @@ export const defaultSelection: Selection = {
   type: "",
 };
 
+/** Context value shape, including the disable flag */
+export interface SelectionContextValue extends Selection {
+  disableSelection?: boolean;
+}
+
 /** Default context object */
-const SelectionContext = React.createContext(defaultSelection);
+const SelectionContext = React.createContext<SelectionContextValue>(defaultSelection);
 SelectionContext.displayName = "SelectionContext";
 
 export default SelectionContext;

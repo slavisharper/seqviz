@@ -20,7 +20,9 @@ export class Selection extends React.PureComponent<LinearSelectionProps> {
 
   render() {
     const { height, scale, showEdges = true, showFill = true, y } = this.props;
-    const { clockwise, end, ref, start } = this.context;
+    const { clockwise, disableSelection, end, ref, start } = this.context;
+
+    if (disableSelection) return null;
 
     if (typeof start !== "number" || typeof end !== "number") {
       return null;

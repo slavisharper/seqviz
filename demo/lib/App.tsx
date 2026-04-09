@@ -68,6 +68,7 @@ const buildDefaultPresetState = () => ({
   disableCircularMap: false,
   disableLinearMap: false,
   disableLinearSequence: false,
+  disableSelection: false,
   fragments: [DEMO_FRAGMENT_1, DEMO_FRAGMENT_2],
   enzymes: [...DEFAULT_ENZYMES],
   highlightedEnzymes: [] as string[],
@@ -111,6 +112,7 @@ interface AppState {
   disableCircularMap: boolean;
   disableLinearMap: boolean;
   disableLinearSequence: boolean;
+  disableSelection: boolean;
   exampleId: DemoExampleId;
   enzymes: string[];
   highlightedEnzymes: string[];
@@ -508,6 +510,11 @@ export default class App extends React.Component<Record<string, never>, AppState
               label="Disable linear sequence"
               set={(disableLinearSequence: boolean) => this.setState({ disableLinearSequence })}
             />
+            <CheckboxInput
+              checked={this.state.disableSelection}
+              label="Disable selection"
+              set={(disableSelection: boolean) => this.setState({ disableSelection })}
+            />
             <div className="option zoom-popover">
               <button
                 className={`toggle-button ${this.state.zoomPopoverOpen ? "active" : ""}`}
@@ -694,6 +701,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                   disableCircularMap={this.state.disableCircularMap}
                   disableLinearMap={this.state.disableLinearMap}
                   disableLinearSequence={this.state.disableLinearSequence}
+                  disableSelection={this.state.disableSelection}
                   enzymes={this.state.enzymes}
                   highlightedEnzymes={this.state.highlightedEnzymes}
                   highlights={[{ end: 10, start: 0 }]}
