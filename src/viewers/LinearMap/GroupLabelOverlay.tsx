@@ -1,12 +1,12 @@
 import * as React from "react";
 
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { circularLabelLine, svgText } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { LinearLabelDatum, LinearLabelItem } from "./Labels";
 import { LinearMapScale, clamp } from "./utils";
-import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 interface LinearGroupLabelOverlayProps {
   group: LinearLabelDatum & { textY: number };
@@ -118,7 +118,8 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
           }}
         >
           {group.labels.map((label, index) => {
-            const isHighlighted = label.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes);
+            const isHighlighted =
+              label.type === "enzyme" && matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes);
             const isHovered = !!hoveredFeatures?.[label.id];
             return (
               <div
@@ -157,7 +158,18 @@ export const LinearGroupLabelOverlay: React.FC<LinearGroupLabelOverlayProps> = (
           })}
         </div>
       </foreignObject>
-      <rect fill="none" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }} width={rectWidth} x={rectX} y={rectY} />
+      <rect
+        fill="none"
+        height={rectHeight}
+        rx={4}
+        ry={4}
+        stroke="#e5e7eb"
+        strokeWidth={1}
+        style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }}
+        width={rectWidth}
+        x={rectX}
+        y={rectY}
+      />
     </g>
   );
 };

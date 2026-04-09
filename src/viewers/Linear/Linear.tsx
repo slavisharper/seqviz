@@ -115,7 +115,9 @@ export default class Linear extends React.Component<LinearProps> {
     const compSeqs = new Array(arrSize); // complements...
     const blockHeights = new Array(arrSize); // block heights...
 
-    const cutSiteRows = cutSites.length ? createCutSiteRows(cutSites, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);
+    const cutSiteRows = cutSites.length
+      ? createCutSiteRows(cutSites, bpsPerBlock, arrSize)
+      : new Array(arrSize).fill([]);
 
     /**
      * Mutate elements that start or end at zero index
@@ -143,10 +145,14 @@ export default class Linear extends React.Component<LinearProps> {
     const primerRowIndexMap = new Map<string, number>();
     for (let i = 0; i < arrSize; i++) {
       for (let r = 0; r < primerFwdRows[i].length; r++) {
-        primerFwdRows[i][r].forEach(p => { if (!primerRowIndexMap.has(p.id)) primerRowIndexMap.set(p.id, r); });
+        primerFwdRows[i][r].forEach(p => {
+          if (!primerRowIndexMap.has(p.id)) primerRowIndexMap.set(p.id, r);
+        });
       }
       for (let r = 0; r < primerRevRows[i].length; r++) {
-        primerRevRows[i][r].forEach(p => { if (!primerRowIndexMap.has(p.id)) primerRowIndexMap.set(p.id, r); });
+        primerRevRows[i][r].forEach(p => {
+          if (!primerRowIndexMap.has(p.id)) primerRowIndexMap.set(p.id, r);
+        });
       }
     }
 
@@ -195,11 +201,7 @@ export default class Linear extends React.Component<LinearProps> {
       arrSize,
     );
 
-    const fragmentRows = createMultiRows(
-      stackElements(vetAnnotations(fragments), seq.length),
-      bpsPerBlock,
-      arrSize,
-    );
+    const fragmentRows = createMultiRows(stackElements(vetAnnotations(fragments), seq.length), bpsPerBlock, arrSize);
 
     const searchRows: NameRange[][] =
       search && search.length ? createSingleRows(search, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);

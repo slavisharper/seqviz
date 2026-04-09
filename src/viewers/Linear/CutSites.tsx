@@ -3,9 +3,9 @@ import * as React from "react";
 import { InputRefFunc } from "../../SelectionHandler";
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { CutSite, Size } from "../../core/elements";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { circularLabelLine, cutSite, selection, svgText } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
-import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { FindXAndWidthType } from "./SeqBlock";
 
 const CUT_LINE_ACTIVE_COLOR = "rgb(255, 46, 99)";
@@ -289,7 +289,10 @@ const CutSiteGroupOverlay = (props: {
   const connectorStartY = yDiff + lineHeight * 0.75;
   const connectorEndX = rectX + rectWidth / 2;
   const connectorEndY = renderBelowLabel ? rectY : rectY + rectHeight;
-  const clipId = React.useMemo(() => `cut-site-group-clip-${group.groupId.replace(/[^a-zA-Z0-9_-]/g, "_")}`, [group.groupId]);
+  const clipId = React.useMemo(
+    () => `cut-site-group-clip-${group.groupId.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+    [group.groupId],
+  );
   const displayedMembers = React.useMemo(
     () => (!renderBelowLabel ? [...group.members].reverse() : group.members),
     [group.members, renderBelowLabel],
@@ -313,7 +316,9 @@ const CutSiteGroupOverlay = (props: {
   const scrollbarTrackWidth = 5;
   const scrollbarX = rectX + rectWidth - scrollbarTrackWidth - 2;
   const contentWidth = rectWidth - paddingX * 2 - (hasScroll ? scrollbarTrackWidth + 4 : 0);
-  const thumbHeight = hasScroll ? Math.max(lineHeight, (visibleContentHeight / fullContentHeight) * visibleContentHeight) : 0;
+  const thumbHeight = hasScroll
+    ? Math.max(lineHeight, (visibleContentHeight / fullContentHeight) * visibleContentHeight)
+    : 0;
   const thumbY = hasScroll
     ? rectY + paddingY + (scrollY / maxScrollY) * (visibleContentHeight - thumbHeight)
     : rectY + paddingY;
@@ -401,7 +406,18 @@ const CutSiteGroupOverlay = (props: {
           />
         </>
       )}
-      <rect fill="none" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }} width={rectWidth} x={rectX} y={rectY} />
+      <rect
+        fill="none"
+        height={rectHeight}
+        rx={4}
+        ry={4}
+        stroke="#e5e7eb"
+        strokeWidth={1}
+        style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }}
+        width={rectWidth}
+        x={rectX}
+        y={rectY}
+      />
     </g>
   );
 };
@@ -729,8 +745,7 @@ const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Siz
       .filter(item => !sorted.includes(item) && item.label.x > maxCutX)
       .reduce((min, item) => Math.min(min, item.label.x), Number.POSITIVE_INFINITY);
     const noRoomOnRight =
-      rightMost >= size.width - CHAR_WIDTH * 3 ||
-      (Number.isFinite(nextCutX) && nextCutX - maxCutX < CHAR_WIDTH * 2);
+      rightMost >= size.width - CHAR_WIDTH * 3 || (Number.isFinite(nextCutX) && nextCutX - maxCutX < CHAR_WIDTH * 2);
     if (noRoomOnRight) {
       groups.push(sorted);
       sorted.forEach(member => consumed.add(keyOf(member)));
@@ -782,7 +797,9 @@ const buildCutSiteLabelEntries = (labelledCutSites: CutSiteLabelled[], size: Siz
     }
 
     if (x + entryHalf > size.width - rightPadding) {
-      overflowMembers = sortedEntries.slice(i).reduce((acc, overflowEntry) => acc.concat(overflowEntry.members), [] as CutSiteLabelled[]);
+      overflowMembers = sortedEntries
+        .slice(i)
+        .reduce((acc, overflowEntry) => acc.concat(overflowEntry.members), [] as CutSiteLabelled[]);
       break;
     }
 

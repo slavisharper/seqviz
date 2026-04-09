@@ -649,7 +649,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     return {
       clockwise: true,
-      direction: Number.isFinite(direction) && direction !== 0 ? (direction as number > 0 ? 1 : -1) : undefined,
+      direction: Number.isFinite(direction) && direction !== 0 ? ((direction as number) > 0 ? 1 : -1) : undefined,
       end,
       fcut: Number.isFinite(fcut) ? fcut : undefined,
       name: selectionName,

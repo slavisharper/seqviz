@@ -1,13 +1,13 @@
 import * as React from "react";
 
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { Selection as SelectionRange } from "../../state/selectionContext";
 import { circularLabel, circularLabelLine, circularLabelLineHover } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { setHoveredLabelUnderline } from "../Circular/WrappedGroupLabel";
 import { LinearGroupLabelOverlay } from "./GroupLabelOverlay";
-import { LinearMapScale } from "./utils";
 import { ENZYME_LABEL_ROW_SPACING } from "./constants";
-import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
+import { LinearMapScale } from "./utils";
 
 const ANNOTATION_HEIGHT_RATIO = 0.8;
 const PRIMER_HEIGHT_RATIO = 0.7;
@@ -236,7 +236,8 @@ export class Labels extends React.PureComponent<LinearLabelsProps, LinearLabelsS
   };
 
   render() {
-    const { connectorY, hoveredFeatures, labels, lineHeight, scale, selectedFeatures, startY, viewerBottomY } = this.props;
+    const { connectorY, hoveredFeatures, labels, lineHeight, scale, selectedFeatures, startY, viewerBottomY } =
+      this.props;
     const { overlayGroupId } = this.state;
     const { hoveredEnzyme, highlightedEnzymes } = this.context;
     if (!labels.length) return null;

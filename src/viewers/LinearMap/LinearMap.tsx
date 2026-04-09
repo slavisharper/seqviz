@@ -463,12 +463,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const hiddenFeatureMetaById = new Map<string, { name: string; x: number; y: number }>();
     const calloutYGap = this.FEATURE_CALLOUT_TEXT_GAP;
 
-    const addHiddenFeatureMeta = (
-      id: string,
-      name: string | undefined,
-      midpoint: number,
-      rowTopY: number,
-    ) => {
+    const addHiddenFeatureMeta = (id: string, name: string | undefined, midpoint: number, rowTopY: number) => {
       if (!id || !name) return;
       const x = clamp(scale.offsetX + midpoint * scale.pxPerBase, scale.offsetX, scale.offsetX + scale.width);
       const y = rowTopY - calloutYGap;
@@ -660,7 +655,18 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
 
               return (
                 <g key={`feature-callout-${callout.id}`} style={{ pointerEvents: "none" }}>
-                  <rect fill="white" filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} width={rectWidth} x={rectX} y={rectY} />
+                  <rect
+                    fill="white"
+                    filter="drop-shadow(0 1px 3px rgba(0,0,0,0.12))"
+                    height={rectHeight}
+                    rx={4}
+                    ry={4}
+                    stroke="#e5e7eb"
+                    strokeWidth={1}
+                    width={rectWidth}
+                    x={rectX}
+                    y={rectY}
+                  />
                   <text
                     className="la-vz-linear-map-feature-callout-label"
                     dominantBaseline="middle"

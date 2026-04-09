@@ -9,9 +9,9 @@ import {
   Annotation,
   AnnotationProp,
   CutSite,
+  Enzyme,
   Fragment,
   FragmentProp,
-  Enzyme,
   Highlight,
   HighlightProp,
   NameRange,
@@ -20,8 +20,8 @@ import {
   Separator,
   SeparatorClickEvent,
   SeparatorProp,
-  SequenceEdges,
   SeqType,
+  SequenceEdges,
   SingleStrandAnnotation,
   SingleStrandAnnotationProp,
   TranslationProp,
@@ -197,7 +197,16 @@ export interface SeqVizProps {
   translations?: TranslationProp[] | TranslationSettings;
 
   /** the orientation of the viewer(s). "both", the default, has a circular viewer on left and a linear viewer on right. */
-  viewer?: "linear" | "circular" | "both" | "both_flip" | "linear_map" | "linear_map_linear" | "linear_horizontal" | "linear_map_horizontal" | "circular_horizontal";
+  viewer?:
+    | "linear"
+    | "circular"
+    | "both"
+    | "both_flip"
+    | "linear_map"
+    | "linear_map_linear"
+    | "linear_horizontal"
+    | "linear_map_horizontal"
+    | "circular_horizontal";
 
   /** how large to make the sequence and elements [0,100]. A larger zoom increases the size of text and elements for that viewer. */
   zoom?: {

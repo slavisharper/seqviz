@@ -82,7 +82,9 @@ export default class LinearHorizontal extends React.Component<LinearHorizontalPr
     let arrSize = Math.round(Math.ceil(seqLength / bpsPerBlock));
     if (arrSize === Number.POSITIVE_INFINITY) arrSize = 1;
 
-    const cutSiteRows = cutSites.length ? createCutSiteRows(cutSites, bpsPerBlock, arrSize) : new Array(arrSize).fill([]);
+    const cutSiteRows = cutSites.length
+      ? createCutSiteRows(cutSites, bpsPerBlock, arrSize)
+      : new Array(arrSize).fill([]);
 
     function vetAnnotations<T extends NameRange>(anns: T[]): T[] {
       anns.forEach(ann => {
@@ -103,7 +105,11 @@ export default class LinearHorizontal extends React.Component<LinearHorizontalPr
       arrSize,
     );
 
-    const annotationRows = createMultiRows(stackElements(vetAnnotations(annotations), seq.length), bpsPerBlock, arrSize);
+    const annotationRows = createMultiRows(
+      stackElements(vetAnnotations(annotations), seq.length),
+      bpsPerBlock,
+      arrSize,
+    );
 
     const fragmentRows = createMultiRows(stackElements(vetAnnotations(fragments), seq.length), bpsPerBlock, arrSize);
 
@@ -157,8 +163,7 @@ export default class LinearHorizontal extends React.Component<LinearHorizontalPr
     blockHeight += globalMaxHeights.annHeight;
     if (showIndex) blockHeight += lineHeight; // index row
 
-    const elementGap =
-      maxPrimerRevRows + maxPrimerFwdRows + maxAnnotationRows + maxTranslationRows ? 3 : 0;
+    const elementGap = maxPrimerRevRows + maxPrimerFwdRows + maxAnnotationRows + maxTranslationRows ? 3 : 0;
     blockHeight += elementGap;
 
     // Determine a consistent viewer height

@@ -2,9 +2,9 @@ import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
 import { Coor, CutSite } from "../../core/elements";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { cutSiteHighlight, cutSite as cutSiteStyle } from "../../style";
 import { enzymeHoverColor } from "../../style/labelTheme";
-import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { GenArcFunc, RENDER_SEQ_LENGTH_CUTOFF } from "./Circular";
 
 interface CutSitesProps {
@@ -112,9 +112,7 @@ const SingleCutSite = (props: {
         strokeWidth: 1.5,
       }
     : baseHighlightStyle;
-  const lineStyle = isHighlighted
-    ? { ...cutSiteStyle, stroke: enzymeHoverColor, strokeWidth: 1.5 }
-    : cutSiteStyle;
+  const lineStyle = isHighlighted ? { ...cutSiteStyle, stroke: enzymeHoverColor, strokeWidth: 1.5 } : cutSiteStyle;
 
   return (
     <g

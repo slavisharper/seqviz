@@ -14,7 +14,10 @@ import { CircularProps } from "./viewers/Circular/Circular";
 import { LinearProps } from "./viewers/Linear/Linear";
 import { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
-type LinearBaseProps = Omit<LinearProps, "handleMouseEvent" | "inputRef" | "onUnmount" | "separators" | "onSeparatorClick">;
+type LinearBaseProps = Omit<
+  LinearProps,
+  "handleMouseEvent" | "inputRef" | "onUnmount" | "separators" | "onSeparatorClick"
+>;
 
 export const memoizeOne = <Args extends unknown[], Result>(
   fn: (...args: Args) => Result,

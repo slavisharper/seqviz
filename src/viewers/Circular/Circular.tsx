@@ -504,7 +504,12 @@ export default class Circular extends React.Component<CircularProps, CircularSta
     const calloutOffset = lineHeight * 1.8;
     const rowGap = 3;
 
-    const addFeatureCallout = (featureId: string, featureName: string | undefined, centerIndex: number, outerRadius: number) => {
+    const addFeatureCallout = (
+      featureId: string,
+      featureName: string | undefined,
+      centerIndex: number,
+      outerRadius: number,
+    ) => {
       if (!featureId || !featureName || seqLength <= 0) return;
       const normalizedCenter = ((centerIndex % seqLength) + seqLength) % seqLength;
       const coor = findCoor(normalizedCenter, outerRadius + calloutOffset, true);
@@ -521,7 +526,9 @@ export default class Circular extends React.Component<CircularProps, CircularSta
           return;
         }
         const annLength =
-          annotation.end >= annotation.start ? annotation.end - annotation.start : seqLength - annotation.start + annotation.end;
+          annotation.end >= annotation.start
+            ? annotation.end - annotation.start
+            : seqLength - annotation.start + annotation.end;
         const centerIndex = annotation.start + annLength / 2;
         addFeatureCallout(annotation.id, annotation.name, centerIndex, annOuterRadius);
       });
@@ -537,7 +544,8 @@ export default class Circular extends React.Component<CircularProps, CircularSta
         if (!primer.name) {
           return;
         }
-        const primerLength = primer.end >= primer.start ? primer.end - primer.start : seqLength - primer.start + primer.end;
+        const primerLength =
+          primer.end >= primer.start ? primer.end - primer.start : seqLength - primer.start + primer.end;
         const centerIndex = primer.start + primerLength / 2;
         addFeatureCallout(primer.id, primer.name, centerIndex, primerOuterRadius);
       });
@@ -760,7 +768,7 @@ const SeparatorRadials = ({
       return seqLength;
     }
     const modded = index % seqLength;
-    return ((modded + seqLength) % seqLength + seqLength) % seqLength;
+    return (((modded + seqLength) % seqLength) + seqLength) % seqLength;
   };
 
   const fallbackColor = "#2B6CB0";

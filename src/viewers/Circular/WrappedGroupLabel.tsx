@@ -1,11 +1,11 @@
 import * as React from "react";
 
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { circularLabel, svgText } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { ILabel } from "./Circular";
 import { GroupedLabelsWithCoors } from "./Labels";
-import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 interface WrappedGroupLabelProps {
   getSelectionAttributes: (label: ILabel) => Record<string, string | number>;
@@ -39,7 +39,9 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
   } = props;
   const { hoveredEnzyme, highlightedEnzymes, setHoveredEnzyme } = React.useContext(HoveredEnzymeContext);
   const [hoveredLabelId, setHoveredLabelId] = React.useState<string | null>(null);
-  const groupHasHighlightedEnzyme = group.labels.some(label => matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes));
+  const groupHasHighlightedEnzyme = group.labels.some(label =>
+    matchesHoveredEnzyme(hoveredEnzyme, label, highlightedEnzymes),
+  );
 
   const handleLabelHover = (label: ILabel, hover: boolean) => {
     if (!label?.id) return;
@@ -160,7 +162,10 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
             }}
           >
             {labelRows.map((r, i) => (
-              <div key={`${key}_${i}`} style={{ height: lineHeight, lineHeight: `${lineHeight}px`, whiteSpace: "nowrap" }}>
+              <div
+                key={`${key}_${i}`}
+                style={{ height: lineHeight, lineHeight: `${lineHeight}px`, whiteSpace: "nowrap" }}
+              >
                 {r.map((l, i2) => {
                   const hoverKey = l.id ?? `${group.name}-${i}-${i2}`;
                   const isLocallyHovered = hoveredLabelId === hoverKey;
@@ -173,10 +178,12 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
                         {...getSelectionAttributes(l)}
                         style={{
                           fontSize: circularLabel.fontSize || svgText.fontSize || 12,
-                          fontFamily: (circularLabel.fontFamily as string) || (svgText.fontFamily as string) || "inherit",
+                          fontFamily:
+                            (circularLabel.fontFamily as string) || (svgText.fontFamily as string) || "inherit",
                           cursor: "pointer",
                           color: isHighlighted ? enzymeHoverColor : (circularLabel.fill as string) || "black",
-                          fontWeight: isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+                          fontWeight:
+                            isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
                           textDecoration: isLocallyHovered ? "underline" : "none",
                         }}
                         onMouseLeave={() => {
@@ -203,7 +210,12 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
       ) : (
         <text {...groupCoor} style={svgText}>
           {labelRows.map((r, i) => (
-            <tspan key={`${key}_${i}`} dominantBaseline="middle" x={groupCoor.x} y={groupCoor.y + (i + 0.5) * lineHeight}>
+            <tspan
+              key={`${key}_${i}`}
+              dominantBaseline="middle"
+              x={groupCoor.x}
+              y={groupCoor.y + (i + 0.5) * lineHeight}
+            >
               {r.map((l, i2) => {
                 const hoverKey = l.id ?? `${group.name}-${i}-${i2}`;
                 const isLocallyHovered = hoveredLabelId === hoverKey;
@@ -211,8 +223,7 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
                 const labelStyle = {
                   ...circularLabel,
                   fill: isHighlighted ? enzymeHoverColor : circularLabel.fill,
-                  fontWeight:
-                    isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
+                  fontWeight: isHighlighted || isLocallyHovered ? LABEL_FONT_WEIGHT_HOVER : LABEL_FONT_WEIGHT_DEFAULT,
                   textDecoration: isLocallyHovered ? "underline" : "none",
                 } as React.CSSProperties;
                 return (
@@ -246,7 +257,17 @@ export const WrappedGroupLabel = (props: WrappedGroupLabelProps) => {
           ))}
         </text>
       )}
-      <rect fill="none" height={rectHeight} rx={4} ry={4} stroke="#e5e7eb" strokeWidth={1} style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }} width={rectWidth} {...rectCoor} />
+      <rect
+        fill="none"
+        height={rectHeight}
+        rx={4}
+        ry={4}
+        stroke="#e5e7eb"
+        strokeWidth={1}
+        style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }}
+        width={rectWidth}
+        {...rectCoor}
+      />
     </g>
   );
 };

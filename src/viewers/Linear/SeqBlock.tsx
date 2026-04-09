@@ -320,7 +320,11 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
 
     // height and yDiff of cut sites
     const cutSiteYDiff = primerFwdYDiff + primerFwdHeight; // spacing for cutSite names
-    const cutSiteHeight = useGlobalHeights ? globalMaxHeights.cutSiteHeight : zoomed && cutSiteRows.length ? lineHeight : 0;
+    const cutSiteHeight = useGlobalHeights
+      ? globalMaxHeights.cutSiteHeight
+      : zoomed && cutSiteRows.length
+        ? lineHeight
+        : 0;
 
     // height and yDiff of the sequence strand
     const indexYDiff = cutSiteYDiff + cutSiteHeight;
@@ -393,9 +397,9 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
           fragmentsHeight +
           annHeight +
           primerRevHeight +
-              elementGap +
-              11;
-            let selectEdgeHeight = seqType === "aa" ? selectHeight + 9 : selectHeight;
+          elementGap +
+          11;
+    let selectEdgeHeight = seqType === "aa" ? selectHeight + 9 : selectHeight;
 
     // needed because otherwise the selection height is very small
     if (!zoomed && selectHeight <= elementHeight) {
@@ -629,10 +633,7 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
                 transform={`translate(0, ${rectY + rectH / 2 + 1})`}
               >
                 {tail.sequence.split("").map((bp, j) => (
-                  <tspan
-                    key={j}
-                    x={(visibleStart + j - firstBase) * charWidth + charWidth * 0.2}
-                  >
+                  <tspan key={j} x={(visibleStart + j - firstBase) * charWidth + charWidth * 0.2}>
                     {bp}
                   </tspan>
                 ))}

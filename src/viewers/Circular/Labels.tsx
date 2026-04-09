@@ -2,11 +2,11 @@ import * as React from "react";
 
 import { CHAR_WIDTH } from "../../SeqViewerContainer";
 import { Coor, Size } from "../../core/elements";
+import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 import { circularLabel, circularLabelLine } from "../../style";
 import { LABEL_FONT_WEIGHT_DEFAULT, LABEL_FONT_WEIGHT_HOVER, enzymeHoverColor } from "../../style/labelTheme";
 import { GenArcFunc, ILabel, RENDER_SEQ_LENGTH_CUTOFF } from "./Circular";
 import { WrappedGroupLabel, setHoveredLabelUnderline } from "./WrappedGroupLabel";
-import HoveredEnzymeContext, { matchesHoveredEnzyme } from "../../state/hoveredEnzymeContext";
 
 interface LabelWithCoors {
   label: ILabel;
