@@ -551,54 +551,62 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
     }
 
     const seqLength = seq.length;
-    const normalize = (value?: number): number | undefined => {
+
+    // Returns a sort key: negative values wrap positively, values equal to
+    // seqLength stay as seqLength (sorts after all in-range positions),
+    // and any other multiple-of-seqLength value also returns seqLength.
+    const normalizeSortKey = (value?: number): number | undefined => {
       if (typeof value !== "number" || !Number.isFinite(value)) {
         return undefined;
       }
       if (seqLength <= 0) {
         return Math.max(0, Math.floor(value));
       }
-      if (value === seqLength) {
-        return seqLength;
+      const floored = Math.floor(value);
+      if (floored === seqLength) {
+        return seqLength; // treat "end of sequence" as seqLength for sort purposes
       }
-      const modded = value % seqLength;
-      if (modded === 0 && value !== 0 && Math.floor(value / seqLength) !== 0) {
-        return seqLength;
-      }
-      return ((modded + seqLength) % seqLength + seqLength) % seqLength;
+      return ((floored % seqLength) + seqLength) % seqLength;
     };
+
+    // Converts a sort key to its circular output index (seqLength → 0).
+    const toOutputIndex = (key: number): number => (key === seqLength ? 0 : key);
 
     type ParsedSeparator = Omit<Separator, "order">;
 
     const prepared: ParsedSeparator[] = separators
       .map((separator, i) => {
-        const primaryIndex = normalize(separator.index);
-        if (typeof primaryIndex !== "number") {
+        const sortKey = normalizeSortKey(separator.index);
+        if (typeof sortKey !== "number") {
           return null;
         }
-        const complementIndex = normalize(separator.complementIndex);
-        const entry: ParsedSeparator = {
-          id: `separator-${separator.name || i}-${i}-${primaryIndex}-${randomID()}`,
+        const complementSortKey = normalizeSortKey(separator.complementIndex);
+        const entry: ParsedSeparator & { sortKey: number } = {
+          id: `separator-${separator.name || i}-${i}-${sortKey}-${randomID()}`,
           name: separator.name || `Separator ${i + 1}`,
           color: separator.color || colorByIndex(i, COLORS),
-          index: primaryIndex,
-          complementIndex,
+          index: toOutputIndex(sortKey),
+          complementIndex: complementSortKey !== undefined ? toOutputIndex(complementSortKey) : undefined,
+          sortKey,
         };
         return entry;
       })
-      .filter((value): value is ParsedSeparator => value !== null);
+      .filter((value): value is ParsedSeparator & { sortKey: number } => value !== null);
 
     const sorted = prepared.sort((a, b) => {
-      if (a.index === b.index) {
+      const aEntry = a as ParsedSeparator & { sortKey: number };
+      const bEntry = b as ParsedSeparator & { sortKey: number };
+      if (aEntry.sortKey === bEntry.sortKey) {
         return a.name.localeCompare(b.name);
       }
-      return a.index - b.index;
+      return aEntry.sortKey - bEntry.sortKey;
     });
 
-    return sorted.map((separator, order) => ({
-      ...separator,
-      order: order + 1,
-    }));
+    return sorted.map((separator, order) => {
+      const { sortKey: _sortKey, ...rest } = separator as ParsedSeparator & { sortKey: number };
+      void _sortKey;
+      return { ...rest, order: order + 1 };
+    });
   };
 
   render() {

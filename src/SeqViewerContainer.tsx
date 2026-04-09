@@ -26,7 +26,6 @@ import SelectionContext, {
   ExternalSelection,
   FragmentSelection,
   Selection,
-  SelectionContextValue,
   SelectionEventMeta,
   defaultSelection,
 } from "./state/selectionContext";

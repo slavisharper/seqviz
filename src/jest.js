@@ -1,5 +1,4 @@
-import { jest } from "@jest/globals";
-import { TextEncoder } from "util";
+const { TextEncoder } = require("util");
 
 globalThis.TextEncoder = TextEncoder;
 
