@@ -5,9 +5,8 @@
     "declaration": true,
     "jsx": "react", // use typescript to transpile jsx to js
     "lib": ["es2016", "dom"], // https://marcobotto.com/blog/compiling-and-bundling-typescript-libraries-with-webpack/
-    "module": "commonjs", // specify module code generation
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
+    "module": "esnext", // webpack handles module bundling
+    "moduleResolution": "bundler",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "./dist/", // path to output directory
