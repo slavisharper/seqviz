@@ -25,8 +25,9 @@ export const Primers = React.memo((props: PrimersProps) => {
   const primerThickness = Math.max(6, Math.round(lineHeight * 0.7));
 
   // position primers inside annotations by offsetting based on rowsToSkip
-  const rowShiftHeight = lineHeight * rowsToSkip;
-  let currBRadius = radius - lineHeight * 2 - 3 - rowShiftHeight - 4; // slight gap beneath annotations
+  // Each annotation row takes (lineHeight + 3) pixels, matching the spacing in Annotations.tsx
+  const rowShiftHeight = rowsToSkip * (lineHeight + 3);
+  let currBRadius = radius - lineHeight * 2 - 3 - rowShiftHeight - 3; // slight gap beneath annotations
   let currTRadius = currBRadius - primerThickness;
 
   return (
