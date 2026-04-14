@@ -4,18 +4,17 @@
     "allowUnreachableCode": false,
     "declaration": true,
     "jsx": "react", // use typescript to transpile jsx to js
-    "lib": ["es2016", "dom"], // https://marcobotto.com/blog/compiling-and-bundling-typescript-libraries-with-webpack/
-    "module": "esnext", // webpack handles module bundling
-    "moduleResolution": "bundler",
+    "lib": ["es2015", "dom"], // https://marcobotto.com/blog/compiling-and-bundling-typescript-libraries-with-webpack/
+    "module": "commonjs", // specify module code generation
+    "moduleResolution": "node",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "./dist/", // path to output directory
-    "rootDir": "./src/",
     "sourceMap": true, // allow sourcemap support
     "strict": false, // TODO: set to true
     "strictNullChecks": true, // enable strict null checks as a best practice
     "strictPropertyInitialization": true,
-    "target": "es2015"
+    "target": "es5" // specify ECMAScript target version
   },
   "include": ["./src/"]
 }
