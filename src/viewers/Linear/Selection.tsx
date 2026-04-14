@@ -28,7 +28,8 @@ class Edges extends React.PureComponent<EdgesProps> {
 
   render() {
     const { findXAndWidth, firstBase, fullSeq, lastBase, selectEdgeHeight, selectY } = this.props;
-    const { clockwise, disableSelection, end, ref, start } = this.context;
+    const { disableSelection, end, ref, start } = this.context;
+    const clockwise = this.context.clockwise ?? true;
 
     if (disableSelection) return null;
 
@@ -144,7 +145,8 @@ class Block extends React.PureComponent<BlockProps> {
 
   render() {
     const { findXAndWidth, firstBase, fullSeq, lastBase, selectHeight, selectY } = this.props;
-    const { clockwise, disableSelection, ref } = this.context;
+    const { disableSelection, ref } = this.context;
+    const clockwise = this.context.clockwise ?? true;
     let { end, start } = this.context;
 
     if (disableSelection) return null;
