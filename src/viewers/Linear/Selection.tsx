@@ -225,13 +225,13 @@ class Block extends React.PureComponent<BlockProps> {
     }
 
     // nothing was set for this selection block
-    if (!x && !width) {
+    if (x === null && width === null) {
       return null;
     }
 
     return (
       <>
-        <rect {...blockProps} width={width ? width + 1 : undefined} x={x || undefined} />
+        <rect {...blockProps} width={width ? width + 1 : undefined} x={x ?? undefined} />
         {secondBlock}
       </>
     );

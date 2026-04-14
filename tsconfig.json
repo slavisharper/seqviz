@@ -4,10 +4,10 @@
     "allowUnreachableCode": false,
     "declaration": true,
     "jsx": "react", // use typescript to transpile jsx to js
-    "lib": ["es2015", "dom"], // https://marcobotto.com/blog/compiling-and-bundling-typescript-libraries-with-webpack/
+    "lib": ["es2016", "dom"], // https://marcobotto.com/blog/compiling-and-bundling-typescript-libraries-with-webpack/
     "module": "commonjs", // specify module code generation
     "moduleResolution": "node",
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "./dist/", // path to output directory
