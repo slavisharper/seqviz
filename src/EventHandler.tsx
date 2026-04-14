@@ -225,7 +225,9 @@ export class EventHandler extends React.PureComponent<EventsHandlerProps> {
       ...selection,
       clockwise: true,
       end: seq.length,
+      ref: "ALL",
       start: 0,
+      type: "ALL" as const,
     };
 
     setSelection(newSelection);

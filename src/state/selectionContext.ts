@@ -1,6 +1,7 @@
 import * as React from "react";
 
 type SelectionTypeEnum =
+  | "ALL"
   | "ANNOTATION"
   | "FIND"
   | "TRANSLATION"
@@ -55,6 +56,7 @@ export interface ExternalSelection {
   clockwise?: boolean;
   end?: number;
   start?: number;
+  type?: SelectionTypeEnum;
 }
 
 /** Initial/default selection */

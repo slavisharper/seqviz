@@ -727,15 +727,17 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     this.setSelection(selectionForEvent);
 
     const normalized = this.normalizeSelection(selectionForEvent);
+    const { disableSelection: _ds, ...cleanSelection } = normalized as Selection & { disableSelection?: boolean };
+    void _ds;
     const sequence = this.getSequenceForSelection(normalized);
 
     return {
       event: rawEvent,
-      name: normalized.name,
-      selection: normalized,
+      name: cleanSelection.name,
+      selection: cleanSelection,
       fragmentSelection: fragmentSelectionForEvent,
       sequence,
-      type: normalized.type,
+      type: cleanSelection.type,
     };
   };
 
@@ -1162,7 +1164,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       newSelection.end === selection.end &&
       newSelection.ref === selection.ref &&
       // to support re-clicking the annotation and causing it to fire a la gh issue https://github.com/Lattice-Automation/seqviz/issues/142
-      ["SEQ", "AMINOACID", ""].includes(newSelection.type || "")
+      !!["SEQ", "AMINOACID", ""].find(type => type === newSelection.type)
     ) {
       return;
     }

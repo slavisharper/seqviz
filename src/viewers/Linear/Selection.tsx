@@ -52,7 +52,7 @@ class Edges extends React.PureComponent<EdgesProps> {
     }
 
     // for cmd-a case
-    if (ref === "ALL" || (start === 0 && end === fullSeq.length - 1)) {
+    if (ref === "ALL" || (start === 0 && (end === fullSeq.length || end === fullSeq.length - 1))) {
       startEdge = null;
       lastEdge = null;
     }

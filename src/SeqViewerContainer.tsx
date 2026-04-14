@@ -271,9 +271,12 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
    */
   setSelection = (selection: Selection, meta?: SelectionEventMeta) => {
     // If the user passed a selection, do not update our state here
-    const { parent: _parent, ref: _ref, ...rest } = selection;
+    const { parent: _parent, ref: _ref, disableSelection: _ds, ...rest } = selection as Selection & {
+      disableSelection?: boolean;
+    };
     void _parent;
     void _ref;
+    void _ds;
     if (!this.props.selection) this.setState({ selection });
     if (this.props.onSelection) this.props.onSelection(rest, meta?.fragmentSelection ?? null);
   };
@@ -302,7 +305,13 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
    */
   getSelection = (state: Selection, prop?: ExternalSelection): Selection => {
     if (prop) {
-      return { ...prop, clockwise: typeof prop.clockwise === "undefined" || !!prop.clockwise, type: "" };
+      const type = prop.type || "";
+      return {
+        ...prop,
+        clockwise: typeof prop.clockwise === "undefined" || !!prop.clockwise,
+        ref: type === "ALL" ? "ALL" : undefined,
+        type,
+      };
     }
     return state;
   };
