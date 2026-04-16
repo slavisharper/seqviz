@@ -4,7 +4,7 @@ interface SidebarHeaderProps {
   toggleSidebar: () => void;
 }
 
-const SidebarHeader = ({ toggleSidebar }: SidebarHeaderProps) => (
+const SidebarHeader = ({ toggleSidebar: _toggleSidebar }: SidebarHeaderProps) => (
   <div className="sidebar-header">
     <div id="header-left">
       <img alt="SeqViz" id="seqviz-graphic" src="https://tools.latticeautomation.com/seqviz/seqviz-logo.png" />

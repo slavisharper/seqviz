@@ -212,8 +212,12 @@ const SingleNamedElement = (props: {
   }
 
   const neonStroke = isPhosphorylated ? "#39ff14" : undefined;
-
-  const phosphoX = direction === 1 ? 8 : width - 8;
+  const phosphoFill = color ? contrastText(color) : annotationLabel.fill;
+  const phosphoStroke = phosphoFill === "#fff" ? "rgba(17, 17, 17, 0.9)" : "rgba(255, 255, 255, 0.95)";
+  const phosphoArrowInset = Math.min(8 * cW, w);
+  const phosphoX = direction === 1 ? width - phosphoArrowInset / 2 : phosphoArrowInset / 2;
+  const phosphoY = -Math.max(5, aH + 2);
+  const phosphoBadgeFill = color || "#f8fafc";
 
   return (
     <g id={element.id} transform={`translate(${x}, ${0.1 * height})`}>
@@ -266,20 +270,32 @@ const SingleNamedElement = (props: {
         {displayName}
       </text>
       {isPhosphorylated && (
-        <text
+        <g
           className="la-vz-primer-phospho"
-          cursor="pointer"
-          dominantBaseline="middle"
-          fontSize={fontSize + 2}
-          style={{ ...annotationLabel, fill: "#39ff14", stroke: "#111", strokeWidth: 0.75 }}
-          textAnchor={direction === 1 ? "start" : "end"}
-          x={phosphoX}
-          y={height / 2 + 1}
           onMouseOut={() => hoverOtherPrimerRows(element.id, 0.85)}
           onMouseOver={() => hoverOtherPrimerRows(element.id, 1.0)}
         >
-          P
-        </text>
+          <circle
+            cx={phosphoX}
+            cy={phosphoY}
+            fill={phosphoBadgeFill}
+            r={fontSize * 0.48}
+            stroke={phosphoStroke}
+            strokeWidth={0.9}
+          />
+          <text
+            cursor="pointer"
+            dominantBaseline="middle"
+            fontSize={fontSize}
+            fontWeight={700}
+            style={{ ...annotationLabel, fill: phosphoFill }}
+            textAnchor="middle"
+            x={phosphoX}
+            y={phosphoY + 0.5}
+          >
+            P
+          </text>
+        </g>
       )}
     </g>
   );

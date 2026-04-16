@@ -1,15 +1,20 @@
 import * as React from "react";
 
+import type { FragmentSelection, Selection } from "../../src/state/selectionContext";
+
 interface HeaderProps {
-  selection: any;
-  fragmentSelection?: any;
+  selection: Selection;
+  fragmentSelection?: FragmentSelection | null;
   sequenceUnitLabel: string;
   showSelectionMeta: boolean;
-  toggleShowSelectionMeta: () => void;
-  toggleSidebar: () => void;
 }
 
-const Header = ({ selection, fragmentSelection, sequenceUnitLabel, showSelectionMeta, toggleShowSelectionMeta, toggleSidebar }: HeaderProps) => (
+const Header = ({
+  selection,
+  fragmentSelection,
+  sequenceUnitLabel,
+  showSelectionMeta,
+}: HeaderProps) => (
   <header className="header" id="app-header">
     <div id="header-primary">
       <SelectionMetaRow selection={selection} fragmentSelection={fragmentSelection} sequenceUnitLabel={sequenceUnitLabel} />
@@ -36,7 +41,15 @@ const formatSelectionRange = (start: number, end: number) => {
   return `${start + 1} - ${end}`;
 };
 
-const SelectionMetaRow = ({ selection, fragmentSelection, sequenceUnitLabel }) => {
+const SelectionMetaRow = ({
+  selection,
+  fragmentSelection,
+  sequenceUnitLabel,
+}: {
+  selection: Selection;
+  fragmentSelection?: FragmentSelection | null;
+  sequenceUnitLabel: string;
+}) => {
   const { end, name, type, length, start } = selection;
 
   return (

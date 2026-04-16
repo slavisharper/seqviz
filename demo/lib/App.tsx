@@ -34,46 +34,29 @@ import {
   type SupportedSeqType,
   VIEWER_TYPE_OPTIONS,
   type ViewerOption,
-  createDefaultPrimers,
-  createDefaultSeparators,
-  createDefaultSingleStrandAnnotations,
   createDefaultTranslations,
 } from "./constants";
 import file from "./file";
 import TranslationSettingsInput from "./components/TranslationSettingsInput";
 import CircularZoomInput from "./components/CircularZoomInput";
+import { buildGibsonAssemblyPreset } from "./gibsonAssembly";
 
 type ViewerTypeOptionConfig = (typeof VIEWER_TYPE_OPTIONS)[number];
 
-const DEMO_FRAGMENT_1: FragmentProp = {
-  color: "#FFB347",
-  direction: 1,
-  end: 775,
-  id: "demo-fragment-56-775",
-  name: "Fragment (AciI - PvuII)",
-  start: 56,
-};
+const buildDefaultPresetState = (seq = "") => {
+  const { fragments, primers, separators, singleStrandAnnotations } = buildGibsonAssemblyPreset(seq);
 
-const DEMO_FRAGMENT_2: FragmentProp = {
-  color: "#FFB347",
-  direction: 1,
-  end: 56,
-  id: "demo-fragment-775-56",
-  name: "Fragment (PvuII - AciI)",
-  start: 775,
-};
-
-const buildDefaultPresetState = () => ({
+  return {
   contextInfo: null as ContextInfo | null,
   disableCircularMap: false,
   disableLinearMap: false,
   disableLinearSequence: false,
   disableSelection: false,
-  fragments: [DEMO_FRAGMENT_1, DEMO_FRAGMENT_2],
+  fragments,
   enzymes: [...DEFAULT_ENZYMES],
   highlightedEnzymes: [] as string[],
   highlightedEnzymesInput: "",
-  primers: createDefaultPrimers(),
+  primers,
   search: { query: DEFAULT_SEARCH_QUERY },
   searchResults: {} as Record<string, unknown>,
   selection: { ...defaultSelection },
@@ -81,22 +64,27 @@ const buildDefaultPresetState = () => ({
   customSelectionStart: 0,
   customSelectionEnd: 100,
   showComplement: true,
+  showEnzymes: true,
   showFeatures: true,
   showFragments: true,
+  showHighlights: true,
   showPrimers: true,
+  showSequenceName: true,
+  showSeparators: true,
   showIndex: true,
   showSelectionMeta: false,
   seqType: "dna" as SupportedSeqType,
   sequenceEdges: undefined as SequenceEdges | undefined,
-  singleStrandAnnotations: createDefaultSingleStrandAnnotations(),
+  singleStrandAnnotations,
   showTranslations: true,
   translations: createDefaultTranslations(),
-  separators: createDefaultSeparators(),
+  separators,
   viewer: "both" as ViewerOption,
   zoom: DEFAULT_ZOOM,
   circularZoom: 0,
   linearMapZoom: 0,
   zoomPopoverOpen: false,
+  viewSettingsPopoverOpen: false,
   translationPopoverOpen: true,
   customSelectionPopoverOpen: false,
   highlightedEnzymesPopoverOpen: false,
@@ -104,7 +92,8 @@ const buildDefaultPresetState = () => ({
   clampEnabled: false,
   clampStart: 26,
   clampEnd: 600,
-});
+  };
+};
 
 interface AppState {
   annotations: AnnotationProp[];
@@ -131,9 +120,13 @@ interface AppState {
   separators: SeparatorProp[];
   sequenceEdges?: SequenceEdges;
   showComplement: boolean;
+  showEnzymes: boolean;
   showFeatures: boolean;
   showFragments: boolean;
+  showHighlights: boolean;
   showPrimers: boolean;
+  showSequenceName: boolean;
+  showSeparators: boolean;
   showIndex: boolean;
   showSelectionMeta: boolean;
   showSidebar: boolean;
@@ -145,6 +138,7 @@ interface AppState {
   circularZoom: number;
   linearMapZoom: number;
   zoomPopoverOpen: boolean;
+  viewSettingsPopoverOpen: boolean;
   translationPopoverOpen: boolean;
   customSelectionPopoverOpen: boolean;
   highlightedEnzymesPopoverOpen: boolean;
@@ -163,9 +157,9 @@ export default class App extends React.Component<Record<string, never>, AppState
     seq: "",
     showSidebar: true,
   };
-  linearRef: React.RefObject<HTMLDivElement> = React.createRef();
-  circularRef: React.RefObject<HTMLDivElement> = React.createRef();
-  seqViewerRef: React.RefObject<HTMLDivElement> = React.createRef();
+  linearRef: React.RefObject<HTMLElement> = React.createRef<HTMLElement>() as React.RefObject<HTMLElement>;
+  circularRef: React.RefObject<HTMLElement> = React.createRef<HTMLElement>() as React.RefObject<HTMLElement>;
+  seqViewerRef: React.RefObject<HTMLDivElement | null> = React.createRef<HTMLDivElement>();
   private defaultSequenceData: Pick<AppState, "annotations" | "name" | "seq"> | null = null;
   private presetStateFromConfig = (config: DemoExampleConfig): Omit<DemoExampleConfig, "description"> => {
     const {
@@ -181,10 +175,17 @@ export default class App extends React.Component<Record<string, never>, AppState
 
   componentDidMount = async () => {
     const seq = await seqparse(file);
+    const assemblyPreset = buildGibsonAssemblyPreset(seq.seq, seq.annotations);
     this.defaultSequenceData = { annotations: seq.annotations, name: seq.name, seq: seq.seq };
 
     if (this.state.exampleId === "default") {
-      this.setState(this.defaultSequenceData);
+      this.setState(prevState => ({
+        ...prevState,
+        ...assemblyPreset,
+        annotations: assemblyPreset.annotations,
+        name: seq.name,
+        seq: assemblyPreset.seq,
+      }));
     }
   };
 
@@ -195,6 +196,10 @@ export default class App extends React.Component<Record<string, never>, AppState
 
   toggleZoomPopover = () => {
     this.setState(prev => ({ zoomPopoverOpen: !prev.zoomPopoverOpen }));
+  };
+
+  toggleViewSettingsPopover = () => {
+    this.setState(prev => ({ viewSettingsPopoverOpen: !prev.viewSettingsPopoverOpen }));
   };
 
   toggleTranslationPopover = () => {
@@ -382,15 +387,19 @@ export default class App extends React.Component<Record<string, never>, AppState
         return;
       }
 
+      const assemblyPreset = buildGibsonAssemblyPreset(this.defaultSequenceData.seq, this.defaultSequenceData.annotations);
+
       this.setState(prevState => ({
-        ...buildDefaultPresetState(),
-        ...this.defaultSequenceData!,
-        singleStrandAnnotations: createDefaultSingleStrandAnnotations(),
+        ...buildDefaultPresetState(this.defaultSequenceData.seq),
+        ...assemblyPreset,
+        annotations: assemblyPreset.annotations,
         contextInfo: null,
         exampleId,
+        name: this.defaultSequenceData!.name,
         searchResults: {},
         selection: { ...defaultSelection },
         fragmentSelection: null,
+        seq: assemblyPreset.seq,
         showSelectionMeta: false,
         showSidebar: prevState.showSidebar,
       }));
@@ -470,51 +479,85 @@ export default class App extends React.Component<Record<string, never>, AppState
               value={this.state.search.query}
               setQuery={query => this.setState({ search: { query } })}
             />
-            <CheckboxInput
-              checked={this.state.showComplement}
-              label="Show complement"
-              set={(showComplement: boolean) => this.setState({ showComplement })}
-            />
-            <CheckboxInput
-              checked={this.state.showIndex}
-              label="Show index"
-              set={(showIndex: boolean) => this.setState({ showIndex })}
-            />
-            <CheckboxInput
-              checked={this.state.showFeatures}
-              label="Show features"
-              set={(showFeatures: boolean) => this.setState({ showFeatures })}
-            />
-            <CheckboxInput
-              checked={this.state.showFragments}
-              label="Show fragments"
-              set={(showFragments: boolean) => this.setState({ showFragments })}
-            />
-            <CheckboxInput
-              checked={this.state.showPrimers}
-              label="Show primers"
-              set={(showPrimers: boolean) => this.setState({ showPrimers })}
-            />
-            <CheckboxInput
-              checked={this.state.disableCircularMap}
-              label="Disable circular viewer"
-              set={(disableCircularMap: boolean) => this.setState({ disableCircularMap })}
-            />
-            <CheckboxInput
-              checked={this.state.disableLinearMap}
-              label="Disable linear map"
-              set={(disableLinearMap: boolean) => this.setState({ disableLinearMap })}
-            />
-            <CheckboxInput
-              checked={this.state.disableLinearSequence}
-              label="Disable linear sequence"
-              set={(disableLinearSequence: boolean) => this.setState({ disableLinearSequence })}
-            />
-            <CheckboxInput
-              checked={this.state.disableSelection}
-              label="Disable selection"
-              set={(disableSelection: boolean) => this.setState({ disableSelection })}
-            />
+            <div className="option view-settings-popover">
+              <button
+                className={`toggle-button ${this.state.viewSettingsPopoverOpen ? "active" : ""}`}
+                type="button"
+                onClick={this.toggleViewSettingsPopover}
+              >
+                View settings
+              </button>
+              {this.state.viewSettingsPopoverOpen && (
+                <div className="popover">
+                  <CheckboxInput
+                    checked={this.state.showComplement}
+                    label="Show complement"
+                    set={(showComplement: boolean) => this.setState({ showComplement })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showIndex}
+                    label="Show index"
+                    set={(showIndex: boolean) => this.setState({ showIndex })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showFeatures}
+                    label="Show features"
+                    set={(showFeatures: boolean) => this.setState({ showFeatures })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showFragments}
+                    label="Show fragments"
+                    set={(showFragments: boolean) => this.setState({ showFragments })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showPrimers}
+                    label="Show primers"
+                    set={(showPrimers: boolean) => this.setState({ showPrimers })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showHighlights}
+                    label="Show highlights"
+                    set={(showHighlights: boolean) => this.setState({ showHighlights })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showSequenceName}
+                    label="Show sequence name"
+                    set={(showSequenceName: boolean) => this.setState({ showSequenceName })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showEnzymes}
+                    label="Show enzymes"
+                    set={(showEnzymes: boolean) => this.setState({ showEnzymes })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.showSeparators}
+                    label="Show section dividers"
+                    set={(showSeparators: boolean) => this.setState({ showSeparators })}
+                  />
+                  <div className="panel-divider" />
+                  <CheckboxInput
+                    checked={this.state.disableCircularMap}
+                    label="Disable circular viewer"
+                    set={(disableCircularMap: boolean) => this.setState({ disableCircularMap })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.disableLinearMap}
+                    label="Disable linear map"
+                    set={(disableLinearMap: boolean) => this.setState({ disableLinearMap })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.disableLinearSequence}
+                    label="Disable linear sequence"
+                    set={(disableLinearSequence: boolean) => this.setState({ disableLinearSequence })}
+                  />
+                  <CheckboxInput
+                    checked={this.state.disableSelection}
+                    label="Disable selection"
+                    set={(disableSelection: boolean) => this.setState({ disableSelection })}
+                  />
+                </div>
+              )}
+            </div>
             <div className="option zoom-popover">
               <button
                 className={`toggle-button ${this.state.zoomPopoverOpen ? "active" : ""}`}
@@ -688,8 +731,6 @@ export default class App extends React.Component<Record<string, never>, AppState
               fragmentSelection={this.state.fragmentSelection}
               showSelectionMeta={this.state.showSelectionMeta}
               sequenceUnitLabel={sequenceUnitLabel}
-              toggleShowSelectionMeta={this.toggleShowSelectionMeta}
-              toggleSidebar={this.toggleSidebar}
             />
             <div id="seqviewer" ref={this.seqViewerRef}>
               {this.state.seq && (
@@ -702,15 +743,15 @@ export default class App extends React.Component<Record<string, never>, AppState
                   disableLinearMap={this.state.disableLinearMap}
                   disableLinearSequence={this.state.disableLinearSequence}
                   disableSelection={this.state.disableSelection}
-                  enzymes={this.state.enzymes}
+                  enzymes={this.state.showEnzymes ? this.state.enzymes : []}
                   highlightedEnzymes={this.state.highlightedEnzymes}
-                  highlights={[{ end: 10, start: 0 }]}
-                  name={this.state.name}
+                  highlights={this.state.showHighlights ? [{ end: 10, start: 0 }] : []}
+                  name={this.state.showSequenceName ? this.state.name : ""}
                   primers={this.state.showPrimers ? this.state.primers : []}
                   refs={{ circular: this.circularRef, linear: this.linearRef }}
                   search={this.state.search}
                   sequenceEdges={this.state.sequenceEdges}
-                  separators={this.state.separators}
+                  separators={this.state.showSeparators ? this.state.separators : []}
                   singleStrandAnnotations={this.state.singleStrandAnnotations}
                   selection={this.state.selection}
                   seq={this.state.seq}
