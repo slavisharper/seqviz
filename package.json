@@ -5,11 +5,20 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
+  "typings": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "unpkg": "dist/seqviz.min.js",
   "scripts": {
-    "build": "rm -rf ./dist && webpack",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && webpack",
+    "prepack": "npm run build",
     "demo": "cd demo && npm run deploy",
     "fix": "prettier ./src/** --write && eslint src --ext ts,tsx --fix",
     "lint": "prettier ./src/** --check && eslint src --ext ts,tsx --quiet",
