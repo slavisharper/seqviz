@@ -8,6 +8,7 @@ import enzymes from "./core/enzymes";
 import Circular from "./viewers/Circular/Circular";
 import Linear from "./viewers/Linear/Linear";
 import LinearMap from "./viewers/LinearMap/LinearMap";
+import { ViewerContextMenuEvent } from "./SelectionHandler";
 
 /**
  * Export a React component directly for React-based development
@@ -36,7 +37,9 @@ export type {
   SeparatorProp,
 } from "./core/elements";
 
-export type { ExternalSelection, FragmentSelection, Selection } from "./state/selectionContext";
+export type { ViewerContextMenuEvent }
+
+export type { ExternalSelection, FragmentSelection, Selection, SelectionEventDetail } from "./state/selectionContext";
 
 /**
  * Return a Viewer object with three properties:
@@ -83,7 +86,7 @@ const Viewer = (element: string | HTMLElement = "root", options: SeqVizProps) =>
 
     return reactRoot;
   };
-
+ 
   /**
    * Render the Viewer to the element passed
    */

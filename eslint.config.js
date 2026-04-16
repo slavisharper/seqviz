@@ -54,4 +54,16 @@ module.exports = [
       },
     },
   },
+  {
+    files: ["src/jest.js", "**/*.test.{ts,tsx,js,jsx}"],
+    languageOptions: {
+      globals: {
+        jest: "readonly",
+        require: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ];

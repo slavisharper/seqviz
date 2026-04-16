@@ -1,7 +1,7 @@
 import seqparse from "seqparse";
 
-import { buildGibsonAssemblyPreset } from "../demo/lib/gibsonAssembly";
 import file from "../demo/lib/file";
+import { buildGibsonAssemblyPreset } from "../demo/lib/gibsonAssembly";
 
 const boundaryCutsFeature = (index: number, annotations: Array<{ start: number; end: number }>) =>
   annotations.some(annotation => index > annotation.start && index < annotation.end);
@@ -17,7 +17,10 @@ const rangeContains = (range: { start: number; end: number }, index: number) => 
 describe("buildGibsonAssemblyPreset", () => {
   it("keeps fragment boundaries out of annotated features, keeps fragments non-overlapping, and aligns dividers to joins", async () => {
     const parsed = await seqparse(file);
-    const { annotations, fragments, primers, separators, seq } = buildGibsonAssemblyPreset(parsed.seq, parsed.annotations);
+    const { annotations, fragments, primers, separators, seq } = buildGibsonAssemblyPreset(
+      parsed.seq,
+      parsed.annotations,
+    );
 
     expect(seq.length).toBeGreaterThan(parsed.seq.length);
     expect(fragments).toHaveLength(4);
@@ -45,7 +48,9 @@ describe("buildGibsonAssemblyPreset", () => {
     }
 
     separators.forEach(separator => {
-      const touchingFragments = fragments.filter(fragment => fragment.start === separator.index || fragment.end === separator.index);
+      const touchingFragments = fragments.filter(
+        fragment => fragment.start === separator.index || fragment.end === separator.index,
+      );
       expect(touchingFragments.length).toBeGreaterThanOrEqual(2);
 
       const coveringFragments = fragments.filter(fragment => rangeContains(fragment, separator.index));

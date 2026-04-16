@@ -271,7 +271,12 @@ class SeqViewerContainer extends React.Component<SeqViewerContainerProps, SeqVie
    */
   setSelection = (selection: Selection, meta?: SelectionEventMeta) => {
     // If the user passed a selection, do not update our state here
-    const { parent: _parent, ref: _ref, disableSelection: _ds, ...rest } = selection as Selection & {
+    const {
+      parent: _parent,
+      ref: _ref,
+      disableSelection: _ds,
+      ...rest
+    } = selection as Selection & {
       disableSelection?: boolean;
     };
     void _parent;
