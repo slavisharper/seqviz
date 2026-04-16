@@ -25,6 +25,7 @@ export type { LinearProps } from "./viewers/Linear/Linear";
 export type { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
 export type {
+  Range,
   SequenceEdges,
   SequenceEdgeOverhang,
   AnnotationProp,
@@ -34,6 +35,8 @@ export type {
   TranslationProp,
   SeparatorProp,
 } from "./core/elements";
+
+export type { ExternalSelection, FragmentSelection, Selection } from "./state/selectionContext";
 
 /**
  * Return a Viewer object with three properties:
