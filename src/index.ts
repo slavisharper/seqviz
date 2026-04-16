@@ -24,7 +24,16 @@ export type { LinearProps } from "./viewers/Linear/Linear";
 
 export type { LinearMapProps } from "./viewers/LinearMap/LinearMap";
 
-export type { SequenceEdges, SequenceEdgeOverhang } from "./core/elements";
+export type {
+  SequenceEdges,
+  SequenceEdgeOverhang,
+  AnnotationProp,
+  PrimerProp,
+  HighlightProp,
+  Enzyme,
+  TranslationProp,
+  SeparatorProp,
+} from "./core/elements";
 
 /**
  * Return a Viewer object with three properties:
