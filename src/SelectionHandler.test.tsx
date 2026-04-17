@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import * as React from "react";
 
@@ -166,5 +166,83 @@ describe("SelectionHandler context menu enzyme selection", () => {
       type: "ENZYME",
     });
     expect(payload.type).toBe("ENZYME");
+  });
+
+  it("preserves an existing fragment selection when right-click resolves to a single base", () => {
+    const setSelection = jest.fn();
+    const onContextMenu = jest.fn();
+    const existingSelection: Selection = {
+      ...defaultSelection,
+      end: 90,
+      length: 40,
+      ref: "existing-selection",
+      start: 50,
+      type: "SEQ",
+      viewer: "LINEAR",
+    };
+    const fragmentSelection = {
+      firstSelection: { start: 50, end: 70, type: "SEQ" as const },
+      secondSelection: { start: 70, end: 90, type: "SEQ" as const },
+    };
+    const handlerRef = React.createRef<SelectionHandler>();
+
+    render(
+      <SelectionContext.Provider value={existingSelection}>
+        <SelectionHandler
+          ref={handlerRef}
+          center={{ x: 0, y: 0 }}
+          centralIndex={0}
+          onContextMenu={onContextMenu}
+          seq={"A".repeat(200)}
+          setCentralIndex={() => {}}
+          setSelection={setSelection}
+          yDiff={0}
+        >
+          {(_inputRef, _handleMouseEvent, _onUnmount, handleContextMenu) => (
+            <div
+              data-selection-end="200"
+              data-selection-linear-offset="0"
+              data-selection-linear-width="400"
+              data-selection-start="0"
+              data-selection-type="SEQ"
+              data-selection-viewer="LINEAR"
+              data-testid="seq-context-target"
+              id="seq-context-target"
+              onContextMenu={handleContextMenu as unknown as React.MouseEventHandler<HTMLDivElement>}
+            />
+          )}
+        </SelectionHandler>
+      </SelectionContext.Provider>,
+    );
+
+    act(() => {
+      (handlerRef.current as unknown as { setSelection: typeof SelectionHandler.prototype.setSelection }).setSelection(
+        existingSelection,
+        {
+          fragmentSelection,
+          skipLastSelectionUpdate: true,
+        },
+      );
+    });
+    setSelection.mockClear();
+
+    const target = screen.getByTestId("seq-context-target");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      configurable: true,
+      value: mockRect,
+    });
+
+    fireEvent.contextMenu(target, { button: 2, clientX: 10, clientY: 10 });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(setSelection).not.toHaveBeenCalled();
+    const payload = onContextMenu.mock.calls[0]?.[0];
+    expect(payload.selection).toMatchObject({
+      end: 90,
+      start: 50,
+      type: "SEQ",
+      viewer: "LINEAR",
+    });
+    expect(payload.fragmentSelection).toEqual(fragmentSelection);
   });
 });

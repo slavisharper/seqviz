@@ -711,22 +711,27 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       selectionForEvent = this.deriveSelectionFromContextTarget(clickedRange, e, this.context);
     }
 
+    const currentSelection = this.context ? this.normalizeSelection(this.context) : null;
+
     if (!selectionForEvent) {
-      selectionForEvent = this.context;
+      selectionForEvent = currentSelection;
     }
 
     if (!selectionForEvent) {
       return null;
     }
 
+    const normalizedSelectionForEvent = this.normalizeSelection(selectionForEvent);
+    const shouldPreserveCurrentSelection =
+      !this.selectionHasLength(normalizedSelectionForEvent) && this.selectionHasLength(currentSelection);
+    const resolvedSelection = shouldPreserveCurrentSelection ? { ...currentSelection } : normalizedSelectionForEvent;
+
     const fragmentSelectionForEvent: FragmentSelection | undefined =
       this.lastFragmentSelection?.firstSelection && this.lastFragmentSelection?.secondSelection
         ? this.lastFragmentSelection
         : undefined;
 
-    this.setSelection(selectionForEvent);
-
-    const normalized = this.normalizeSelection(selectionForEvent);
+    const normalized = this.normalizeSelection(resolvedSelection);
     const { disableSelection: _ds, ...cleanSelection } = normalized as Selection & { disableSelection?: boolean };
     void _ds;
     const sequence = this.getSequenceForSelection(normalized);
@@ -1158,6 +1163,7 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
   setSelection = (newSelection: Selection, meta?: SelectionEventMeta) => {
     const selection = this.context;
     const { setSelection } = this.props;
+    const hasFragmentSelectionMeta = !!(meta && Object.prototype.hasOwnProperty.call(meta, "fragmentSelection"));
 
     if (
       newSelection.start === selection.start &&
@@ -1166,6 +1172,9 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
       // to support re-clicking the annotation and causing it to fire a la gh issue https://github.com/Lattice-Automation/seqviz/issues/142
       !!["SEQ", "AMINOACID", ""].find(type => type === newSelection.type)
     ) {
+      if (hasFragmentSelectionMeta) {
+        this.lastFragmentSelection = meta?.fragmentSelection || null;
+      }
       return;
     }
     const { clockwise, end, name, ref, start, type }: any = {
@@ -1188,8 +1197,8 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     setSelection(mergedSelection, meta);
 
-    if (meta && Object.prototype.hasOwnProperty.call(meta, "fragmentSelection")) {
-      this.lastFragmentSelection = meta.fragmentSelection || null;
+    if (hasFragmentSelectionMeta) {
+      this.lastFragmentSelection = meta?.fragmentSelection || null;
     } else {
       this.lastFragmentSelection = null;
     }
