@@ -1,8 +1,10 @@
 import * as React from "react";
 import seqparse from "seqparse";
 
+import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
 import SeqViz from "../../src/SeqViz";
- import {
+import type { TranslationSettings } from "../../src/SeqViz";
+import {
   AnnotationProp,
   FragmentProp,
   Primer,
@@ -11,34 +13,32 @@ import SeqViz from "../../src/SeqViz";
   SequenceEdges,
   SingleStrandAnnotationProp,
 } from "../../src/core/elements";
-import type { TranslationSettings } from "../../src/SeqViz";
-import { ViewerContextMenuEvent } from "../../src/SelectionHandler";
-import { defaultSelection, type FragmentSelection, type Selection } from "../../src/state/selectionContext";
+import { type FragmentSelection, type Selection, defaultSelection } from "../../src/state/selectionContext";
 import Header from "./Header";
 import CheckboxInput from "./components/CheckboxInput";
+import CircularZoomInput from "./components/CircularZoomInput";
 import ContextInfoPanel, { type ContextInfo } from "./components/ContextInfoPanel";
 import ExampleSelect from "./components/ExampleSelect";
 import LinearZoomInput from "./components/LinearZoomInput";
 import SearchQueryInput from "./components/SearchQueryInput";
 import SidebarFooter from "./components/SidebarFooter";
 import SidebarHeader from "./components/SidebarHeader";
+import TranslationSettingsInput from "./components/TranslationSettingsInput";
 import ViewerTypeInput from "./components/ViewerTypeInput";
 import {
   AMINO_LINEAR_EXAMPLE,
   DEFAULT_ENZYMES,
   DEFAULT_SEARCH_QUERY,
   DEFAULT_ZOOM,
-  SEQUENCE_EDGES_EXAMPLE,
   type DemoExampleConfig,
   type DemoExampleId,
+  SEQUENCE_EDGES_EXAMPLE,
   type SupportedSeqType,
   VIEWER_TYPE_OPTIONS,
   type ViewerOption,
   createDefaultTranslations,
 } from "./constants";
 import file from "./file";
-import TranslationSettingsInput from "./components/TranslationSettingsInput";
-import CircularZoomInput from "./components/CircularZoomInput";
 import { buildGibsonAssemblyPreset } from "./gibsonAssembly";
 
 type ViewerTypeOptionConfig = (typeof VIEWER_TYPE_OPTIONS)[number];
@@ -47,51 +47,51 @@ const buildDefaultPresetState = (seq = "") => {
   const { fragments, primers, separators, singleStrandAnnotations } = buildGibsonAssemblyPreset(seq);
 
   return {
-  contextInfo: null as ContextInfo | null,
-  disableCircularMap: false,
-  disableLinearMap: false,
-  disableLinearSequence: false,
-  disableSelection: false,
-  fragments,
-  enzymes: [...DEFAULT_ENZYMES],
-  highlightedEnzymes: [] as string[],
-  highlightedEnzymesInput: "",
-  primers,
-  search: { query: DEFAULT_SEARCH_QUERY },
-  searchResults: {} as Record<string, unknown>,
-  selection: { ...defaultSelection },
-  fragmentSelection: null as FragmentSelection | null,
-  customSelectionStart: 0,
-  customSelectionEnd: 100,
-  showComplement: true,
-  showEnzymes: true,
-  showFeatures: true,
-  showFragments: true,
-  showHighlights: true,
-  showPrimers: true,
-  showSequenceName: true,
-  showSeparators: true,
-  showIndex: true,
-  showSelectionMeta: false,
-  seqType: "dna" as SupportedSeqType,
-  sequenceEdges: undefined as SequenceEdges | undefined,
-  singleStrandAnnotations,
-  showTranslations: true,
-  translations: createDefaultTranslations(),
-  separators,
-  viewer: "both" as ViewerOption,
-  zoom: DEFAULT_ZOOM,
-  circularZoom: 0,
-  linearMapZoom: 0,
-  zoomPopoverOpen: false,
-  viewSettingsPopoverOpen: false,
-  translationPopoverOpen: true,
-  customSelectionPopoverOpen: false,
-  highlightedEnzymesPopoverOpen: false,
-  clampPopoverOpen: false,
-  clampEnabled: false,
-  clampStart: 26,
-  clampEnd: 600,
+    contextInfo: null as ContextInfo | null,
+    disableCircularMap: false,
+    disableLinearMap: false,
+    disableLinearSequence: false,
+    disableSelection: false,
+    fragments,
+    enzymes: [...DEFAULT_ENZYMES],
+    highlightedEnzymes: [] as string[],
+    highlightedEnzymesInput: "",
+    primers,
+    search: { query: DEFAULT_SEARCH_QUERY },
+    searchResults: {} as Record<string, unknown>,
+    selection: { ...defaultSelection },
+    fragmentSelection: null as FragmentSelection | null,
+    customSelectionStart: 0,
+    customSelectionEnd: 100,
+    showComplement: true,
+    showEnzymes: true,
+    showFeatures: true,
+    showFragments: true,
+    showHighlights: true,
+    showPrimers: true,
+    showSequenceName: true,
+    showSeparators: true,
+    showIndex: true,
+    showSelectionMeta: false,
+    seqType: "dna" as SupportedSeqType,
+    sequenceEdges: undefined as SequenceEdges | undefined,
+    singleStrandAnnotations,
+    showTranslations: true,
+    translations: createDefaultTranslations(),
+    separators,
+    viewer: "both" as ViewerOption,
+    zoom: DEFAULT_ZOOM,
+    circularZoom: 0,
+    linearMapZoom: 0,
+    zoomPopoverOpen: false,
+    viewSettingsPopoverOpen: false,
+    translationPopoverOpen: true,
+    customSelectionPopoverOpen: false,
+    highlightedEnzymesPopoverOpen: false,
+    clampPopoverOpen: false,
+    clampEnabled: false,
+    clampStart: 26,
+    clampEnd: 600,
   };
 };
 
@@ -387,7 +387,10 @@ export default class App extends React.Component<Record<string, never>, AppState
         return;
       }
 
-      const assemblyPreset = buildGibsonAssemblyPreset(this.defaultSequenceData.seq, this.defaultSequenceData.annotations);
+      const assemblyPreset = buildGibsonAssemblyPreset(
+        this.defaultSequenceData.seq,
+        this.defaultSequenceData.annotations,
+      );
 
       this.setState(prevState => ({
         ...buildDefaultPresetState(this.defaultSequenceData.seq),
@@ -674,9 +677,7 @@ export default class App extends React.Component<Record<string, never>, AppState
                     </button>
                   </div>
                   {this.state.highlightedEnzymes.length > 0 && (
-                    <div className="highlighted-enzymes-active">
-                      Active: {this.state.highlightedEnzymes.join(", ")}
-                    </div>
+                    <div className="highlighted-enzymes-active">Active: {this.state.highlightedEnzymes.join(", ")}</div>
                   )}
                 </div>
               )}
@@ -764,14 +765,17 @@ export default class App extends React.Component<Record<string, never>, AppState
                     circular: this.state.circularZoom,
                     linearMap: this.state.linearMapZoom,
                   }}
+                  clamp={
+                    this.state.clampEnabled ? { start: this.state.clampStart, end: this.state.clampEnd } : undefined
+                  }
                   onZoomChange={this.handleZoomChange}
                   onSeparatorClick={this.handleSeparatorClick}
                   onSelection={(selection, fragmentSelection) => {
                     this.setState({ selection, fragmentSelection: fragmentSelection || null });
                   }}
                   onContextMenu={event => this.handleContextMenuEvent(event, "Context Menu")}
-                  clamp={this.state.clampEnabled ? { start: this.state.clampStart, end: this.state.clampEnd } : undefined}
                   onDoubleClick={event => this.handleContextMenuEvent(event, "Double Click")}
+                  onSearch={results => console.warn("Search results", results)}
                 ></SeqViz>
               )}
             </div>

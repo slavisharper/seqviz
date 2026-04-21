@@ -60,7 +60,11 @@ export interface SeqVizProps {
   /** nucleotides keyed by symbol or index and the color to apply to it */
   bpColors?: { [key: number | string]: string };
 
-  /** clamp the visible sequence to [start, end]. Only features/enzymes that fit entirely within this range are shown. */
+  /**
+   * Clamp the visible sequence to the half-open interval [start, end).
+   * Coordinates are 0-based and relative to the processed sequence (i.e. after sequenceEdges overhang padding).
+   * Only features, enzymes, primers, highlights, and search results that fall entirely within this range are shown.
+   */
   clamp?: { start: number; end: number };
 
   /** Custom children to render within the SeqViz component. This is useful for when custom rendering the positioning of children viewers (Linear, Circular). */
@@ -345,7 +349,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
    */
   componentDidUpdate = (
     // previous props
-    { accession = "", annotations, enzymes, enzymesCustom, file, fragments: prevFragments, search }: SeqVizProps,
+    { accession = "", annotations, clamp: prevClamp, enzymes, enzymesCustom, file, fragments: prevFragments, search }: SeqVizProps,
     // previous state
     { seq, seqType, name }: SeqVizState,
   ) => {
@@ -403,6 +407,11 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       this.setState({
         sequenceEdges: this.props.sequenceEdges,
       });
+    }
+
+    // Clamp changed: re-fire onSearch with results filtered to the new clamped range.
+    if (!isEqual(this.props.clamp, prevClamp) && this.props.onSearch) {
+      this.props.onSearch(this.filterSearchByClamp(this.state.search, this.props.clamp, seq.length));
     }
   };
 
@@ -465,7 +474,20 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
   };
 
   /**
+   * Filter search results to those fully within the clamped range and remap coordinates to clamped space.
+   */
+  filterSearchByClamp = (results: NameRange[], clamp?: { start: number; end: number }, seqLength = 0): NameRange[] => {
+    if (!clamp) return results;
+    const cs = Math.max(0, Math.floor(clamp.start));
+    const ce = Math.min(seqLength, Math.floor(clamp.end));
+    return results
+      .filter(r => r.start < r.end && r.start >= cs && r.end <= ce)
+      .map(r => ({ ...r, start: r.start - cs, end: r.end - cs }));
+  };
+
+  /**
    * Search for the query sequence in the part sequence, set in state.
+   * Results stored in state use original (unclamped) coordinates; onSearch receives clamped results.
    */
   search = (props: SeqVizProps, seq: string): { search: NameRange[] } => {
     const { onSearch, search: searchProp, seqType } = props;
@@ -479,7 +501,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       return { search: this.state.search };
     }
 
-    if (onSearch) onSearch(results);
+    if (onSearch) onSearch(this.filterSearchByClamp(results, props.clamp, seq.length));
     return { search: results };
   };
 
