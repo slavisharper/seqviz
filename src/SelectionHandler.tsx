@@ -722,15 +722,31 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
     }
 
     const normalizedSelectionForEvent = this.normalizeSelection(selectionForEvent);
-    const shouldPreserveCurrentSelection =
-      !this.selectionHasLength(normalizedSelectionForEvent) && this.selectionHasLength(currentSelection);
-    const resolvedSelection = shouldPreserveCurrentSelection ? { ...currentSelection } : normalizedSelectionForEvent;
 
+    // The click is "inside" the current selection when deriveSelectionFromContextTarget returned
+    // the same range as the context (which happens when the clicked base is within the selection).
+    // In that case: preserve the active selection and its fragment metadata.
+    // Otherwise: update the selection (clearing fragment metadata as a side effect).
+    const clickIsInsideCurrentSelection =
+      this.selectionHasLength(currentSelection) &&
+      normalizedSelectionForEvent.start === currentSelection!.start &&
+      normalizedSelectionForEvent.end === currentSelection!.end;
+
+    // Capture fragment before potentially clearing it via setSelection.
     const fragmentSelectionForEvent: FragmentSelection | undefined =
-      this.lastFragmentSelection?.firstSelection && this.lastFragmentSelection?.secondSelection
+      clickIsInsideCurrentSelection &&
+      this.lastFragmentSelection?.firstSelection &&
+      this.lastFragmentSelection?.secondSelection
         ? this.lastFragmentSelection
         : undefined;
 
+    if (!clickIsInsideCurrentSelection) {
+      this.setSelection(normalizedSelectionForEvent);
+    }
+
+    const resolvedSelection = clickIsInsideCurrentSelection
+      ? { ...currentSelection! }
+      : normalizedSelectionForEvent;
     const normalized = this.normalizeSelection(resolvedSelection);
     const { disableSelection: _ds, ...cleanSelection } = normalized as Selection & { disableSelection?: boolean };
     void _ds;

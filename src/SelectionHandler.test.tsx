@@ -168,7 +168,7 @@ describe("SelectionHandler context menu enzyme selection", () => {
     expect(payload.type).toBe("ENZYME");
   });
 
-  it("preserves an existing fragment selection when right-click resolves to a single base", () => {
+  it("preserves an existing fragment selection when right-click is inside the current selection", () => {
     const setSelection = jest.fn();
     const onContextMenu = jest.fn();
     const existingSelection: Selection = {
@@ -232,7 +232,8 @@ describe("SelectionHandler context menu enzyme selection", () => {
       value: mockRect,
     });
 
-    fireEvent.contextMenu(target, { button: 2, clientX: 10, clientY: 10 });
+    // clientX=140 on a 400px block covering [0,200] => base 70, which is inside [50,90]
+    fireEvent.contextMenu(target, { button: 2, clientX: 140, clientY: 10 });
 
     expect(onContextMenu).toHaveBeenCalledTimes(1);
     expect(setSelection).not.toHaveBeenCalled();
@@ -244,5 +245,81 @@ describe("SelectionHandler context menu enzyme selection", () => {
       viewer: "LINEAR",
     });
     expect(payload.fragmentSelection).toEqual(fragmentSelection);
+  });
+
+  it("makes a new selection and clears fragment when right-click is outside the current selection", () => {
+    const setSelection = jest.fn();
+    const onContextMenu = jest.fn();
+    const existingSelection: Selection = {
+      ...defaultSelection,
+      end: 90,
+      length: 40,
+      ref: "existing-selection",
+      start: 50,
+      type: "SEQ",
+      viewer: "LINEAR",
+    };
+    const fragmentSelection = {
+      firstSelection: { start: 50, end: 70, type: "SEQ" as const },
+      secondSelection: { start: 70, end: 90, type: "SEQ" as const },
+    };
+    const handlerRef = React.createRef<SelectionHandler>();
+
+    render(
+      <SelectionContext.Provider value={existingSelection}>
+        <SelectionHandler
+          ref={handlerRef}
+          center={{ x: 0, y: 0 }}
+          centralIndex={0}
+          onContextMenu={onContextMenu}
+          seq={"A".repeat(200)}
+          setCentralIndex={() => {}}
+          setSelection={setSelection}
+          yDiff={0}
+        >
+          {(_inputRef, _handleMouseEvent, _onUnmount, handleContextMenu) => (
+            <div
+              data-selection-end="200"
+              data-selection-linear-offset="0"
+              data-selection-linear-width="400"
+              data-selection-start="0"
+              data-selection-type="SEQ"
+              data-selection-viewer="LINEAR"
+              data-testid="seq-context-target-outside"
+              id="seq-context-target-outside"
+              onContextMenu={handleContextMenu as unknown as React.MouseEventHandler<HTMLDivElement>}
+            />
+          )}
+        </SelectionHandler>
+      </SelectionContext.Provider>,
+    );
+
+    act(() => {
+      (handlerRef.current as unknown as { setSelection: typeof SelectionHandler.prototype.setSelection }).setSelection(
+        existingSelection,
+        {
+          fragmentSelection,
+          skipLastSelectionUpdate: true,
+        },
+      );
+    });
+    setSelection.mockClear();
+
+    const target = screen.getByTestId("seq-context-target-outside");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      configurable: true,
+      value: mockRect,
+    });
+
+    // clientX=20 on a 400px block covering [0,200] => base 10, which is outside [50,90]
+    fireEvent.contextMenu(target, { button: 2, clientX: 20, clientY: 10 });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(setSelection).toHaveBeenCalledTimes(1);
+    const newSel = setSelection.mock.calls[0]?.[0];
+    expect(newSel.start).toBe(10);
+    expect(newSel.end).toBe(10);
+    const payload = onContextMenu.mock.calls[0]?.[0];
+    expect(payload.fragmentSelection).toBeUndefined();
   });
 });
