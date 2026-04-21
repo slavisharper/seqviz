@@ -181,7 +181,11 @@ export default class Linear extends React.Component<LinearProps> {
             const visStart = Math.max(tailStart, blockStart);
             const visEnd = Math.min(tailEnd, blockEnd);
             const seqOffset = visStart - tailStart;
-            const visibleSeq = p.tail!.slice(seqOffset, seqOffset + (visEnd - visStart));
+            const rawSlice = p.tail!.slice(seqOffset, seqOffset + (visEnd - visStart));
+            // The tail is always provided 5'→3'. For a reverse primer the tail sits to the
+            // RIGHT of the primer body and is read right-to-left, so we reverse the slice
+            // so the characters are placed left-to-right in the correct visual order.
+            const visibleSeq = p.direction === -1 ? rawSlice.split("").reverse().join("") : rawSlice;
             primerTailRows[i].push({
               primerId: p.id,
               start: tailStart,

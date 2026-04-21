@@ -199,19 +199,15 @@ const SingleNamedElement = (props: {
   const annotationCharacterWidth = 0.591 * fontSize;
   const availableCharacters = Math.floor((width - 40) / annotationCharacterWidth);
 
-  // Primer sequences are written 5'→3'. Reverse primers (direction -1) must be
-  // displayed in reverse so the sequence reads correctly in that orientation.
-  const displaySeq = direction === -1 ? name.split("").reverse().join("") : name;
-
   // Ellipsize or hide the name if it's too long.
-  let displayName = displaySeq;
-  if (displaySeq.length > availableCharacters) {
+  let displayName = name;
+  if (name.length > availableCharacters) {
     const charactersToShow = availableCharacters - 1;
     if (charactersToShow < 3) {
       // If we can't show at least three characters, don't show any.
       displayName = "";
     } else {
-      displayName = `${displaySeq.slice(0, charactersToShow)}…`;
+      displayName = `${name.slice(0, charactersToShow)}…`;
     }
   }
 
@@ -226,7 +222,7 @@ const SingleNamedElement = (props: {
   return (
     <g id={element.id} transform={`translate(${x}, ${0.1 * height})`}>
       {/* <title> provides a hover tooltip on most browsers */}
-      <title>{displaySeq}</title>
+      <title>{name}</title>
       <path
         ref={inputRef(element.id, {
           end: end,
