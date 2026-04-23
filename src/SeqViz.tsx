@@ -676,6 +676,22 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
         .map(item => ({ ...item, start: item.start - clampOffset, end: item.end - clampOffset }));
     };
 
+    // Cut sites that overlap (even partially) the clamped range should remain visible.
+    // Their recognition-site boundaries are clamped; fcut/rcut are remapped into clamped
+    // coordinates (CutSites.tsx already handles positions that fall outside the block).
+    const filterAndRemapCutSites = (items: CutSite[]): CutSite[] => {
+      if (!clampProp) return items;
+      return items
+        .filter(item => item.start < item.end && item.end > clampOffset && item.start < clampEnd)
+        .map(item => ({
+          ...item,
+          start: Math.max(item.start, clampOffset) - clampOffset,
+          end: Math.min(item.end, clampEnd) - clampOffset,
+          fcut: item.fcut - clampOffset,
+          rcut: item.rcut - clampOffset,
+        }));
+    };
+
     // For user-specified translation arrays, filter and remap before generation
     let translationsInput = this.props.translations;
     if (clampProp && Array.isArray(translationsInput)) {
@@ -708,7 +724,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
       bpColors: this.props.bpColors || {},
       copyEvent: this.props.copyEvent || (() => false),
       selectAllEvent: this.props.selectAllEvent || (() => false),
-      cutSites: filterAndRemap(this.state.cutSites),
+      cutSites: filterAndRemapCutSites(this.state.cutSites),
       highlights: filterAndRemap(
         (highlights || []).map(
           (h, i): Highlight => ({
@@ -777,7 +793,7 @@ export default class SeqViz extends React.Component<SeqVizProps, SeqVizState> {
           seq={clampedSeq}
           compSeq={clampedCompSeq}
           annotations={filterAndRemap(this.state.annotations)}
-          cutSites={filterAndRemap(this.state.cutSites)}
+          cutSites={filterAndRemapCutSites(this.state.cutSites)}
           fragments={filterAndRemap(this.state.fragments)}
           search={filterAndRemap(this.state.search)}
         />
