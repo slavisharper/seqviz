@@ -215,8 +215,8 @@ const SingleNamedElement = (props: {
   const phosphoFill = color ? contrastText(color) : annotationLabel.fill;
   const phosphoStroke = phosphoFill === "#fff" ? "rgba(17, 17, 17, 0.9)" : "rgba(255, 255, 255, 0.95)";
   const phosphoArrowInset = Math.min(8 * cW, w);
-  const phosphoX = direction === 1 ? width - phosphoArrowInset / 2 : phosphoArrowInset / 2;
-  const phosphoY = -Math.max(5, aH + 2);
+  const phosphoX = direction === 1 ? width - phosphoArrowInset / 2 + 10 : phosphoArrowInset / 2 - 10;
+  const phosphoY = direction === 1 ? -Math.max(5, aH + 2) + 3 : height + Math.max(5, aH + 2) - 3;
   const phosphoBadgeFill = color || "#f8fafc";
 
   return (

@@ -157,6 +157,7 @@ export const buildGibsonAssemblyPreset = (seq = "", annotations: AnnotationProp[
       id: `${fragment.id}-rev`,
       name: `${fragment.name} reverse primer`,
       start: fragment.end - GIBSON_PRIMER_LENGTH,
+      isPhosphorylated: true,
     },
   ]);
 
