@@ -302,14 +302,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     const fragmentRows = stackElements(fragments, seqLength);
     const annotationRows = stackElements(annotations, seqLength);
     const combinedAnnotationRows = fragmentRows.concat(annotationRows);
-    const primerForwardRows = stackElements(
-      primers.filter(primer => primer.direction === 1),
-      seqLength,
-    );
-    const primerReverseRows = stackElements(
-      primers.filter(primer => primer.direction === -1),
-      seqLength,
-    );
+    const primerRows = stackElements(primers, seqLength);
 
     const annotationRowIndex = new Map<string, number>();
     combinedAnnotationRows.forEach((row, rowIndex) => {
@@ -318,17 +311,10 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       });
     });
 
-    const primerForwardRowIndex = new Map<string, number>();
-    primerForwardRows.forEach((row, rowIndex) => {
+    const primerRowIndex = new Map<string, number>();
+    primerRows.forEach((row, rowIndex) => {
       row.forEach(primer => {
-        primerForwardRowIndex.set(primer.id, rowIndex);
-      });
-    });
-
-    const primerReverseRowIndex = new Map<string, number>();
-    primerReverseRows.forEach((row, rowIndex) => {
-      row.forEach(primer => {
-        primerReverseRowIndex.set(primer.id, rowIndex);
+        primerRowIndex.set(primer.id, rowIndex);
       });
     });
 
@@ -377,11 +363,7 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       currentY += LINE_HEIGHT + 2;
     }
 
-    const hasRowsBelowIndex =
-      orfRows.length > 0 ||
-      combinedAnnotationRows.length > 0 ||
-      primerForwardRows.length > 0 ||
-      primerReverseRows.length > 0;
+    const hasRowsBelowIndex = orfRows.length > 0 || combinedAnnotationRows.length > 0 || primerRows.length > 0;
     const postIndexGap = hasRowsBelowIndex ? ORF_INDEX_GAP : TRACK_GAP;
     currentY += postIndexGap;
 
@@ -398,23 +380,16 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       currentY += annotationAreaHeight + TRACK_GAP;
     }
 
-    const primerForwardY = currentY;
-    const primerForwardHeight = primerForwardRows.length ? primerForwardRows.length * primerRowHeight - ROW_GAP : 0;
-    if (primerForwardHeight) {
-      currentY += primerForwardHeight + ROW_GAP;
-    }
-
-    const primerReverseY = currentY;
-    const primerReverseHeight = primerReverseRows.length ? primerReverseRows.length * primerRowHeight - ROW_GAP : 0;
-    if (primerReverseHeight) {
-      currentY += primerReverseHeight + TRACK_GAP;
+    const primerY = currentY;
+    const primerHeight = primerRows.length ? primerRows.length * primerRowHeight - ROW_GAP : 0;
+    if (primerHeight) {
+      currentY += primerHeight + TRACK_GAP;
     }
 
     const featureAreaBottomCandidates = [mapBottom];
     if (orfAreaHeight) featureAreaBottomCandidates.push(orfStartY + orfAreaHeight);
     if (annotationAreaHeight) featureAreaBottomCandidates.push(annotationStartY + annotationAreaHeight);
-    if (primerForwardHeight) featureAreaBottomCandidates.push(primerForwardY + primerForwardHeight);
-    if (primerReverseHeight) featureAreaBottomCandidates.push(primerReverseY + primerReverseHeight);
+    if (primerHeight) featureAreaBottomCandidates.push(primerY + primerHeight);
     const featureAreaBottom = Math.max(...featureAreaBottomCandidates);
 
     const selectionHighlightTop = mapBottom + 1;
@@ -428,12 +403,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       annotationRowIndex,
       annotationStartY,
       baselineY: mapBottom,
-      primerForwardRowHeight: primerRowHeight,
-      primerForwardRowIndex,
-      primerForwardY,
-      primerReverseRowHeight: primerRowHeight,
-      primerReverseRowIndex,
-      primerReverseY,
+      primerRowHeight,
+      primerRowIndex,
+      primerY,
     };
 
     const enzymeLabelsWithSource = enzymeLabels.map(label => ({
@@ -479,17 +451,8 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       });
     });
 
-    primerForwardRows.forEach((row, rowIndex) => {
-      const rowTopY = primerForwardY + rowIndex * primerRowHeight;
-      row.forEach(primer => {
-        if (inlinePrimerIds.has(primer.id)) return;
-        const midpoint = rangeMidpoint(primer.start, primer.end, scale.seqLength);
-        addHiddenFeatureMeta(primer.id, primer.name, midpoint, rowTopY);
-      });
-    });
-
-    primerReverseRows.forEach((row, rowIndex) => {
-      const rowTopY = primerReverseY + rowIndex * primerRowHeight;
+    primerRows.forEach((row, rowIndex) => {
+      const rowTopY = primerY + rowIndex * primerRowHeight;
       row.forEach(primer => {
         if (inlinePrimerIds.has(primer.id)) return;
         const midpoint = rangeMidpoint(primer.start, primer.end, scale.seqLength);
@@ -577,20 +540,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
           isFeatureHovered={this.isFeatureHovered}
           onFeatureHover={this.handleFeatureHover}
           rowSpacing={primerRowHeight}
-          rows={primerForwardRows}
+          rows={primerRows}
           scale={scale}
-          startY={primerForwardY}
-        />
-        <PrimerTrack
-          featureHeight={primerFeatureHeight}
-          inlinePrimerIds={inlinePrimerIds}
-          inputRef={inputRef}
-          isFeatureHovered={this.isFeatureHovered}
-          onFeatureHover={this.handleFeatureHover}
-          rowSpacing={primerRowHeight}
-          rows={primerReverseRows}
-          scale={scale}
-          startY={primerReverseY}
+          startY={primerY}
         />
         <LinearMapSeparators
           bottom={segmentLineBottom}
@@ -732,12 +684,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
       annotationRowIndex: Map<string, number>;
       annotationStartY: number;
       baselineY: number;
-      primerForwardRowHeight: number;
-      primerForwardRowIndex: Map<string, number>;
-      primerForwardY: number;
-      primerReverseRowHeight: number;
-      primerReverseRowIndex: Map<string, number>;
-      primerReverseY: number;
+      primerRowHeight: number;
+      primerRowIndex: Map<string, number>;
+      primerY: number;
     },
   ): number | null {
     const primary = label.labels[0];
@@ -751,16 +700,9 @@ export default class LinearMap extends React.PureComponent<LinearMapProps> {
     }
 
     if (label.groupType === "primer") {
-      const direction = primary.direction || 1;
-      if (direction === 1) {
-        const rowIndex = context.primerForwardRowIndex.get(primary.id);
-        if (typeof rowIndex === "undefined") return context.primerForwardY;
-        const rowY = context.primerForwardY + rowIndex * context.primerForwardRowHeight;
-        return rowY + LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
-      }
-      const rowIndex = context.primerReverseRowIndex.get(primary.id);
-      if (typeof rowIndex === "undefined") return context.primerReverseY;
-      const rowY = context.primerReverseY + rowIndex * context.primerReverseRowHeight;
+      const rowIndex = context.primerRowIndex.get(primary.id);
+      if (typeof rowIndex === "undefined") return context.primerY;
+      const rowY = context.primerY + rowIndex * context.primerRowHeight;
       return rowY + LINE_HEIGHT * PRIMER_HEIGHT_RATIO;
     }
 
