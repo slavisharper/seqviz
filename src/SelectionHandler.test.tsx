@@ -322,4 +322,138 @@ describe("SelectionHandler context menu enzyme selection", () => {
     const payload = onContextMenu.mock.calls[0]?.[0];
     expect(payload.fragmentSelection).toBeUndefined();
   });
+
+  it("preserves selection when right-click is inside a clockwise origin-crossing selection (start > end)", () => {
+    const setSelection = jest.fn();
+    const onContextMenu = jest.fn();
+    // CW wrap-around: covers bases [180, 200) ∪ [0, 10]
+    const existingSelection: Selection = {
+      ...defaultSelection,
+      start: 180,
+      end: 10,
+      clockwise: true,
+      length: 30,
+      type: "SEQ",
+      viewer: "LINEAR",
+    };
+    const handlerRef = React.createRef<SelectionHandler>();
+
+    render(
+      <SelectionContext.Provider value={existingSelection}>
+        <SelectionHandler
+          ref={handlerRef}
+          center={{ x: 0, y: 0 }}
+          centralIndex={0}
+          onContextMenu={onContextMenu}
+          seq={"A".repeat(200)}
+          setCentralIndex={() => {}}
+          setSelection={setSelection}
+          yDiff={0}
+        >
+          {(_inputRef, _handleMouseEvent, _onUnmount, handleContextMenu) => (
+            <div
+              data-selection-end="200"
+              data-selection-linear-offset="0"
+              data-selection-linear-width="400"
+              data-selection-start="0"
+              data-selection-type="SEQ"
+              data-selection-viewer="LINEAR"
+              data-testid="seq-context-cw-wrap"
+              id="seq-context-cw-wrap"
+              onContextMenu={handleContextMenu as unknown as React.MouseEventHandler<HTMLDivElement>}
+            />
+          )}
+        </SelectionHandler>
+      </SelectionContext.Provider>,
+    );
+
+    act(() => {
+      (handlerRef.current as unknown as { setSelection: typeof SelectionHandler.prototype.setSelection }).setSelection(
+        existingSelection,
+        { skipLastSelectionUpdate: true },
+      );
+    });
+    setSelection.mockClear();
+
+    const target = screen.getByTestId("seq-context-cw-wrap");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      configurable: true,
+      value: mockRect,
+    });
+
+    // clientX=380 on a 400px block covering [0,200] => base 190, which IS in the CW wrap selection [180,200)∪[0,10]
+    fireEvent.contextMenu(target, { button: 2, clientX: 380, clientY: 10 });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(setSelection).not.toHaveBeenCalled();
+    const payload = onContextMenu.mock.calls[0]?.[0];
+    expect(payload.selection).toMatchObject({ start: 180, end: 10 });
+  });
+
+  it("preserves selection when right-click is inside a counter-clockwise origin-crossing selection (end > start)", () => {
+    const setSelection = jest.fn();
+    const onContextMenu = jest.fn();
+    // CCW wrap-around: goes backward from start=10 past origin to end=190, covers [190, 200) ∪ [0, 10]
+    const existingSelection: Selection = {
+      ...defaultSelection,
+      start: 10,
+      end: 190,
+      clockwise: false,
+      length: 20,
+      type: "SEQ",
+      viewer: "LINEAR",
+    };
+    const handlerRef = React.createRef<SelectionHandler>();
+
+    render(
+      <SelectionContext.Provider value={existingSelection}>
+        <SelectionHandler
+          ref={handlerRef}
+          center={{ x: 0, y: 0 }}
+          centralIndex={0}
+          onContextMenu={onContextMenu}
+          seq={"A".repeat(200)}
+          setCentralIndex={() => {}}
+          setSelection={setSelection}
+          yDiff={0}
+        >
+          {(_inputRef, _handleMouseEvent, _onUnmount, handleContextMenu) => (
+            <div
+              data-selection-end="200"
+              data-selection-linear-offset="0"
+              data-selection-linear-width="400"
+              data-selection-start="0"
+              data-selection-type="SEQ"
+              data-selection-viewer="LINEAR"
+              data-testid="seq-context-ccw-wrap"
+              id="seq-context-ccw-wrap"
+              onContextMenu={handleContextMenu as unknown as React.MouseEventHandler<HTMLDivElement>}
+            />
+          )}
+        </SelectionHandler>
+      </SelectionContext.Provider>,
+    );
+
+    act(() => {
+      (handlerRef.current as unknown as { setSelection: typeof SelectionHandler.prototype.setSelection }).setSelection(
+        existingSelection,
+        { skipLastSelectionUpdate: true },
+      );
+    });
+    setSelection.mockClear();
+
+    const target = screen.getByTestId("seq-context-ccw-wrap");
+    Object.defineProperty(target, "getBoundingClientRect", {
+      configurable: true,
+      value: mockRect,
+    });
+
+    // clientX=390 on a 400px block covering [0,200] => base 195, which IS in the CCW wrap selection [190,200)∪[0,10]
+    fireEvent.contextMenu(target, { button: 2, clientX: 390, clientY: 10 });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(setSelection).not.toHaveBeenCalled();
+    const payload = onContextMenu.mock.calls[0]?.[0];
+    expect(payload.selection).toMatchObject({ start: 10, end: 190 });
+  });
 });

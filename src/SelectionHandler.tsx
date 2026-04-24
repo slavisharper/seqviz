@@ -219,26 +219,28 @@ export default class SelectionHandler extends React.PureComponent<SelectionHandl
 
     const start = typeof selection.start === "number" ? selection.start : (selection.end ?? 0);
     const end = typeof selection.end === "number" ? selection.end : (selection.start ?? start);
-    const viewer = selection.viewer === "CIRCULAR" ? "CIRCULAR" : "LINEAR";
-    const seqLength = this.props.seq?.length || 0;
-    const selectionLength = typeof selection.length === "number" ? selection.length : undefined;
+    const clockwise = typeof selection.clockwise === "boolean" ? selection.clockwise : true;
 
     if (start === end) {
       return false;
     }
 
-    if (start < end) {
-      return base >= start && base <= end;
+    // Detect origin-crossing (wrap-around) selections using the clockwise direction:
+    // - clockwise with start > end: goes forward from start past the origin to end
+    // - counter-clockwise with end > start: goes backward from start past the origin to end
+    const crossesOrigin = (clockwise && start > end) || (!clockwise && end > start);
+
+    if (crossesOrigin) {
+      if (clockwise) {
+        // CW wrap: covers [start, seqLength) ∪ [0, end]
+        return base >= start || base <= end;
+      } else {
+        // CCW wrap: covers [end, seqLength) ∪ [0, start]
+        return base >= end || base <= start;
+      }
     }
 
-    const wrapsAround =
-      viewer === "CIRCULAR" ||
-      (viewer === "LINEAR" && selectionLength && seqLength > 0 && selectionLength > Math.abs(start - end));
-
-    if (wrapsAround) {
-      return base >= start || base <= end;
-    }
-
+    // No wrap-around: simple range check
     const min = Math.min(start, end);
     const max = Math.max(start, end);
     return base >= min && base <= max;
