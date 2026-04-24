@@ -466,11 +466,13 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             direction={1}
             elementHeight={elementHeight}
             findXAndWidth={this.findXAndWidthElement}
+            findXAndWidthBp={this.findXAndWidth}
             firstBase={firstBase}
             fullSeq={fullSeq}
             inputRef={inputRef}
             lastBase={lastBase}
             primerRows={primerFwdRows}
+            primerTailRows={primerTailRows}
             seqBlockRef={this}
             width={size.width}
             yDiff={primerFwdYDiff}
@@ -520,11 +522,13 @@ export class SeqBlock extends React.PureComponent<SeqBlockProps> {
             direction={-1}
             elementHeight={elementHeight}
             findXAndWidth={this.findXAndWidthElement}
+            findXAndWidthBp={this.findXAndWidth}
             firstBase={firstBase}
             fullSeq={fullSeq}
             inputRef={inputRef}
             lastBase={lastBase}
             primerRows={primerRevRows}
+            primerTailRows={primerTailRows}
             seqBlockRef={this}
             width={size.width}
             yDiff={primerRevYDiff}

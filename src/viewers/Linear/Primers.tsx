@@ -2,9 +2,9 @@ import * as React from "react";
 
 import { InputRefFunc } from "../../SelectionHandler";
 import { COLOR_BORDER_MAP, contrastText, darkerColor } from "../../core/colors";
-import { Primer } from "../../core/elements";
+import { Primer, PrimerTailSegment } from "../../core/elements";
 import { annotation, annotationLabel } from "../../style";
-import { FindXAndWidthElementType } from "./SeqBlock";
+import { FindXAndWidthElementType, FindXAndWidthType } from "./SeqBlock";
 
 const hoverOtherPrimerRows = (className: string, opacity: number) => {
   if (!document) return;
@@ -23,11 +23,13 @@ const PrimeRows = (props: {
   direction: 1 | -1;
   elementHeight: number;
   findXAndWidth: FindXAndWidthElementType;
+  findXAndWidthBp?: FindXAndWidthType;
   firstBase: number;
   fullSeq: string;
   inputRef: InputRefFunc;
   lastBase: number;
   primerRows: Primer[][];
+  primerTailRows?: PrimerTailSegment[];
   seqBlockRef: unknown;
   width: number;
   yDiff: number;
@@ -39,12 +41,14 @@ const PrimeRows = (props: {
         bpsPerBlock={props.bpsPerBlock}
         direction={props.direction}
         findXAndWidth={props.findXAndWidth}
+        findXAndWidthBp={props.findXAndWidthBp}
         firstBase={props.firstBase}
         fullSeq={props.fullSeq}
         height={props.elementHeight}
         inputRef={props.inputRef}
         lastBase={props.lastBase}
         primers={primers}
+        primerTailRows={props.primerTailRows}
         seqBlockRef={props.seqBlockRef}
         width={props.width}
         y={props.yDiff + props.elementHeight * i}
@@ -63,12 +67,14 @@ const PrimerRow = (props: {
   bpsPerBlock: number;
   direction: 1 | -1;
   findXAndWidth: FindXAndWidthElementType;
+  findXAndWidthBp?: FindXAndWidthType;
   firstBase: number;
   fullSeq: string;
   height: number;
   inputRef: InputRefFunc;
   lastBase: number;
   primers: Primer[];
+  primerTailRows?: PrimerTailSegment[];
   seqBlockRef: unknown;
   width: number;
   y: number;
@@ -103,13 +109,15 @@ const SingleNamedElement = (props: {
   element: Primer;
   elements: Primer[];
   findXAndWidth: FindXAndWidthElementType;
+  findXAndWidthBp?: FindXAndWidthType;
   firstBase: number;
   height: number;
   index: number;
   inputRef: InputRefFunc;
   lastBase: number;
+  primerTailRows?: PrimerTailSegment[];
 }) => {
-  const { element, elements, findXAndWidth, firstBase, index, inputRef, lastBase } = props;
+  const { element, elements, findXAndWidth, findXAndWidthBp, firstBase, index, inputRef, lastBase, primerTailRows } = props;
 
   const { color, direction, end, name, start, isPhosphorylated } = element;
   const forward = direction === 1;
@@ -214,10 +222,44 @@ const SingleNamedElement = (props: {
   const neonStroke = isPhosphorylated ? "#39ff14" : undefined;
   const phosphoFill = color ? contrastText(color) : annotationLabel.fill;
   const phosphoStroke = phosphoFill === "#fff" ? "rgba(17, 17, 17, 0.9)" : "rgba(255, 255, 255, 0.95)";
-  const phosphoArrowInset = Math.min(8 * cW, w);
-  const phosphoX = direction === 1 ? width - phosphoArrowInset / 2 + 10 : phosphoArrowInset / 2 - 10;
   const phosphoY = direction === 1 ? -Math.max(5, aH + 2) + 3 : height + Math.max(5, aH + 2) - 3;
   const phosphoBadgeFill = color || "#f8fafc";
+
+  // Determine where the 5' tip of the oligo (body + tail) is and whether it falls in this block.
+  // The P badge should appear only on the block that contains the 5' end of the full oligo.
+  let showPhospho = false;
+  let phosphoX = 0;
+  if (isPhosphorylated) {
+    const tailSeg = primerTailRows?.find(t => t.primerId === element.id);
+    if (forward) {
+      if (tailSeg) {
+        // 5' tip = absolute start of the tail (leftmost bp of the full oligo)
+        showPhospho = tailSeg.start >= firstBase && tailSeg.start < lastBase;
+        if (showPhospho && findXAndWidthBp) {
+          const { x: tailX } = findXAndWidthBp(tailSeg.start, tailSeg.end);
+          phosphoX = tailX - origX;
+        }
+      } else {
+        // No tail: 5' tip = body start
+        showPhospho = element.start >= firstBase && element.start < lastBase;
+        phosphoX = 0; // left edge of body group
+      }
+    } else {
+      // Reverse primer: 5' end is the rightmost point
+      if (tailSeg) {
+        // 5' tip = absolute end of the tail (rightmost bp of the full oligo)
+        showPhospho = tailSeg.end > firstBase && tailSeg.end <= lastBase;
+        if (showPhospho && findXAndWidthBp) {
+          const { x: tailX, width: tailW } = findXAndWidthBp(tailSeg.start, tailSeg.end);
+          phosphoX = tailX + tailW - origX;
+        }
+      } else {
+        // No tail: 5' tip = body end
+        showPhospho = element.end > firstBase && element.end <= lastBase;
+        phosphoX = width; // right edge of body group
+      }
+    }
+  }
 
   return (
     <g id={element.id} transform={`translate(${x}, ${0.1 * height})`}>
@@ -269,7 +311,7 @@ const SingleNamedElement = (props: {
       >
         {displayName}
       </text>
-      {isPhosphorylated && (
+      {isPhosphorylated && showPhospho && (
         <g
           className="la-vz-primer-phospho"
           onMouseOut={() => hoverOtherPrimerRows(element.id, 0.85)}
