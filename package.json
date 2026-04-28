@@ -1,7 +1,7 @@
 {
   "name": "@slavisharper/seqviz",
   "description": "Forked seqviz package to support lab thread sequence viewer",
-  "version": "1.0.85",
+  "version": "1.0.86",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
