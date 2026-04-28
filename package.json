@@ -24,7 +24,7 @@
     "lint": "prettier ./src/** --check && eslint src --ext ts,tsx --quiet",
     "start": "cd demo && npm run start",
     "dev": "cd demo && npm install && npm run dev",
-    "test": "CI=true jest"
+    "test": "jest --ci"
   },
   "keywords": [
     "AA",

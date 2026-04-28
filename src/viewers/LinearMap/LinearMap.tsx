@@ -221,7 +221,7 @@ interface LinearMapState {
   hoveredFeatures: Record<string, boolean>;
 }
 
-export default class LinearMap extends React.PureComponent<LinearMapProps> {
+export default class LinearMap extends React.Component<LinearMapProps> {
   static contextType = CentralIndexContext;
   declare context: React.ContextType<typeof CentralIndexContext>;
 
