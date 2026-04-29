@@ -9,7 +9,7 @@ import { LinearGroupLabelOverlay } from "./GroupLabelOverlay";
 import { ENZYME_LABEL_ROW_SPACING } from "./constants";
 import { LinearMapScale } from "./utils";
 
-const ANNOTATION_HEIGHT_RATIO = 0.8;
+const ANNOTATION_HEIGHT_RATIO = 0.9;
 const PRIMER_HEIGHT_RATIO = 0.7;
 
 export interface LinearLabelItem {

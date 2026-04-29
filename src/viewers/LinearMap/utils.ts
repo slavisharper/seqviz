@@ -61,3 +61,41 @@ export const segmentWidth = (scale: LinearMapScale, segment: RangeSegment) => {
 export const mapRangeToSegments = (range: Range, seqLength: number) => {
   return createSegments(range.start, range.end, seqLength);
 };
+
+/**
+ * Compute the LinearMap zoom factor using exponential interpolation.
+ *
+ * - z=0   → 1x  (no zoom)
+ * - z=100 → max(8, seqLength/100)x  (≈100 bp visible for long sequences)
+ *
+ * @param zoom      Public zoom percent in [0, 100].
+ * @param seqLength Total sequence length in base pairs.
+ * @returns         Multiplicative zoom factor ≥ 1.
+ */
+export const computeLinearMapZoomFactor = (zoom: number, seqLength: number): number => {
+  const zNorm = clamp(zoom, 0, 100) / 100;
+  const maxFactorNeeded = Math.max(1, seqLength / 100);
+  const maxFactor = Math.max(8, maxFactorNeeded);
+  return Math.exp(Math.log(maxFactor) * zNorm);
+};
+
+/**
+ * Compute the approximate number of visible base pairs given a zoom factor.
+ *
+ * @param zoomFactor  The multiplicative zoom factor (from computeLinearMapZoomFactor).
+ * @param seqLength   Total sequence length in base pairs.
+ * @param viewWidth   Pixel width of the visible viewport.
+ * @param mapWidthBase Unzoomed pixel width of the map area.
+ * @returns           Approximate number of visible base pairs.
+ */
+export const computeVisibleBp = (
+  zoomFactor: number,
+  seqLength: number,
+  viewWidth: number,
+  mapWidthBase: number,
+): number => {
+  if (zoomFactor <= 0 || mapWidthBase <= 0) return seqLength;
+  const pxPerBase = (mapWidthBase * zoomFactor) / Math.max(seqLength, 1);
+  if (pxPerBase <= 0) return seqLength;
+  return Math.round(viewWidth / pxPerBase);
+};

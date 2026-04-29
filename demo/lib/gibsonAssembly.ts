@@ -3,6 +3,13 @@ import { AnnotationProp, FragmentProp, Primer, SeparatorProp, SingleStrandAnnota
 const GIBSON_PRIMER_LENGTH = 22;
 const GIBSON_PRIMER_COLOR = "#7C3AED";
 
+const DNA_COMPLEMENT: Record<string, string> = {
+  A: "T",
+  C: "G",
+  G: "C",
+  T: "A",
+};
+
 // These overlap windows are intentionally placed inside annotation gaps so the demo fragments
 // model a Gibson Assembly without bisecting any of the plasmid's existing features.
 const GIBSON_JUNCTIONS = [
@@ -88,6 +95,14 @@ const sliceCircularSequence = (seq: string, start: number, end: number) => {
   return `${seq.slice(start)}${seq.slice(0, end)}`.toUpperCase();
 };
 
+const reverseComplement = (seq: string) =>
+  seq
+    .toUpperCase()
+    .split("")
+    .reverse()
+    .map(base => DNA_COMPLEMENT[base] || "N")
+    .join("");
+
 export const buildGibsonAssemblyPreset = (seq = "", annotations: AnnotationProp[] = []) => {
   const overlapSeqs = GIBSON_JUNCTIONS.map(junction => sliceCircularSequence(seq, junction.overlapStart, junction.overlapEnd));
 
@@ -127,7 +142,9 @@ export const buildGibsonAssemblyPreset = (seq = "", annotations: AnnotationProp[
     return {
       ...fragment,
       end: endJunction.adjustedDividerIndex,
+      endJunction,
       start: startJunction.adjustedDividerIndex,
+      startJunction,
     };
   });
 
@@ -149,6 +166,7 @@ export const buildGibsonAssemblyPreset = (seq = "", annotations: AnnotationProp[
       name: `${fragment.name} forward primer`,
       start: fragment.start,
       isPhosphorylated: true,
+      tail: fragment.startJunction.overlapSeq || undefined,
     },
     {
       color: fragment.primerColor,
@@ -158,6 +176,7 @@ export const buildGibsonAssemblyPreset = (seq = "", annotations: AnnotationProp[
       name: `${fragment.name} reverse primer`,
       start: fragment.end - GIBSON_PRIMER_LENGTH,
       isPhosphorylated: true,
+      tail: fragment.endJunction.overlapSeq ? reverseComplement(fragment.endJunction.overlapSeq) : undefined,
     },
   ]);
 

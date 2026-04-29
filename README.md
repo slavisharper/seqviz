@@ -261,6 +261,16 @@ highlights = [
 
 How zoomed the viewer(s) should be `0-100`. Key'ed by viewer type, but only `linear` is supported.
 
+The `linearMap` zoom uses dynamic exponential scaling based on sequence length:
+
+- `z=0` → **1x** (full sequence visible)
+- `z=100` → **max(8, seqLength/100)x** (targets ~100 bp visible window for long sequences)
+- Intermediate values follow smooth exponential interpolation: `zoomFactor = exp(ln(maxFactor) * z/100)`
+
+For example, with a 10,000 bp sequence at `z=100`, the zoom factor is ~100x, making approximately 100 bp visible in the viewport. For short sequences (≤800 bp) the max zoom is capped at 8x to match the original behavior.
+
+The demo displays the current zoom as `z% · xN · ~bp`, e.g. `75% · 17.78x · ~427 bp`.
+
 #### `colors (=[])`
 
 An array of colors to use for annotations, translations, and highlights. Defaults are in [src/colors.ts](src/colors.ts).

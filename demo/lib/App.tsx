@@ -14,6 +14,7 @@ import {
   SingleStrandAnnotationProp,
 } from "../../src/core/elements";
 import { type FragmentSelection, type Selection, defaultSelection } from "../../src/state/selectionContext";
+import { computeLinearMapZoomFactor, computeVisibleBp } from "../../src/viewers/LinearMap/utils";
 import Header from "./Header";
 import CheckboxInput from "./components/CheckboxInput";
 import CircularZoomInput from "./components/CircularZoomInput";
@@ -587,7 +588,18 @@ export default class App extends React.Component<Record<string, never>, AppState
                         value={this.state.linearMapZoom}
                         onChange={e => this.setState({ linearMapZoom: parseInt(e.target.value, 10) })}
                       />
-                      <span className="slider-value">{this.state.linearMapZoom}</span>
+                      <span className="slider-value">
+                        {this.state.linearMapZoom}%
+                        {" · "}
+                        {computeLinearMapZoomFactor(this.state.linearMapZoom, this.state.seq.length || 1).toFixed(2)}x
+                        {" · "}
+                        ~{computeVisibleBp(
+                          computeLinearMapZoomFactor(this.state.linearMapZoom, this.state.seq.length || 1),
+                          this.state.seq.length || 1,
+                          800,
+                          Math.max(800 - 40, 100),
+                        )} bp
+                      </span>
                     </div>
                   </label>
                 </div>

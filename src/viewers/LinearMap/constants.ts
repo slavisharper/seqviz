@@ -16,7 +16,7 @@ export const LABEL_GAP = 14;
 
 export const MIN_MAP_WIDTH = 160;
 
-export const ANNOTATION_HEIGHT_RATIO = 0.8;
+export const ANNOTATION_HEIGHT_RATIO = 0.9;
 
 export const PRIMER_HEIGHT_RATIO = 0.7;
 

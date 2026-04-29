@@ -14,6 +14,21 @@ const rangeContains = (range: { start: number; end: number }, index: number) => 
   return index >= range.start || index <= range.end;
 };
 
+const DNA_COMPLEMENT: Record<string, string> = {
+  A: "T",
+  C: "G",
+  G: "C",
+  T: "A",
+};
+
+const reverseComplement = (seq: string) =>
+  seq
+    .toUpperCase()
+    .split("")
+    .reverse()
+    .map(base => DNA_COMPLEMENT[base] || "N")
+    .join("");
+
 describe("buildGibsonAssemblyPreset", () => {
   it("keeps fragment boundaries out of annotated features, keeps fragments non-overlapping, and aligns dividers to joins", async () => {
     const parsed = await seqparse(file);
@@ -27,7 +42,10 @@ describe("buildGibsonAssemblyPreset", () => {
     expect(primers).toHaveLength(8);
     expect(separators).toHaveLength(4);
 
-    primers.forEach(primer => expect(primer.tail).toBeUndefined());
+    primers.forEach(primer => {
+      expect(primer.tail).toBeDefined();
+      expect(primer.tail?.length).toBeGreaterThan(0);
+    });
 
     fragments.forEach(fragment => {
       expect(boundaryCutsFeature(fragment.start, annotations)).toBe(false);
@@ -46,6 +64,20 @@ describe("buildGibsonAssemblyPreset", () => {
     for (let i = 1; i < sortedFragments.length; i += 1) {
       expect(sortedFragments[i].start).toBeGreaterThanOrEqual(sortedFragments[i - 1].end);
     }
+
+    const forwardTails = fragments.map(fragment => {
+      const forwardPrimer = primers.find(primer => primer.id === `${fragment.id}-fwd`);
+      expect(forwardPrimer?.tail).toBeDefined();
+      return forwardPrimer?.tail || "";
+    });
+
+    fragments.forEach((fragment, index) => {
+      const reversePrimer = primers.find(primer => primer.id === `${fragment.id}-rev`);
+      expect(reversePrimer?.tail).toBeDefined();
+
+      const nextForwardTail = forwardTails[(index + 1) % forwardTails.length];
+      expect(reversePrimer?.tail).toBe(reverseComplement(nextForwardTail));
+    });
 
     separators.forEach(separator => {
       const touchingFragments = fragments.filter(

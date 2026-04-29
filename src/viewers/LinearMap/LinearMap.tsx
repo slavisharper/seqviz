@@ -60,7 +60,7 @@ import {
   stripOrfMeta,
 } from "./helpers";
 import { LinearOrf } from "./types";
-import { LinearMapScale, clamp, normalizeBase, rangeLength, rangeMidpoint } from "./utils";
+import { LinearMapScale, clamp, computeLinearMapZoomFactor, normalizeBase, rangeLength, rangeMidpoint } from "./utils";
 
 export interface LinearMapProps {
   annotations: Annotation[];
@@ -320,8 +320,7 @@ export default class LinearMap extends React.Component<LinearMapProps> {
 
     const baseWidth = size.width || 0;
     const mapWidthBase = Math.max(baseWidth - 2 * PADDING_X, MIN_MAP_WIDTH);
-    const zoomNorm = Math.max(0, Math.min(zoom || 0, 100)) / 100;
-    const zoomFactor = 1 + zoomNorm * 7; // up to 8x width
+    const zoomFactor = computeLinearMapZoomFactor(zoom || 0, seqLength);
     const mapWidth = mapWidthBase * zoomFactor;
     const pxPerBase = mapWidth / seqLength;
     const scale: LinearMapScale = {
